@@ -1,0 +1,18 @@
+[package]
+name = "elf_loader"
+version = "0.1.0"
+authors = ["Philipp Oppermann <dev@phil-opp.com>"]
+
+#[lib]
+#crate-type = ["staticlib"]
+
+[dependencies]
+rlibc = "1"
+xmas-elf = "0.6.0"
+
+[profile.dev]
+# debug = false
+panic = "abort"
+
+[profile.release]
+panic = "abort"
