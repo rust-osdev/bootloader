@@ -84,7 +84,7 @@ load_second_stage_from_disk:
     lea ebx, _start
     sub eax, ebx
     shr eax, 9 # divide by 512 (block size)
-    mov [dap_start_lba], ax
+    mov [dap_start_lba], eax
 
     lea si, dap
     mov ah, 0x42

@@ -21,7 +21,7 @@ load_kernel_from_disk:
     lea ebx, _start
     sub eax, ebx
     shr eax, 9 # divide by 512 (block size)
-    mov [dap_start_lba], ax
+    mov [dap_start_lba], eax
 
     # destination address
     mov edi, 2 * 1024 * 1024 # 2MiB
@@ -33,8 +33,10 @@ load_kernel_from_disk:
     shr ecx, 9
 
 load_next_kernel_block_from_disk:
+    push esi
     lea si, [loading_kernel_block_str]
     call println
+    pop esi
 
     # load block from disk
     lea si, dap
@@ -44,20 +46,28 @@ load_next_kernel_block_from_disk:
 
     # copy block to 2MiB
     push ecx
-    mov ecx, 512 / 4
-    movzx si, [dap_start_lba]
+    push esi
+    mov ecx, 512
+    movzx esi, word ptr [dap_buffer_addr]
 
-    mov ecx, 17 # FIXME
-    rep movsd
+copy_loop:
+    # movsd         # doesn't work, no idea why (same with rep movsd)
+    mov eax, [esi]
+    mov es:[edi], eax
+    add esi, 4
+    add edi, 4
+    sub ecx, 1
+    jnz copy_loop
+
+copy_done:
+    pop esi
     pop ecx
 
     # next block
-    add esi, 1
-    mov [dap_start_lba], si
-    add edi, 512
-
-    lea si, [loading_kernel_block_str]
-    call println
+    mov eax, [dap_start_lba]
+    add eax, 1
+    mov [dap_start_lba], eax
+    # add edi, 512
 
     sub ecx, 1
     jnz load_next_kernel_block_from_disk
@@ -97,6 +107,10 @@ set_up_page_tables:
     mov eax, 0x0
     or eax, (1 | 2 | (1 << 7))
     mov [_p2], eax
+    mov eax, 0x200000
+    or eax, (1 | 2 | (1 << 7))
+    mov [_p2 + 8], eax
+
 
 enable_paging:
     # load P4 to cr3 register (cpu uses this to access the P4 table)
@@ -213,6 +227,7 @@ long_mode:
     lea rdi, [_kernel_start_addr]
     lea rsi, [_kernel_end_addr]
     sub rsi, rdi # calculate kernel size
+    mov rdi, 0x200000
     jmp load_elf
 spin64:
     jmp spin64
