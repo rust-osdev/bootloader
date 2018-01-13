@@ -1,6 +1,10 @@
 ENTRY(_start)
 
 SECTIONS {
+    . = 0x500;
+    /* buffer for loading the kernel */
+    _kernel_buffer = .;
+    . += 512;
     /* page tables */
     . = ALIGN(0x1000);
     _p4 = .;
