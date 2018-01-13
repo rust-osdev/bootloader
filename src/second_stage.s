@@ -9,15 +9,15 @@ second_stage:
     call println
 
 load_kernel_from_disk:
-    lea eax, _kernel_start_addr
-
     # start of memory buffer
+    lea eax, _kernel_buffer
     mov [dap_buffer_addr], ax
 
     # number of disk blocks to load
     mov word ptr [dap_blocks], 1
 
     # number of start block
+    lea eax, _kernel_start_addr
     lea ebx, _start
     sub eax, ebx
     shr eax, 9 # divide by 512 (block size)
