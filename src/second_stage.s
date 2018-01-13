@@ -104,13 +104,14 @@ set_up_page_tables:
     or eax, (1 | 2)
     mov [_p3], eax
     # p2
-    mov eax, 0x0
-    or eax, (1 | 2 | (1 << 7))
-    mov [_p2], eax
-    mov eax, 0x200000
-    or eax, (1 | 2 | (1 << 7))
-    mov [_p2 + 8], eax
-
+    mov eax, (1 | 2 | (1 << 7))
+    mov ecx, 0
+map_p2_table:
+    mov [_p2 + ecx * 8], eax
+    add eax, 0x200000
+    add ecx, 1
+    cmp ecx, 512
+    jb map_p2_table
 
 enable_paging:
     # load P4 to cr3 register (cpu uses this to access the P4 table)
