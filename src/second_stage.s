@@ -49,19 +49,9 @@ load_next_kernel_block_from_disk:
     # copy block to 2MiB
     push ecx
     push esi
-    mov ecx, 512
+    mov ecx, 512 / 4
     movzx esi, word ptr [dap_buffer_addr]
-
-copy_loop:
-    # movsd         # doesn't work, no idea why (same with rep movsd)
-    mov eax, [esi]
-    mov es:[edi], eax
-    add esi, 4
-    add edi, 4
-    sub ecx, 1
-    jnz copy_loop
-
-copy_done:
+    rep movsd [edi], [esi]
     pop esi
     pop ecx
 
