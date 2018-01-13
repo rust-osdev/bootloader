@@ -100,7 +100,7 @@ spin:
 
 # print a string and a newline
 # IN
-#   si: points at zero-terminated String
+#   esi: points at zero-terminated String
 # CLOBBER
 #   ax
 println:
@@ -112,13 +112,13 @@ println:
 
 # print a string
 # IN
-#   si: points at zero-terminated String
+#   esi: points at zero-terminated String
 # CLOBBER
 #   ax
 print:
     cld
 print_loop:
-    lodsb
+    lodsb al, BYTE PTR [esi]
     test al, al
     jz print_done
     call print_char

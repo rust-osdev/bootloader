@@ -34,7 +34,7 @@ load_kernel_from_disk:
 
 load_next_kernel_block_from_disk:
     push esi
-    lea si, [loading_kernel_block_str]
+    lea esi, [loading_kernel_block_str]
     call println
     pop esi
 
