@@ -23,10 +23,10 @@ SECTIONS {
 
         /* second stage */
         _second_stage_start_addr = .;
+        *(.second_stage)
         *(.text .text.*)
         *(.rodata .rodata.*)
         *(.data .data.*)
-        *(.second_stage)
         . = ALIGN(512);
         _second_stage_end_addr = .;
     }
