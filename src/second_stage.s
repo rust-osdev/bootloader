@@ -3,6 +3,8 @@
 .code16
 
 loading_kernel_block_str: .asciz "loading kernel block..."
+kernel_load_failed_str: .asciz "Failed to load kernel"
+no_long_mode_str: .asciz "No long mode support"
 
 second_stage:
     lea si, second_stage_start_str

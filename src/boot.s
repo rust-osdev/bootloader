@@ -183,8 +183,6 @@ error_str: .asciz "Error: "
 no_cpuid_str: .asciz "No CPUID support"
 no_int13h_extensions_str: .asciz "No support for int13h extensions"
 second_stage_load_failed_str: .asciz "Failed to load second stage of bootloader"
-kernel_load_failed_str: .asciz "Failed to load kernel"
-no_long_mode_str: .asciz "No long mode support"
 
 gdtinfo:
    .word gdt_end - gdt - 1  # last byte in table
