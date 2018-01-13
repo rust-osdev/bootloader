@@ -92,7 +92,8 @@ load_second_stage_from_disk:
     jc second_stage_load_failed
 
 jump_to_second_stage:
-    jmp second_stage
+    lea eax, second_stage
+    jmp eax
 
 spin:
     jmp spin
