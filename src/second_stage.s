@@ -24,7 +24,7 @@ load_kernel_from_disk:
     mov [dap_start_lba], eax
 
     # destination address
-    mov edi, 2 * 1024 * 1024 # 2MiB
+    mov edi, 0x400000
 
     # block count
     lea ecx, [_kernel_end_addr]
@@ -225,10 +225,10 @@ long_mode:
     mov [0xb8000], rax
 
     # call load_elf with kernel start address and size as arguments
-    lea rdi, [_kernel_start_addr]
+    lea rax, [_kernel_start_addr]
     lea rsi, [_kernel_end_addr]
-    sub rsi, rdi # calculate kernel size
-    mov rdi, 0x200000
+    sub rsi, rax # calculate kernel size
+    movabs rdi, 0x400000
     jmp load_elf
 spin64:
     jmp spin64
