@@ -70,6 +70,10 @@ pub extern "C" fn load_elf(kernel_start: PhysAddr, kernel_size: u64) -> ! {
     let flags = PageTableFlags::PRESENT;
     map_page(context_switch_fn_virt, context_switch_fn_phys, flags, p4, &mut page_table_end);
 
+    // identity map VGA text buffer
+    let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+    map_page(VirtAddr::new(0xb8000), PhysAddr::new(0xb8000), flags, p4, &mut page_table_end);
+
     let entry_point = VirtAddr::new(elf_file.header.pt2.entry_point());
     unsafe { context_switch(p4_addr, entry_point, stack_end) };
 }
