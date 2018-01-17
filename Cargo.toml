@@ -3,15 +3,14 @@ name = "elf_loader"
 version = "0.1.0"
 authors = ["Philipp Oppermann <dev@phil-opp.com>"]
 
-#[lib]
-#crate-type = ["staticlib"]
-
 [dependencies]
+bitflags = "1.0.1"
 rlibc = "1"
 xmas-elf = "0.6.0"
+x86_64 = "0.2.0-alpha-001"
+usize_conversions = "0.2.0"
 
 [profile.dev]
-# debug = false
 panic = "abort"
 
 [profile.release]

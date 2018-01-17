@@ -24,6 +24,7 @@ SECTIONS {
         /* second stage */
         _second_stage_start_addr = .;
         *(.second_stage)
+        *(.context_switch)
         *(.text .text.*)
         *(.rodata .rodata.*)
         *(.data .data.*)
