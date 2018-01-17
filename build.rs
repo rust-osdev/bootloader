@@ -1,3 +1,4 @@
 fn main() {
-    println!("rerun-if-changed=linker.ld");
+    println!("cargo:rerun-if-changed=kernel.bin");
+    println!("cargo:rerun-if-changed=linker.ld");
 }
