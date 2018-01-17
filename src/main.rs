@@ -9,8 +9,6 @@
 
 extern crate rlibc;
 extern crate xmas_elf;
-#[macro_use]
-extern crate bitflags;
 extern crate x86_64;
 extern crate usize_conversions;
 

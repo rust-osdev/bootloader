@@ -4,7 +4,6 @@ version = "0.1.0"
 authors = ["Philipp Oppermann <dev@phil-opp.com>"]
 
 [dependencies]
-bitflags = "1.0.1"
 rlibc = "1"
 xmas-elf = "0.6.0"
 x86_64 = "0.2.0-alpha-001"
