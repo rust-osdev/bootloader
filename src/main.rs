@@ -18,7 +18,6 @@ use xmas_elf::program::{self, ProgramHeader};
 
 global_asm!(include_str!("boot.s"));
 global_asm!(include_str!("second_stage.s"));
-global_asm!(include_str!("kernel.s"));
 global_asm!(include_str!("context_switch.s"));
 
 extern "C" {

@@ -75,7 +75,7 @@ load_second_stage_from_disk:
     mov [dap_buffer_addr], ax
 
     # number of disk blocks to load
-    lea ebx, _second_stage_end_addr
+    lea ebx, _kernel_inferface_block_end
     sub ebx, eax # second stage end - second stage start
     shr ebx, 9 # divide by 512 (block size)
     mov [dap_blocks], bx

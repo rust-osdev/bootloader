@@ -29,10 +29,9 @@ load_kernel_from_disk:
     mov edi, 0x400000
 
     # block count
-    lea ecx, [_kernel_end_addr]
-    lea eax, [_kernel_start_addr]
-    sub ecx, eax
+    mov ecx, _kib_kernel_size
     shr ecx, 9
+    add ecx, 1
 
 load_next_kernel_block_from_disk:
     push esi
@@ -217,9 +216,7 @@ long_mode:
     mov [0xb8000], rax
 
     # call load_elf with kernel start address and size as arguments
-    lea rax, [_kernel_start_addr]
-    lea rsi, [_kernel_end_addr]
-    sub rsi, rax # calculate kernel size
+    mov rsi, _kib_kernel_size
     movabs rdi, 0x400000
     jmp load_elf
 spin64:

@@ -32,14 +32,10 @@ SECTIONS {
         _second_stage_end_addr = .;
     }
 
-    /* kernel ELF file */
-    . = ALIGN(512);
-    .kernel :
-    {
-        _kernel_start_addr = .;
-        KEEP(*(.kernel))
-        . = ALIGN(512);
-        _kernel_end_addr = .;
-    }
+    _kernel_inferface_block_start = .;
+    _kib_kernel_size = .;
+    . += 512; /* kernel interface block */
+    _kernel_inferface_block_end = .;
 
+    _kernel_start_addr = .;
 }
