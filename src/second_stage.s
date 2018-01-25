@@ -58,10 +58,13 @@ load_next_kernel_block_from_disk:
     mov eax, [dap_start_lba]
     add eax, 1
     mov [dap_start_lba], eax
-    # add edi, 512
 
     sub ecx, 1
     jnz load_next_kernel_block_from_disk
+
+create_memory_map:
+    lea di, es:[_memory_map]
+    call do_e820
 
 check_cpu:
     call check_cpuid
@@ -215,9 +218,11 @@ long_mode:
     movabs rax, 0x00202f212f4b2f4f
     mov [0xb8000], rax
 
-    # call load_elf with kernel start address and size as arguments
-    mov rsi, _kib_kernel_size
+    # call load_elf with kernel start address, size, and memory map as arguments
     movabs rdi, 0x400000
+    mov rsi, _kib_kernel_size
+    lea rdx, _memory_map
+    mov rcx, mmap_ent
     jmp load_elf
 spin64:
     jmp spin64

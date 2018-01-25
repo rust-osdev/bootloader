@@ -13,6 +13,8 @@ SECTIONS {
     . += 0x1000;
     _p2 = .;
     . += 0x1000;
+    _memory_map = .;
+    . += 0x1000;
 
     /* bootloader */
     . = 0x7c00;
