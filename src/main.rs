@@ -14,12 +14,14 @@ extern crate rlibc;
 extern crate xmas_elf;
 extern crate x86_64;
 extern crate usize_conversions;
+extern crate os_bootinfo;
 
 pub use x86_64::PhysAddr;
 use x86_64::VirtAddr;
 use x86_64::structures::paging::{PAGE_SIZE, PageTable, PageTableFlags, PhysFrame};
 use core::slice;
 use usize_conversions::{usize_from, FromUsize};
+use os_bootinfo::BootInfo;
 
 global_asm!(include_str!("boot.s"));
 global_asm!(include_str!("second_stage.s"));
@@ -30,6 +32,7 @@ extern "C" {
     fn context_switch(p4_addr: PhysAddr, entry_point: VirtAddr, stack_pointer: VirtAddr) -> !;
 }
 
+mod boot_info;
 mod page_table;
 
 struct FrameAllocator {
@@ -53,6 +56,9 @@ pub extern "C" fn load_elf(kernel_start: PhysAddr, kernel_size: u64,
     let elf_file = xmas_elf::ElfFile::new(kernel).unwrap();
     xmas_elf::header::sanity_check(&elf_file).unwrap();
 
+    // idea: embed memory map in frame allocator and mark allocated frames as used
+    let boot_info = boot_info::create_from(memory_map_addr, memory_map_entry_count);
+    let memory_map = &mut boot_info.memory_map;
 
     let kernel_end = kernel_start + kernel_size;
     let mut frame_allocator = FrameAllocator {
