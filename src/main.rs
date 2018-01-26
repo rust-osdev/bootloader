@@ -18,7 +18,7 @@ extern crate os_bootinfo;
 
 pub use x86_64::PhysAddr;
 use x86_64::VirtAddr;
-use x86_64::structures::paging::{PAGE_SIZE, PageTable, PageTableFlags, PhysFrame, Page};
+use x86_64::structures::paging::{PageTable, PageTableFlags, PhysFrame, Page};
 use core::slice;
 use usize_conversions::{usize_from, FromUsize};
 use os_bootinfo::BootInfo;
@@ -35,18 +35,7 @@ extern "C" {
 
 mod boot_info;
 mod page_table;
-
-struct FrameAllocator {
-    next: PhysFrame,
-}
-
-impl FrameAllocator {
-    fn allocate_frame(&mut self) -> PhysFrame {
-        let frame = self.next.clone();
-        self.next += 1;
-        frame
-    }
-}
+mod frame_allocator;
 
 #[no_mangle]
 pub extern "C" fn load_elf(kernel_start: PhysAddr, kernel_size: u64,
@@ -59,12 +48,10 @@ pub extern "C" fn load_elf(kernel_start: PhysAddr, kernel_size: u64,
 
     // idea: embed memory map in frame allocator and mark allocated frames as used
     let mut boot_info = boot_info::create_from(memory_map_addr, memory_map_entry_count);
-    let memory_map = &mut boot_info.memory_map;
 
-    let kernel_end = kernel_start + kernel_size;
-    let mut frame_allocator = FrameAllocator {
-        next: PhysFrame::containing_address(kernel_end.align_up(PAGE_SIZE))
-    };
+    let mut frame_allocator = frame_allocator::FrameAllocator(&mut boot_info);
+
+    frame_allocator.mark_as_used(kernel_start, kernel_size);
 
     let p4_frame = frame_allocator.allocate_frame();
     let p4_addr = p4_frame.start_address();
@@ -92,6 +79,7 @@ pub extern "C" fn load_elf(kernel_start: PhysAddr, kernel_size: u64,
 
     let boot_info_addr = boot_info_page.start_address();
     let boot_info_ptr = usize_from(boot_info_frame.start_address().as_u64()) as *mut BootInfo;
+    boot_info.sort_memory_map();
     unsafe {boot_info_ptr.write(boot_info)};
 
     let entry_point = VirtAddr::new(elf_file.header.pt2.entry_point());

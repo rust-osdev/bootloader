@@ -1,4 +1,4 @@
-use FrameAllocator;
+use frame_allocator::FrameAllocator;
 use x86_64::{PhysAddr, VirtAddr};
 use x86_64::structures::paging::{PAGE_SIZE, PageTable, PageTableFlags, PageTableEntry, Page, PhysFrame};
 use usize_conversions::usize_from;
