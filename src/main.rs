@@ -57,7 +57,7 @@ pub extern "C" fn load_elf(kernel_start: PhysAddr, kernel_size: u64,
     xmas_elf::header::sanity_check(&elf_file).unwrap();
 
     // idea: embed memory map in frame allocator and mark allocated frames as used
-    let boot_info = boot_info::create_from(memory_map_addr, memory_map_entry_count);
+    let mut boot_info = boot_info::create_from(memory_map_addr, memory_map_entry_count);
     let memory_map = &mut boot_info.memory_map;
 
     let kernel_end = kernel_start + kernel_size;

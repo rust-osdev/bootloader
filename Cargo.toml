@@ -8,7 +8,7 @@ rlibc = "1"
 xmas-elf = "0.6.0"
 x86_64 = "0.2.0-alpha-001"
 usize_conversions = "0.2.0"
-os_bootinfo = "0.1.0"
+os_bootinfo = "0.2.0-alpha"
 
 [profile.dev]
 panic = "abort"
