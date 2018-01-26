@@ -222,7 +222,7 @@ long_mode:
     movabs rdi, 0x400000
     mov rsi, _kib_kernel_size
     lea rdx, _memory_map
-    mov rcx, mmap_ent
+    movzx rcx, word ptr mmap_ent
     jmp load_elf
 spin64:
     jmp spin64
