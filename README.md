@@ -1,4 +1,4 @@
-# rustboot-x86
+# rustboot
 An experimental pure-Rust x86 bootloader for the [planned second edition](https://github.com/phil-opp/blog_os/issues/360) of the [Writing an OS in Rust](https://os.phil-opp.com) series.
 
 **This is still work in progress**.
