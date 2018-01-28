@@ -47,9 +47,9 @@ pub extern "C" fn load_elf(kernel_start: PhysAddr, kernel_size: u64,
     xmas_elf::header::sanity_check(&elf_file).unwrap();
 
     // idea: embed memory map in frame allocator and mark allocated frames as used
-    let mut boot_info = boot_info::create_from(memory_map_addr, memory_map_entry_count);
+    let mut memory_map = boot_info::create_from(memory_map_addr, memory_map_entry_count);
 
-    let mut frame_allocator = frame_allocator::FrameAllocator(&mut boot_info);
+    let mut frame_allocator = frame_allocator::FrameAllocator{ memory_map:&mut memory_map };
 
     frame_allocator.mark_as_used(kernel_start, kernel_size);
 
@@ -59,10 +59,15 @@ pub extern "C" fn load_elf(kernel_start: PhysAddr, kernel_size: u64,
 
     let stack_end = page_table::map_kernel(kernel_start, &elf_file, p4, &mut frame_allocator);
 
-    let boot_info_page = Page::containing_address(VirtAddr::new(0xf000000)); // TODO
+    let boot_info_page = Page::containing_address(VirtAddr::new(0x1000));
     let boot_info_frame = frame_allocator.allocate_frame();
     let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
     page_table::map_page(boot_info_page.clone(), boot_info_frame.clone(), flags, p4, &mut frame_allocator);
+
+    let p4_page = Page::containing_address(VirtAddr::new(0x2000));
+    let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+    page_table::map_page(p4_page.clone(), p4_frame.clone(), flags, p4, &mut frame_allocator);
+    let p4_ptr = usize_from(p4_page.start_address().as_u64()) as *mut PageTable;
 
     // identity map VGA text buffer
     let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
@@ -77,9 +82,14 @@ pub extern "C" fn load_elf(kernel_start: PhysAddr, kernel_size: u64,
     let flags = PageTableFlags::PRESENT;
     page_table::identity_map(context_switch_fn_frame, flags, p4, &mut frame_allocator);
 
+    let mut boot_info = BootInfo {
+        memory_map,
+        p4_table: unsafe { &mut *p4_ptr },
+    };
+    boot_info.sort_memory_map();
+
     let boot_info_addr = boot_info_page.start_address();
     let boot_info_ptr = usize_from(boot_info_frame.start_address().as_u64()) as *mut BootInfo;
-    boot_info.sort_memory_map();
     unsafe {boot_info_ptr.write(boot_info)};
 
     let entry_point = VirtAddr::new(elf_file.header.pt2.entry_point());

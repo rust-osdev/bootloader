@@ -1,14 +1,16 @@
 use x86_64::PhysAddr;
 use x86_64::structures::paging::{PAGE_SIZE, PhysFrame};
-use os_bootinfo::{BootInfo, MemoryRegion, MemoryRegionType};
+use os_bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
 
-pub(crate) struct FrameAllocator<'a>(pub &'a mut BootInfo);
+pub(crate) struct FrameAllocator<'a> {
+    pub memory_map: &'a mut MemoryMap,
+}
 
 impl<'a> FrameAllocator<'a> {
     pub(crate) fn allocate_frame(&mut self) -> PhysFrame {
         let page_size = u64::from(PAGE_SIZE);
         let mut frame = None;
-        for region in &mut self.0.memory_map {
+        for region in self.memory_map.iter_mut() {
             if region.start_addr < PhysAddr::new(1024 * 1024) {
                 // don't allocate memory below 1M, since it might be used by bootloader or BIOS
                 continue;
@@ -43,7 +45,7 @@ impl<'a> FrameAllocator<'a> {
         let mut new_region = None;
 
         // check if it overlaps with another region
-        for region in &mut self.0.memory_map {
+        for region in self.memory_map.iter_mut() {
             let region_start = region.start_addr;
             let region_end = region.start_addr + region.len;
             let used_start = addr;
@@ -92,10 +94,10 @@ impl<'a> FrameAllocator<'a> {
         }
 
         if let Some(new_region) = new_region {
-            self.0.memory_map.push(new_region);
+            self.memory_map.push(new_region);
         }
         if let Some(used_region) = used_region {
-            self.0.memory_map.push(used_region);
+            self.memory_map.push(used_region);
         }
     }
 }
