@@ -17,6 +17,17 @@ version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "bootloader"
+version = "0.1.1"
+dependencies = [
+ "os_bootinfo 0.2.0-alpha-005 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rlibc 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "usize_conversions 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "x86_64 0.2.0-alpha-006 (registry+https://github.com/rust-lang/crates.io-index)",
+ "xmas-elf 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "nodrop"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -34,17 +45,6 @@ dependencies = [
 name = "rlibc"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "rustboot"
-version = "0.1.0"
-dependencies = [
- "os_bootinfo 0.2.0-alpha-005 (registry+https://github.com/rust-lang/crates.io-index)",
- "rlibc 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "usize_conversions 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "x86_64 0.2.0-alpha-006 (registry+https://github.com/rust-lang/crates.io-index)",
- "xmas-elf 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
-]
 
 [[package]]
 name = "usize_conversions"
