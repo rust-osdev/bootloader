@@ -17,9 +17,10 @@ notifications:
     on_failure: change
 
 script:
-- set -e
 - RUST_TARGET_PATH=`pwd` xargo build --target test --release
 - objcopy -O binary -S target/test/release/bootloader bootimage.bin
+
+before_deploy:
 - git tag -f master HEAD
 
 deploy:
