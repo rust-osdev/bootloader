@@ -19,9 +19,10 @@ notifications:
 script:
 - RUST_TARGET_PATH=`pwd` xargo build --target test --release
 - objcopy -O binary -S target/test/release/bootloader bootimage.bin
+- git tag -f latest HEAD
+- git push origin latest --force
 
 before_deploy:
-- git tag -f master HEAD
 
 deploy:
   provider: releases
@@ -31,3 +32,4 @@ deploy:
   skip_cleanup: true
   on:
     repo: phil-opp/bootloader
+    tags: true
