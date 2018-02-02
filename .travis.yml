@@ -1,18 +1,21 @@
 language: rust
+
 rust:
 - nightly
-cache: cargo
+
 os: linux
+
 before_script:
 - rustup component add rust-src
-- "(test -x $HOME/.cargo/bin/cargo-install-update || cargo install cargo-update)"
 - "(test -x $HOME/.cargo/bin/xargo || cargo install xargo)"
-- cargo install-update -a
+
 sudo: false
+
 notifications:
   email:
     on_success: never
     on_failure: change
+
 script:
 - set -e
 - RUST_TARGET_PATH=`pwd` xargo build --target test --release
