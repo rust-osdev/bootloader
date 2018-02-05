@@ -6,6 +6,7 @@
 #![feature(asm)]
 #![feature(nll)]
 #![feature(pointer_methods)]
+#![feature(const_fn)]
 
 #![no_std]
 #![no_main]
@@ -15,6 +16,7 @@ extern crate xmas_elf;
 extern crate x86_64;
 extern crate usize_conversions;
 extern crate os_bootinfo;
+extern crate spin;
 
 pub use x86_64::PhysAddr;
 use x86_64::VirtAddr;
@@ -36,6 +38,7 @@ extern "C" {
 mod boot_info;
 mod page_table;
 mod frame_allocator;
+mod printer;
 
 #[no_mangle]
 pub extern "C" fn load_elf(kernel_start: PhysAddr, kernel_size: u64,
@@ -99,18 +102,12 @@ pub extern "C" fn load_elf(kernel_start: PhysAddr, kernel_size: u64,
 
 #[lang = "panic_fmt"]
 #[no_mangle]
-pub extern fn rust_begin_panic(_msg: core::fmt::Arguments,
+pub extern fn rust_begin_panic(msg: core::fmt::Arguments,
                                _file: &'static str,
                                _line: u32,
                                _column: u32) -> ! {
-    const VGA_BUFFER: *mut u8 = 0xb8000 as *mut _;
-
-    unsafe {
-        let vga_buffer = slice::from_raw_parts_mut(VGA_BUFFER, 25 * 80 *2);
-        vga_buffer[0] = b'E'; vga_buffer[1] = 0x4f;
-        vga_buffer[2] = b'R'; vga_buffer[3] = 0x4f;
-        vga_buffer[4] = b'R'; vga_buffer[5] = 0x4f;
-    }
+    use core::fmt::Write;
+    write!(printer::PRINTER.lock(), "ERR: {}", msg).unwrap();
 
     loop {}
 }
