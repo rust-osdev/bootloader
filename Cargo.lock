@@ -22,6 +22,7 @@ version = "0.1.1"
 dependencies = [
  "os_bootinfo 0.2.0-alpha-005 (registry+https://github.com/rust-lang/crates.io-index)",
  "rlibc 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spin 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "usize_conversions 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "x86_64 0.2.0-alpha-006 (registry+https://github.com/rust-lang/crates.io-index)",
  "xmas-elf 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -44,6 +45,11 @@ dependencies = [
 [[package]]
 name = "rlibc"
 version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "spin"
+version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -87,6 +93,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum nodrop 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)" = "9a2228dca57108069a5262f2ed8bd2e82496d2e074a06d1ccc7ce1687b6ae0a2"
 "checksum os_bootinfo 0.2.0-alpha-005 (registry+https://github.com/rust-lang/crates.io-index)" = "0452d92eaa75d4245214ff4b751d7efa8f9aba7c59b713d3fa2271d5a0eef064"
 "checksum rlibc 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "fc874b127765f014d792f16763a81245ab80500e2ad921ed4ee9e82481ee08fe"
+"checksum spin 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)" = "7e4deb3c2455c73779e6d3eebceae9599fc70957e54c69fe88f93aa48e62f432"
 "checksum usize_conversions 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f70329e2cbe45d6c97a5112daad40c34cd9a4e18edb5a2a18fefeb584d8d25e5"
 "checksum ux 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "8762764bede2cc5fa0fe3bd279e243258531bb51cff1f1ff9a3cb3d3a1ed5235"
 "checksum x86_64 0.2.0-alpha-006 (registry+https://github.com/rust-lang/crates.io-index)" = "e2d218ac8fc139c0c9190d52be5f7dffbb774b4f1c923edfe8bcd6fd5451622f"

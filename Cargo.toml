@@ -11,6 +11,7 @@ xmas-elf = "0.6.0"
 x86_64 = "0.2.0-alpha-001"
 usize_conversions = "0.2.0"
 os_bootinfo = "0.2.0-alpha"
+spin = "0.4.6"
 
 [profile.dev]
 panic = "abort"
