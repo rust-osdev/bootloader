@@ -47,6 +47,7 @@ deploy:
     secure: yO/VIJt4Dl+vMCGzkv8wIDQlHuasUPmQqlbgw1EA/uMz4WeR5mu+l/JKOARXevHeU9xqhF84ooKIDUZ/86N0N68OE77HJzfGAr2eRzeAti9v+zo4uJ7mygl5FmChWe7Ah2AX7/Dg5Ul/OqCHnExB5GjmOu0csvQiB4pyFVB0fw5HPy3LyWqDHuqot/t/eyPtlG2WXIcxjUTXvkHBiKc7nrG/Q6T6R0K1Pzxo+LeY2HNLEuiCc+vhclCeHuRPW/isBOs24FWMEJEl2qkTZIeOJhHWNd0XzOyRfupm9wver0gAVfM4rctkEc3cU6XhbEaRkdqsxna4au0Sborpv5eUld5ELhkxifZFQUjj1m+qu1wyFmNYiQU+RtAqcCpoRBJjt4eczmfb+32XZbTkmCY0MtKV5jIajInmA3JYKKlszk+WyDDlvCXaNj/XD4grTbSZ+WtJQvO3EfeT3F4/OLyk33hMsZ348Vkl8fP0T9PoWko0cYUhBkiSa3dsbbogdCXf/V8cK2IwNSXer/tjZ//AZlkwDiSLOKZ9C94SiB/6VJWdAl+Z9qC6TygKHXrXSB3f6oJFVw7DfFzRhG1SqlaNa9Ujq/PwxJUfZano17zV7kP7WdoJgqHBjukwzeIok0Y3JIrwxp4+xaz6Z/IrnlSzFA3jyUHZ4kLvGeijuc63Pp0=
   file: bootimage.bin
   skip_cleanup: true
+  overwrite: true
   on:
     repo: rust-osdev/bootloader
     tags: true
