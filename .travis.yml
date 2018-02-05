@@ -5,6 +5,12 @@ rust:
 
 os: linux
 
+cache:
+  directories:
+    - $HOME/.cargo
+    - $HOME/.xargo
+    - $TRAVIS_BUILD_DIR/target
+
 before_script:
 - rustup component add rust-src
 - "(test -x $HOME/.cargo/bin/xargo || cargo install xargo)"
