@@ -48,5 +48,5 @@ deploy:
   file: bootimage.bin
   skip_cleanup: true
   on:
-    repo: phil-opp/bootloader
+    repo: rust-osdev/bootloader
     tags: true
