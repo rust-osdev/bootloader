@@ -29,12 +29,16 @@ script:
 after_success:
   - |
     if [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ "$TRAVIS_BRANCH" == "master" ]; then
-      eval `ssh-agent -s`
-      openssl aes-256-cbc -K $encrypted_156fe11b627b_key -iv $encrypted_156fe11b627b_iv -in bootloader_id_rsa.enc -d | ssh-add -
+      REPO=`git config remote.origin.url`
+      SSH_REPO=${REPO/https:\/\/github.com\//git@github.com:}
+
+      git tag -f latest HEAD
       git config user.name "Travis CI"
       git config user.email "travis@phil-opp.com"
-      git tag -f latest HEAD
-      git push origin latest --force
+
+      openssl aes-256-cbc -K $encrypted_156fe11b627b_key -iv $encrypted_156fe11b627b_iv -in bootloader_id_rsa.enc -d | ssh-add -
+      eval `ssh-agent -s`
+      git push $SSH_REPO latest --force
     fi
 
 deploy:
