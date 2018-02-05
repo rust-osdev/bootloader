@@ -5,6 +5,10 @@ rust:
 
 os: linux
 
+before_install:
+- openssl aes-256-cbc -K $encrypted_156fe11b627b_key -iv $encrypted_156fe11b627b_iv
+  -in bootloader_id_rsa.enc -out bootloader_id_rsa -d
+
 before_script:
 - rustup component add rust-src
 - "(test -x $HOME/.cargo/bin/xargo || cargo install xargo)"
@@ -19,6 +23,15 @@ notifications:
 script:
 - RUST_TARGET_PATH=`pwd` xargo build --target test --release
 - objcopy -O binary -S target/test/release/bootloader bootimage.bin
+
+after_success:
+  - |
+    if [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ "$TRAVIS_BRANCH" == "master" ]; then
+      git config user.name "Travis CI"
+      git config user.email "travis@phil-opp.com"
+      git tag -f latest HEAD
+      git push origin latest --force
+    fi
 
 deploy:
   provider: releases
