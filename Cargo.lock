@@ -24,7 +24,7 @@ dependencies = [
  "rlibc 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "spin 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "usize_conversions 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "x86_64 0.2.0-alpha-006 (registry+https://github.com/rust-lang/crates.io-index)",
+ "x86_64 0.2.0-alpha-008 (registry+https://github.com/rust-lang/crates.io-index)",
  "xmas-elf 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -39,7 +39,7 @@ version = "0.2.0-alpha-005"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "arrayvec 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "x86_64 0.2.0-alpha-006 (registry+https://github.com/rust-lang/crates.io-index)",
+ "x86_64 0.2.0-alpha-008 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -64,7 +64,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "x86_64"
-version = "0.2.0-alpha-006"
+version = "0.2.0-alpha-008"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bit_field 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -96,6 +96,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum spin 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)" = "7e4deb3c2455c73779e6d3eebceae9599fc70957e54c69fe88f93aa48e62f432"
 "checksum usize_conversions 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f70329e2cbe45d6c97a5112daad40c34cd9a4e18edb5a2a18fefeb584d8d25e5"
 "checksum ux 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "8762764bede2cc5fa0fe3bd279e243258531bb51cff1f1ff9a3cb3d3a1ed5235"
-"checksum x86_64 0.2.0-alpha-006 (registry+https://github.com/rust-lang/crates.io-index)" = "e2d218ac8fc139c0c9190d52be5f7dffbb774b4f1c923edfe8bcd6fd5451622f"
+"checksum x86_64 0.2.0-alpha-008 (registry+https://github.com/rust-lang/crates.io-index)" = "8e9fd795b5adc78a4cac088f9abe0c83ca8826148a16cbbe02175026e77e27c4"
 "checksum xmas-elf 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)" = "e7f5dde2a8bc9d05c0782c0c13ccd72bd3dc6e6bc03a205c8bb3b45257d08a41"
 "checksum zero 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "5f1bc8a6b2005884962297587045002d8cfb8dcec9db332f4ca216ddc5de82c5"
