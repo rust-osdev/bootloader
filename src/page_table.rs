@@ -83,7 +83,7 @@ pub(crate) fn map_page(page: Page, phys_frame: PhysFrame, flags: PageTableFlags,
         let table_frame = frame_allocator.allocate_frame();
         let page_table = unsafe { &mut *as_page_table_ptr(table_frame.start_address()) };
         page_table.zero();
-        parent_table_entry.set(table_frame, PageTableFlags::PRESENT);
+        parent_table_entry.set(table_frame, PageTableFlags::PRESENT | PageTableFlags::WRITABLE);
         page_table
     }
 
