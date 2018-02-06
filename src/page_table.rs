@@ -15,7 +15,7 @@ pub(crate) fn map_kernel(kernel_start: PhysAddr, elf_file: &xmas_elf::ElfFile, p
     // create a stack
     // TODO create a stack range dynamically (based on where the kernel is loaded)
     let stack_start = VirtAddr::new(0x57AC_0000_0000);
-    let stack_size = 1 * 1024 * 1024 / u64::from(PAGE_SIZE); // in pages
+    let stack_size = 1 * 1024 * 1024;
     let stack_end = stack_start + stack_size;
 
     let page_size = usize_from(PAGE_SIZE);
