@@ -96,10 +96,22 @@ pub extern "C" fn load_elf(kernel_start: PhysAddr, kernel_size: u64,
     let boot_info_ptr = usize_from(boot_info_frame.start_address().as_u64()) as *mut BootInfo;
     unsafe {boot_info_ptr.write(boot_info)};
 
+    enable_nxe_bit();
+    enable_write_protect_bit();
+
     let entry_point = VirtAddr::new(elf_file.header.pt2.entry_point());
     unsafe { context_switch(p4_addr, entry_point, stack_end, boot_info_addr) };
 }
 
+fn enable_nxe_bit() {
+    use x86_64::registers::control::{Efer, EferFlags};
+    unsafe { Efer::update(|efer| *efer |= EferFlags::NO_EXECUTE_ENABLE)}
+}
+
+fn enable_write_protect_bit() {
+    use x86_64::registers::control::{Cr0, Cr0Flags};
+    unsafe { Cr0::update(|cr0| *cr0 |= Cr0Flags::WRITE_PROTECT) };
+}
 
 #[lang = "panic_fmt"]
 #[no_mangle]
