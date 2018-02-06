@@ -58,11 +58,6 @@ pub(crate) fn map_segment(kernel_start: PhysAddr, program_header: ProgramHeader,
                 if page.start_address() >= virt_end_addr {
                     break
                 }
-                use core::fmt::Write;
-                write!(::printer::PRINTER.lock(), "{:x}->{:x} ",
-                    page.start_address().as_u64(),
-                    frame.start_address().as_u64()
-                ).unwrap();
                 map_page(page, frame, page_table_flags, p4, frame_allocator);
             }
         },
