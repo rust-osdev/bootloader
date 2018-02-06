@@ -59,6 +59,7 @@ pub extern "C" fn load_elf(kernel_start: PhysAddr, kernel_size: u64,
     let p4_frame = frame_allocator.allocate_frame();
     let p4_addr = p4_frame.start_address();
     let p4 = unsafe { &mut *(usize_from(p4_addr.as_u64()) as *const PageTable as *mut PageTable) };
+    p4.zero();
 
     let stack_end = page_table::map_kernel(kernel_start, &elf_file, p4, &mut frame_allocator);
 
