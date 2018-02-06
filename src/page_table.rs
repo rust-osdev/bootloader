@@ -41,25 +41,28 @@ pub(crate) fn map_segment(kernel_start: PhysAddr, program_header: ProgramHeader,
     let typ = program_header.get_type().unwrap();
     match typ {
         program::Type::Load => {
-            let offset = program_header.offset();
-            let phys_start_addr = kernel_start + offset;
+            let file_offset = program_header.offset();
+            let phys_start_addr = kernel_start + file_offset;
             let size = program_header.mem_size();
-            let virt_start_addr = {
-                let v = program_header.virtual_addr();
-                VirtAddr::new(v)
-            };
+            let virt_start_addr = VirtAddr::new(program_header.virtual_addr());
+            let virt_end_addr = virt_start_addr + size;
+
             let flags = program_header.flags();
             let mut page_table_flags = PageTableFlags::PRESENT;
             if !flags.is_execute() { page_table_flags |= PageTableFlags::NO_EXECUTE };
             if flags.is_write() { page_table_flags |= PageTableFlags::WRITABLE };
 
-            let page_size = usize_from(PAGE_SIZE);
-            let virt_page_iter = (virt_start_addr..(virt_start_addr + size)).step_by(page_size);
-            let phys_page_iter = (phys_start_addr..(phys_start_addr + size)).step_by(page_size);
-
-            for (virt_page_addr, phys_frame_addr) in virt_page_iter.zip(phys_page_iter) {
-                let page = Page::containing_address(virt_page_addr);
-                let frame = PhysFrame::containing_address(phys_frame_addr);
+            for offset in (0..).step_by(usize_from(PAGE_SIZE)) {
+                let page = Page::containing_address(virt_start_addr + offset);
+                let frame = PhysFrame::containing_address(phys_start_addr + offset);
+                if page.start_address() >= virt_end_addr {
+                    break
+                }
+                use core::fmt::Write;
+                write!(::printer::PRINTER.lock(), "{:x}->{:x} ",
+                    page.start_address().as_u64(),
+                    frame.start_address().as_u64()
+                ).unwrap();
                 map_page(page, frame, page_table_flags, p4, frame_allocator);
             }
         },
