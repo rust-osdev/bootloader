@@ -100,6 +100,7 @@ pub extern "C" fn load_elf(kernel_start: PhysAddr, kernel_size: u64,
     enable_write_protect_bit();
 
     let entry_point = VirtAddr::new(elf_file.header.pt2.entry_point());
+    printer::PRINTER.lock().clear_screen();
     unsafe { context_switch(p4_addr, entry_point, stack_end, boot_info_addr) };
 }
 
