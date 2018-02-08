@@ -34,11 +34,6 @@ load_kernel_from_disk:
     add ecx, 1
 
 load_next_kernel_block_from_disk:
-    push esi
-    lea esi, [loading_kernel_block_str]
-    call println
-    pop esi
-
     # load block from disk
     lea si, dap
     mov ah, 0x42
@@ -215,9 +210,6 @@ gdt_64_pointer:
 .code64
 
 long_mode:
-    movabs rax, 0x00202f212f4b2f4f
-    mov [0xb8000], rax
-
     # call load_elf with kernel start address, size, and memory map as arguments
     movabs rdi, 0x400000
     mov rsi, _kib_kernel_size
