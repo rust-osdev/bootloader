@@ -1,5 +1,5 @@
 use frame_allocator::FrameAllocator;
-use x86_64::{PhysAddr, VirtAddr};
+use x86_64::{PhysAddr, VirtAddr, align_up};
 use x86_64::structures::paging::{PAGE_SIZE, PageTable, PageTableFlags, PageTableEntry, Page, PhysFrame};
 use usize_conversions::usize_from;
 use xmas_elf;
@@ -38,14 +38,19 @@ pub(crate) fn identity_map(frame: PhysFrame, flags: PageTableFlags, p4: &mut Pag
 pub(crate) fn map_segment(kernel_start: PhysAddr, program_header: ProgramHeader, p4: &mut PageTable,
     frame_allocator: &mut FrameAllocator)
 {
+    unsafe fn zero_frame(frame: &PhysFrame) {
+        let frame_ptr = frame.start_address().as_u64() as *mut [u8; PAGE_SIZE as usize];
+        *frame_ptr = [0; PAGE_SIZE as usize];
+    }
+
     let typ = program_header.get_type().unwrap();
     match typ {
         program::Type::Load => {
+            let mem_size = program_header.mem_size();
+            let file_size = program_header.file_size();
             let file_offset = program_header.offset();
             let phys_start_addr = kernel_start + file_offset;
-            let size = program_header.mem_size();
             let virt_start_addr = VirtAddr::new(program_header.virtual_addr());
-            let virt_end_addr = virt_start_addr + size;
 
             let flags = program_header.flags();
             let mut page_table_flags = PageTableFlags::PRESENT;
@@ -54,9 +59,29 @@ pub(crate) fn map_segment(kernel_start: PhysAddr, program_header: ProgramHeader,
 
             for offset in (0..).step_by(usize_from(PAGE_SIZE)) {
                 let page = Page::containing_address(virt_start_addr + offset);
-                let frame = PhysFrame::containing_address(phys_start_addr + offset);
-                if page.start_address() >= virt_end_addr {
+                let frame;
+                if offset >= mem_size {
                     break
+                }
+                if offset >= file_size {
+                    // map to zeroed frame
+                    frame = frame_allocator.allocate_frame();
+                    unsafe { zero_frame(&frame) };
+                } else if align_up(offset, u64::from(PAGE_SIZE)) - 1 >= file_size {
+                    // part of the page should be zeroed
+                    frame = frame_allocator.allocate_frame();
+                    unsafe { zero_frame(&frame) };
+                    // copy data from kernel image
+                    let data_frame_start = PhysFrame::containing_address(phys_start_addr + offset);
+                    let data_ptr = data_frame_start.start_address().as_u64() as *const u8;
+                    let frame_ptr = frame.start_address().as_u64() as *mut u8;
+                    for i in offset..file_size {
+                        let i = i as isize;
+                        unsafe { frame_ptr.offset(i).write(data_ptr.offset(i).read()) };
+                    }
+                } else {
+                    // map to part of kernel binary
+                    frame = PhysFrame::containing_address(phys_start_addr + offset);
                 }
                 map_page(page, frame, page_table_flags, p4, frame_allocator);
             }
