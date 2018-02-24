@@ -197,8 +197,8 @@ flatdesc:
     .byte 0
     .byte 0
     .byte 0
-    .byte 0b10010010
-    .byte 0b11001111
+    .byte 0x92
+    .byte 0xcf
     .byte 0
 gdt_end:
 
