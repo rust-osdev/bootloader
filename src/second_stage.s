@@ -30,8 +30,8 @@ load_kernel_from_disk:
 
     # block count
     mov ecx, _kib_kernel_size
+    add ecx, 511 # align up
     shr ecx, 9
-    add ecx, 1
 
 load_next_kernel_block_from_disk:
     # load block from disk
