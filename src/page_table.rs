@@ -1,48 +1,42 @@
 use frame_allocator::FrameAllocator;
 use x86_64::{PhysAddr, VirtAddr, align_up};
-use x86_64::structures::paging::{PAGE_SIZE, PageTable, PageTableFlags, PageTableEntry, Page, PhysFrame};
-use usize_conversions::usize_from;
+use x86_64::structures::paging::{PAGE_SIZE, PageTableFlags, Page, PhysFrame};
+use x86_64::structures::paging::{RecursivePageTable, MapToError, UnmapError};
+use x86_64::instructions::tlb;
 use xmas_elf::program::{self, ProgramHeader64};
 use fixedvec::FixedVec;
+use os_bootinfo::MemoryRegionType;
 
 pub(crate) fn map_kernel(kernel_start: PhysAddr, segments: &FixedVec<ProgramHeader64>,
-    p4: &mut PageTable, frame_allocator: &mut FrameAllocator) -> VirtAddr
+    page_table: &mut RecursivePageTable, frame_allocator: &mut FrameAllocator)
+    -> Result<VirtAddr, MapToError>
 {
     for segment in segments {
-        map_segment(segment, kernel_start, p4, frame_allocator);
+        map_segment(segment, kernel_start, page_table, frame_allocator)?;
     }
 
     // create a stack
     // TODO create a stack range dynamically (based on where the kernel is loaded)
-    let stack_start = VirtAddr::new(0x57AC_0000_0000);
-    let stack_size: u64 = 1 * 1024 * 1024;
+    let stack_start = Page::containing_address(VirtAddr::new(0x57AC_0000_0000));
+    let stack_size: u64 = 256; // in pages
     let stack_end = stack_start + stack_size;
 
-    let page_size = usize_from(PAGE_SIZE);
-    let virt_page_iter = (stack_start..(stack_start + stack_size)).step_by(page_size);
     let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+    let region_type = MemoryRegionType::Kernel;
 
-    for virt_page_addr in virt_page_iter {
-        let page = Page::containing_address(virt_page_addr);
-        map_page(page, frame_allocator.allocate_frame(), flags, p4, frame_allocator);
+    for page in Page::range(stack_start, stack_end) {
+        let frame = frame_allocator.allocate_frame(region_type)
+            .ok_or(MapToError::FrameAllocationFailed)?;
+        map_page(page, frame, flags, page_table, frame_allocator)?;
     }
 
-    stack_end
+    Ok(stack_end.start_address())
 }
 
-pub(crate) fn identity_map(frame: PhysFrame, flags: PageTableFlags, p4: &mut PageTable, frame_allocator: &mut FrameAllocator) {
-    let page = Page::containing_address(VirtAddr::new(frame.start_address().as_u64()));
-    map_page(page, frame, flags, p4, frame_allocator);
-}
-
-pub(crate) fn map_segment(segment: &ProgramHeader64, kernel_start: PhysAddr, p4: &mut PageTable,
-    frame_allocator: &mut FrameAllocator)
+pub(crate) fn map_segment(segment: &ProgramHeader64, kernel_start: PhysAddr,
+    page_table: &mut RecursivePageTable, frame_allocator: &mut FrameAllocator)
+    -> Result<(), MapToError>
 {
-    unsafe fn zero_frame(frame: &PhysFrame) {
-        let frame_ptr = frame.start_address().as_u64() as *mut [u8; PAGE_SIZE as usize];
-        *frame_ptr = [0; PAGE_SIZE as usize];
-    }
-
     let typ = segment.get_type().unwrap();
     match typ {
         program::Type::Load => {
@@ -52,82 +46,90 @@ pub(crate) fn map_segment(segment: &ProgramHeader64, kernel_start: PhysAddr, p4:
             let phys_start_addr = kernel_start + file_offset;
             let virt_start_addr = VirtAddr::new(segment.virtual_addr);
 
+            let start_page = Page::containing_address(virt_start_addr);
+            let start_frame = PhysFrame::containing_address(phys_start_addr);
+            let end_frame = PhysFrame::containing_address(phys_start_addr + file_size - 1u64);
+
             let flags = segment.flags;
             let mut page_table_flags = PageTableFlags::PRESENT;
             if !flags.is_execute() { page_table_flags |= PageTableFlags::NO_EXECUTE };
             if flags.is_write() { page_table_flags |= PageTableFlags::WRITABLE };
 
-            for offset in (0..).step_by(usize_from(PAGE_SIZE)) {
-                let page = Page::containing_address(virt_start_addr + offset);
-                let frame;
-                if offset >= mem_size {
-                    break
-                }
-                if offset >= file_size {
-                    // map to zeroed frame
-                    frame = frame_allocator.allocate_frame();
-                    unsafe { zero_frame(&frame) };
-                } else if align_up(offset, u64::from(PAGE_SIZE)) - 1 >= file_size {
-                    // part of the page should be zeroed
-                    frame = frame_allocator.allocate_frame();
-                    unsafe { zero_frame(&frame) };
-                    // copy data from kernel image
-                    let data_frame_start = PhysFrame::containing_address(phys_start_addr + offset);
-                    let data_ptr = data_frame_start.start_address().as_u64() as *const u8;
-                    let frame_ptr = frame.start_address().as_u64() as *mut u8;
-                    for i in offset..file_size {
-                        let i = i as isize;
-                        unsafe { frame_ptr.offset(i).write(data_ptr.offset(i).read()) };
+            for frame in PhysFrame::range_inclusive(start_frame, end_frame) {
+                let offset = frame - start_frame;
+                let page = start_page + offset;
+                map_page(page, frame, page_table_flags, page_table, frame_allocator)?;
+            }
+
+            if mem_size > file_size {
+                // .bss section (or similar), which needs to be zeroed
+                let zero_start = virt_start_addr + file_size;
+                let zero_end = virt_start_addr + mem_size;
+                if zero_start.as_u64() & 0xfff != 0 {
+                    // A part of the last mapped frame needs to be zeroed. This is
+                    // not possible since it could already contains parts of the next
+                    // segment. Thus, we need to copy it before zeroing.
+
+                    // TODO: search for a free page dynamically
+                    let temp_page = Page::containing_address(VirtAddr::new(0xfeeefeee000));
+                    let new_frame = frame_allocator.allocate_frame(MemoryRegionType::Kernel)
+                        .ok_or(MapToError::FrameAllocationFailed)?;
+                    map_page(temp_page.clone(), new_frame.clone(), page_table_flags, page_table,
+                        frame_allocator)?;
+
+                    type PageArray = [u64; PAGE_SIZE as usize / 8];
+
+                    let last_page = Page::containing_address(virt_start_addr + file_size - 1u64);
+                    let last_page_ptr = last_page.start_address().as_ptr::<PageArray>();
+                    let temp_page_ptr = temp_page.start_address().as_mut_ptr::<PageArray>();
+
+                    unsafe {
+                        // copy contents
+                        temp_page_ptr.write(last_page_ptr.read());
                     }
-                } else {
-                    // map to part of kernel binary
-                    frame = PhysFrame::containing_address(phys_start_addr + offset);
+
+                    // remap last page
+                    if let Err(e) = page_table.unmap(last_page.clone(), &mut |_| {}) {
+                        return Err(match e {
+                            UnmapError::EntryWithInvalidFlagsPresent(_, _) => {
+                                MapToError::EntryWithInvalidFlagsPresent
+                            },
+                            UnmapError::PageNotMapped(_) => unreachable!(),
+                        });
+                    }
+                    tlb::flush(last_page.start_address());
+
+                    map_page(last_page, new_frame, page_table_flags, page_table, frame_allocator)?;
                 }
-                map_page(page, frame, page_table_flags, p4, frame_allocator);
+
+                // Map additional frames.
+                let start_page = Page::containing_address(
+                    VirtAddr::new(align_up(zero_start.as_u64(), u64::from(PAGE_SIZE)))
+                );
+                let end_page = Page::containing_address(zero_end);
+                for page in Page::range_inclusive(start_page, end_page) {
+                    let frame = frame_allocator.allocate_frame(MemoryRegionType::Kernel)
+                        .ok_or(MapToError::FrameAllocationFailed)?;
+                    map_page(page, frame, page_table_flags, page_table, frame_allocator)?;
+                }
+
+                // zero
+                for offset in file_size..mem_size {
+                    let addr = virt_start_addr + offset;
+                    unsafe { addr.as_mut_ptr::<u8>().write(0) };
+                }
             }
         },
         _ => {},
     }
+    Ok(())
 }
 
 pub(crate) fn map_page(page: Page, phys_frame: PhysFrame, flags: PageTableFlags,
-    p4: &mut PageTable, frame_allocator: &mut FrameAllocator)
+        page_table: &mut RecursivePageTable, frame_allocator: &mut FrameAllocator
+    ) -> Result<(), MapToError>
 {
-    fn as_page_table_ptr(frame: &PhysFrame) -> *mut PageTable {
-        usize_from(frame.start_address().as_u64()) as *const PageTable as *mut PageTable
-    }
-
-    fn create_and_link_page_table(frame_allocator: &mut FrameAllocator,
-        parent_table_entry: &mut PageTableEntry) -> &'static mut PageTable
-    {
-        let table_frame = frame_allocator.allocate_frame();
-        let page_table = unsafe { &mut *as_page_table_ptr(&table_frame) };
-        page_table.zero();
-        parent_table_entry.set(table_frame, PageTableFlags::PRESENT | PageTableFlags::WRITABLE);
-        page_table
-    }
-
-    fn get_or_create_next_page_table(frame_allocator: &mut FrameAllocator,
-        page_table_entry: &mut PageTableEntry) -> &'static mut PageTable
-    {
-        match page_table_entry.frame() {
-            Some(frame) => unsafe { &mut *as_page_table_ptr(&frame) },
-            None => create_and_link_page_table(frame_allocator, page_table_entry)
-        }
-    }
-
-    let virt_page_addr = page.start_address();
-
-    let p4_entry = &mut p4[virt_page_addr.p4_index()];
-    let p3 = get_or_create_next_page_table(frame_allocator, p4_entry);
-
-    let p3_entry = &mut p3[virt_page_addr.p3_index()];
-    let p2 = get_or_create_next_page_table(frame_allocator, p3_entry);
-
-    let p2_entry = &mut p2[virt_page_addr.p2_index()];
-    let p1 = get_or_create_next_page_table(frame_allocator, p2_entry);
-
-    let p1_entry = &mut p1[virt_page_addr.p1_index()];
-    assert!(p1_entry.is_unused(), "page for {:?} already in use", virt_page_addr);
-    p1_entry.set(phys_frame, flags);
+    page_table.map_to(page, phys_frame, flags, &mut || {
+        frame_allocator.allocate_frame(MemoryRegionType::PageTable)
+    })
 }

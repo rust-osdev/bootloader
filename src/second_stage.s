@@ -85,6 +85,9 @@ set_up_page_tables:
     rep stosd
 
     # p4
+    lea eax, [_p4]
+    or eax, (1 | 2)
+    mov [_p4 + 511 * 8], eax # recursive mapping
     lea eax, [_p3]
     or eax, (1 | 2)
     mov [_p4], eax
@@ -93,14 +96,44 @@ set_up_page_tables:
     or eax, (1 | 2)
     mov [_p3], eax
     # p2
-    mov eax, (1 | 2 | (1 << 7))
-    mov ecx, 0
-map_p2_table:
+    lea eax, [_p1]
+    or eax, (1 | 2)
+    mov [_p2], eax
+    mov eax, (0x400000 | 1 | 2 | (1 << 7))
+    mov ecx, 2
+    mov edx, _kib_kernel_size
+    add edx, 0x400000 # start address
+    add edx, 0x200000 - 1 # align up
+    shr edx, 12 + 9 # end huge page number
+    map_p2_table:
     mov [_p2 + ecx * 8], eax
     add eax, 0x200000
     add ecx, 1
-    cmp ecx, 512
+    cmp ecx, edx
     jb map_p2_table
+    # p1
+    lea eax, __bootloader_start
+    and eax, 0xfffff000
+    or eax, (1 | 2)
+    lea ecx, __bootloader_start
+    shr ecx, 12 # start page number
+    lea edx, __bootloader_end
+    add edx, 4096 - 1 # align up
+    shr edx, 12 # end page number
+    map_p1_table:
+    mov [_p1 + ecx * 8], eax
+    add eax, 4096
+    add ecx, 1
+    cmp ecx, edx
+    jb map_p1_table
+    #
+    map_vga_buffer:
+    mov eax, 0xb8000
+    or eax, (1 | 2)
+    mov ecx, 0xb8000
+    shr ecx, 12
+    mov [_p1 + ecx * 8], eax
+
 
 enable_paging:
     # load P4 to cr3 register (cpu uses this to access the P4 table)
@@ -215,6 +248,12 @@ long_mode:
     mov rsi, _kib_kernel_size
     lea rdx, _memory_map
     movzx rcx, word ptr mmap_ent
-    jmp load_elf
+    lea r8, __page_table_start
+    lea r9, __page_table_end
+    lea rax, __bootloader_end
+    push rax
+    lea rax, __bootloader_start
+    push rax
+    call load_elf
 spin64:
     jmp spin64
