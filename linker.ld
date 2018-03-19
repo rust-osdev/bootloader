@@ -7,17 +7,24 @@ SECTIONS {
     . += 512;
     /* page tables */
     . = ALIGN(0x1000);
+    __page_table_start = .;
     _p4 = .;
     . += 0x1000;
     _p3 = .;
     . += 0x1000;
     _p2 = .;
     . += 0x1000;
+    _p1 = .;
+    . += 0x1000;
+    __page_table_end = .;
+    __bootloader_start = .;
     _memory_map = .;
     . += 0x1000;
 
-    /* bootloader */
+    _stack_start = .;
     . = 0x7c00;
+    _stack_end = .;
+
     .bootloader :
     {
         /* first stage */
@@ -39,5 +46,6 @@ SECTIONS {
     . += 512; /* kernel info block */
     _kernel_info_block_end = .;
 
+    __bootloader_end = .;
     _kernel_start_addr = .;
 }
