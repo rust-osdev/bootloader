@@ -4,7 +4,9 @@
     "linker-flavor": "ld",
     "linker": "ld.bfd",
     "pre-link-args": {
-        "ld": ["-Tlinker.ld"]
+        "ld": [
+	    "--script=linker.ld"
+	]
     },
     "target-endian": "little",
     "target-pointer-width": "64",
