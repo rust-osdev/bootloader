@@ -34,10 +34,10 @@ SECTIONS {
         _second_stage_end_addr = .;
     }
 
-    _kernel_inferface_block_start = .;
+    _kernel_info_block_start = .;
     _kib_kernel_size = .;
-    . += 512; /* kernel interface block */
-    _kernel_inferface_block_end = .;
+    . += 512; /* kernel info block */
+    _kernel_info_block_end = .;
 
     _kernel_start_addr = .;
 }
