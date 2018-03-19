@@ -94,10 +94,10 @@ impl<'a> FrameAllocator<'a> {
         }
 
         if let Some(new_region) = new_region {
-            self.memory_map.push(new_region);
+            self.memory_map.add_region(new_region);
         }
         if let Some(used_region) = used_region {
-            self.memory_map.push(used_region);
+            self.memory_map.add_region(used_region);
         }
     }
 }

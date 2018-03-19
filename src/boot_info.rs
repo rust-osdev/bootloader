@@ -12,7 +12,7 @@ pub(crate) fn create_from(memory_map_addr: VirtAddr, entry_count: u64) -> Memory
 
     let mut memory_map = MemoryMap::new();
     for region in e820_memory_map {
-        memory_map.push(MemoryRegion::from(*region));
+        memory_map.add_region(MemoryRegion::from(*region));
     }
 
     memory_map

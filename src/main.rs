@@ -86,10 +86,7 @@ pub extern "C" fn load_elf(kernel_start: PhysAddr, kernel_size: u64,
     let flags = PageTableFlags::PRESENT;
     page_table::identity_map(context_switch_fn_frame, flags, p4, &mut frame_allocator);
 
-    let mut boot_info = BootInfo {
-        memory_map,
-        p4_table: unsafe { &mut *p4_ptr },
-    };
+    let mut boot_info = BootInfo::new(unsafe { &mut *p4_ptr }, memory_map);
     boot_info.sort_memory_map();
 
     let boot_info_addr = boot_info_page.start_address();
