@@ -2,14 +2,14 @@ use frame_allocator::FrameAllocator;
 use x86_64::{PhysAddr, VirtAddr, align_up};
 use x86_64::structures::paging::{PAGE_SIZE, PageTable, PageTableFlags, PageTableEntry, Page, PhysFrame};
 use usize_conversions::usize_from;
-use xmas_elf;
-use xmas_elf::program::{self, ProgramHeader};
+use xmas_elf::program::{self, ProgramHeader64};
+use fixedvec::FixedVec;
 
-pub(crate) fn map_kernel(kernel_start: PhysAddr, elf_file: &xmas_elf::ElfFile, p4: &mut PageTable,
-    frame_allocator: &mut FrameAllocator) -> VirtAddr
+pub(crate) fn map_kernel(kernel_start: PhysAddr, segments: &FixedVec<ProgramHeader64>,
+    p4: &mut PageTable, frame_allocator: &mut FrameAllocator) -> VirtAddr
 {
-    for program_header in elf_file.program_iter() {
-        map_segment(kernel_start, program_header, p4, frame_allocator);
+    for segment in segments {
+        map_segment(segment, kernel_start, p4, frame_allocator);
     }
 
     // create a stack
@@ -35,7 +35,7 @@ pub(crate) fn identity_map(frame: PhysFrame, flags: PageTableFlags, p4: &mut Pag
     map_page(page, frame, flags, p4, frame_allocator);
 }
 
-pub(crate) fn map_segment(kernel_start: PhysAddr, program_header: ProgramHeader, p4: &mut PageTable,
+pub(crate) fn map_segment(segment: &ProgramHeader64, kernel_start: PhysAddr, p4: &mut PageTable,
     frame_allocator: &mut FrameAllocator)
 {
     unsafe fn zero_frame(frame: &PhysFrame) {
@@ -43,16 +43,16 @@ pub(crate) fn map_segment(kernel_start: PhysAddr, program_header: ProgramHeader,
         *frame_ptr = [0; PAGE_SIZE as usize];
     }
 
-    let typ = program_header.get_type().unwrap();
+    let typ = segment.get_type().unwrap();
     match typ {
         program::Type::Load => {
-            let mem_size = program_header.mem_size();
-            let file_size = program_header.file_size();
-            let file_offset = program_header.offset();
+            let mem_size = segment.mem_size();
+            let file_size = segment.file_size();
+            let file_offset = segment.offset();
             let phys_start_addr = kernel_start + file_offset;
-            let virt_start_addr = VirtAddr::new(program_header.virtual_addr());
+            let virt_start_addr = VirtAddr::new(segment.virtual_addr());
 
-            let flags = program_header.flags();
+            let flags = segment.flags();
             let mut page_table_flags = PageTableFlags::PRESENT;
             if !flags.is_execute() { page_table_flags |= PageTableFlags::NO_EXECUTE };
             if flags.is_write() { page_table_flags |= PageTableFlags::WRITABLE };

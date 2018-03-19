@@ -17,6 +17,8 @@ extern crate x86_64;
 extern crate usize_conversions;
 extern crate os_bootinfo;
 extern crate spin;
+#[macro_use]
+extern crate fixedvec;
 
 pub use x86_64::PhysAddr;
 use x86_64::VirtAddr;
@@ -44,10 +46,32 @@ mod printer;
 pub extern "C" fn load_elf(kernel_start: PhysAddr, kernel_size: u64,
     memory_map_addr: VirtAddr, memory_map_entry_count: u64) -> !
 {
-    let kernel_start_ptr = usize_from(kernel_start.as_u64()) as *const u8;
-    let kernel = unsafe { slice::from_raw_parts(kernel_start_ptr, usize_from(kernel_size)) };
-    let elf_file = xmas_elf::ElfFile::new(kernel).unwrap();
-    xmas_elf::header::sanity_check(&elf_file).unwrap();
+    use fixedvec::FixedVec;
+    use xmas_elf::program::{ProgramHeader, ProgramHeader64};
+
+    let mut preallocated_space = alloc_stack!([ProgramHeader64; 32]);
+    let mut segments = FixedVec::new(&mut preallocated_space);
+    let entry_point;
+
+    {
+        let kernel_start_ptr = usize_from(kernel_start.as_u64()) as *const u8;
+        let kernel = unsafe { slice::from_raw_parts(kernel_start_ptr, usize_from(kernel_size)) };
+        let elf_file = xmas_elf::ElfFile::new(kernel).unwrap();
+        xmas_elf::header::sanity_check(&elf_file).unwrap();
+
+        entry_point = elf_file.header.pt2.entry_point();
+
+        for program_header in elf_file.program_iter() {
+            match program_header {
+                ProgramHeader::Ph64(header) => {
+                    segments.push(*header).expect("does not support more than 32 program segments")
+                },
+                ProgramHeader::Ph32(_) => panic!("does not support 32 bit elf files"),
+            }
+        }
+    }
+
+
 
     // idea: embed memory map in frame allocator and mark allocated frames as used
     let mut memory_map = boot_info::create_from(memory_map_addr, memory_map_entry_count);
@@ -61,7 +85,7 @@ pub extern "C" fn load_elf(kernel_start: PhysAddr, kernel_size: u64,
     let p4 = unsafe { &mut *(usize_from(p4_addr.as_u64()) as *const PageTable as *mut PageTable) };
     p4.zero();
 
-    let stack_end = page_table::map_kernel(kernel_start, &elf_file, p4, &mut frame_allocator);
+    let stack_end = page_table::map_kernel(kernel_start, &segments, p4, &mut frame_allocator);
 
     let boot_info_page = Page::containing_address(VirtAddr::new(0x1000));
     let boot_info_frame = frame_allocator.allocate_frame();
@@ -96,7 +120,7 @@ pub extern "C" fn load_elf(kernel_start: PhysAddr, kernel_size: u64,
     enable_nxe_bit();
     enable_write_protect_bit();
 
-    let entry_point = VirtAddr::new(elf_file.header.pt2.entry_point());
+    let entry_point = VirtAddr::new(entry_point);
     printer::PRINTER.lock().clear_screen();
     unsafe { context_switch(p4_addr, entry_point, stack_end, boot_info_addr) };
 }
