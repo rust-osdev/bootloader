@@ -9,7 +9,7 @@ The idea is to build the kernel as a `no_std` longmode executable and then build
 You need a nightly [Rust](https://www.rust-lang.org) compiler, [xargo](https://github.com/japaric/xargo), [objcopy](https://sourceware.org/binutils/docs/binutils/objcopy.html) (or a similar tool), and [QEMU](https://www.qemu.org/) (for running it).
 
 ```
-> RUST_TARGET_PATH=(pwd) xargo build --target test
-> objcopy -O binary -S target/test/debug/elf_loader test-bin
-> qemu-system-x86_64 -hda test-bin -d int -s
+> RUST_TARGET_PATH=$(pwd) xargo build --target x86_64-bootloader --release
+> objcopy -O binary -S target/x86_64-bootloader/release/bootloader bootimage.bin
+> qemu-system-x86_64 -hda bootimage.bin -d int -s
 ```
