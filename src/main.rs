@@ -7,7 +7,6 @@
 #![feature(nll)]
 #![feature(pointer_methods)]
 #![feature(const_fn)]
-#![feature(nll)]
 
 #![no_std]
 #![no_main]
@@ -23,12 +22,9 @@ extern crate fixedvec;
 
 pub use x86_64::PhysAddr;
 use x86_64::VirtAddr;
-use x86_64::ux::u9;
-use x86_64::structures::paging::{PAGE_SIZE, PageTableFlags, Page};
-use x86_64::structures::paging::RecursivePageTable;
-use x86_64::instructions::tlb;
+use x86_64::structures::paging::{PageTable, PageTableFlags, PhysFrame, Page};
 use core::slice;
-use usize_conversions::usize_from;
+use usize_conversions::{usize_from, FromUsize};
 use os_bootinfo::BootInfo;
 
 global_asm!(include_str!("boot.s"));
@@ -37,7 +33,8 @@ global_asm!(include_str!("memory_map.s"));
 global_asm!(include_str!("context_switch.s"));
 
 extern "C" {
-    fn context_switch(boot_info: VirtAddr, entry_point: VirtAddr, stack_pointer: VirtAddr) -> !;
+    fn context_switch(p4_addr: PhysAddr, entry_point: VirtAddr, stack_pointer: VirtAddr,
+        boot_info: VirtAddr) -> !;
 }
 
 mod boot_info;
@@ -47,21 +44,15 @@ mod printer;
 
 #[no_mangle]
 pub extern "C" fn load_elf(kernel_start: PhysAddr, kernel_size: u64,
-        memory_map_addr: VirtAddr, memory_map_entry_count: u64,
-        page_table_start: PhysAddr, page_table_end: PhysAddr,
-        bootloader_start: PhysAddr, bootloader_end: PhysAddr,
-    ) -> !
+    memory_map_addr: VirtAddr, memory_map_entry_count: u64) -> !
 {
     use fixedvec::FixedVec;
     use xmas_elf::program::{ProgramHeader, ProgramHeader64};
-    use os_bootinfo::{MemoryRegion, MemoryRegionType};
 
-    let mut memory_map = boot_info::create_from(memory_map_addr, memory_map_entry_count);
-
-    // Extract required information from the ELF file.
     let mut preallocated_space = alloc_stack!([ProgramHeader64; 32]);
     let mut segments = FixedVec::new(&mut preallocated_space);
     let entry_point;
+
     {
         let kernel_start_ptr = usize_from(kernel_start.as_u64()) as *const u8;
         let kernel = unsafe { slice::from_raw_parts(kernel_start_ptr, usize_from(kernel_size)) };
@@ -80,78 +71,58 @@ pub extern "C" fn load_elf(kernel_start: PhysAddr, kernel_size: u64,
         }
     }
 
-    // Enable support for the no-execute bit in page tables.
-    enable_nxe_bit();
 
-    // Create a RecursivePageTable
-    let recursive_index = u9::new(511);
-    let recursive_page_table_addr = Page::from_page_table_indices(recursive_index,
-        recursive_index, recursive_index, recursive_index);
-    let page_table = unsafe { &mut *(recursive_page_table_addr.start_address().as_mut_ptr()) };
-    let mut rec_page_table = RecursivePageTable::new(page_table)
-        .expect("recursive page table creation failed");
 
-    // Create a frame allocator, which marks allocated frames as used in the memory map.
+    // idea: embed memory map in frame allocator and mark allocated frames as used
+    let mut memory_map = boot_info::create_from(memory_map_addr, memory_map_entry_count);
+
     let mut frame_allocator = frame_allocator::FrameAllocator{ memory_map:&mut memory_map };
 
-    // Mark already used memory areas in frame allocator.
-    {
-        frame_allocator.add_region(MemoryRegion {
-            start_addr: kernel_start, len: kernel_size, region_type: MemoryRegionType::Kernel,
-        });
-        frame_allocator.add_region(MemoryRegion {
-            start_addr: page_table_start, len: page_table_end - page_table_start,
-            region_type: MemoryRegionType::PageTable,
-        });
-        frame_allocator.add_region(MemoryRegion {
-            start_addr: bootloader_start, len: bootloader_end - bootloader_start,
-            region_type: MemoryRegionType::Bootloader,
-        });
-        frame_allocator.add_region(MemoryRegion {
-            start_addr: PhysAddr::new(0), len: u64::from(PAGE_SIZE),
-            region_type: MemoryRegionType::FrameZero,
-        });
-    }
+    frame_allocator.mark_as_used(kernel_start, kernel_size);
 
-    // Unmap the ELF file.
-    const _2MIB: usize = 2*1024*1024;
-    for addr in (kernel_start..kernel_start+kernel_size).step_by(_2MIB) {
-        let page = Page::containing_address(VirtAddr::new(addr.as_u64()));
-        rec_page_table.unmap(page, &mut |frame| {
-            frame_allocator.deallocate_frame(frame);
-        }).expect("dealloc error");
-    }
-    // Flush the translation lookaside buffer since we changed the active mapping.
-    tlb::flush_all();
+    let p4_frame = frame_allocator.allocate_frame();
+    let p4_addr = p4_frame.start_address();
+    let p4 = unsafe { &mut *(usize_from(p4_addr.as_u64()) as *const PageTable as *mut PageTable) };
+    p4.zero();
 
-    // Map kernel segments.
-    let stack_end = page_table::map_kernel(kernel_start, &segments, &mut rec_page_table,
-        &mut frame_allocator).expect("kernel mapping failed");
+    let stack_end = page_table::map_kernel(kernel_start, &segments, p4, &mut frame_allocator);
 
-    // Map a page for the boot info structure
-    let boot_info_page = Page::containing_address(VirtAddr::new(0xb0071f0000));
-    let boot_info_frame = frame_allocator.allocate_frame(MemoryRegionType::Bootloader)
-        .expect("frame allocation failed");
+    let boot_info_page = Page::containing_address(VirtAddr::new(0x1000));
+    let boot_info_frame = frame_allocator.allocate_frame();
     let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
-    page_table::map_page(boot_info_page.clone(), boot_info_frame.clone(), flags,
-        &mut rec_page_table, &mut frame_allocator).expect("Mapping of bootinfo page failed");
+    page_table::map_page(boot_info_page.clone(), boot_info_frame.clone(), flags, p4, &mut frame_allocator);
 
-    // Construct boot info structure.
-    let mut boot_info = BootInfo::new(page_table, memory_map);
+    let p4_page = Page::containing_address(VirtAddr::new(0x2000));
+    let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+    page_table::map_page(p4_page.clone(), p4_frame.clone(), flags, p4, &mut frame_allocator);
+    let p4_ptr = usize_from(p4_page.start_address().as_u64()) as *mut PageTable;
+
+    // identity map VGA text buffer
+    let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+    let vga_frame = PhysFrame::containing_address(PhysAddr::new(0xb8000));
+    page_table::identity_map(vga_frame, flags, p4, &mut frame_allocator);
+
+    // identity map context switch function to be able to switch P4 tables without page fault
+    let context_switch_fn_addr = VirtAddr::new(u64::from_usize(
+        context_switch as *const fn(PhysAddr, VirtAddr, VirtAddr, &'static BootInfo) -> ! as usize));
+    let context_switch_fn_frame = PhysFrame::containing_address(
+        PhysAddr::new(context_switch_fn_addr.as_u64()));
+    let flags = PageTableFlags::PRESENT;
+    page_table::identity_map(context_switch_fn_frame, flags, p4, &mut frame_allocator);
+
+    let mut boot_info = BootInfo::new(unsafe { &mut *p4_ptr }, memory_map);
     boot_info.sort_memory_map();
 
-    // Write boot info to boot info page.
     let boot_info_addr = boot_info_page.start_address();
     let boot_info_ptr = usize_from(boot_info_frame.start_address().as_u64()) as *mut BootInfo;
     unsafe {boot_info_ptr.write(boot_info)};
 
-    // Make sure that the kernel respects the write-protection bits, even when in ring 0.
+    enable_nxe_bit();
     enable_write_protect_bit();
 
     let entry_point = VirtAddr::new(entry_point);
     printer::PRINTER.lock().clear_screen();
-
-    unsafe { context_switch(boot_info_addr, entry_point, stack_end) };
+    unsafe { context_switch(p4_addr, entry_point, stack_end, boot_info_addr) };
 }
 
 fn enable_nxe_bit() {
@@ -171,7 +142,7 @@ pub extern fn rust_begin_panic(msg: core::fmt::Arguments,
                                _line: u32,
                                _column: u32) -> ! {
     use core::fmt::Write;
-    write!(printer::PRINTER.lock(), "PANIC: {}", msg).unwrap();
+    write!(printer::PRINTER.lock(), "ERR: {}", msg).unwrap();
 
     loop {}
 }
