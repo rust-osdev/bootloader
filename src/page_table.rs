@@ -15,7 +15,7 @@ pub(crate) fn map_kernel(kernel_start: PhysAddr, segments: &FixedVec<ProgramHead
     // create a stack
     // TODO create a stack range dynamically (based on where the kernel is loaded)
     let stack_start = VirtAddr::new(0x57AC_0000_0000);
-    let stack_size = 1 * 1024 * 1024;
+    let stack_size: u64 = 1 * 1024 * 1024;
     let stack_end = stack_start + stack_size;
 
     let page_size = usize_from(PAGE_SIZE);
@@ -93,15 +93,15 @@ pub(crate) fn map_segment(segment: &ProgramHeader64, kernel_start: PhysAddr, p4:
 pub(crate) fn map_page(page: Page, phys_frame: PhysFrame, flags: PageTableFlags,
     p4: &mut PageTable, frame_allocator: &mut FrameAllocator)
 {
-    fn as_page_table_ptr(addr: PhysAddr) -> *mut PageTable {
-        usize_from(addr.as_u64()) as *const PageTable as *mut PageTable
+    fn as_page_table_ptr(frame: &PhysFrame) -> *mut PageTable {
+        usize_from(frame.start_address().as_u64()) as *const PageTable as *mut PageTable
     }
 
     fn create_and_link_page_table(frame_allocator: &mut FrameAllocator,
         parent_table_entry: &mut PageTableEntry) -> &'static mut PageTable
     {
         let table_frame = frame_allocator.allocate_frame();
-        let page_table = unsafe { &mut *as_page_table_ptr(table_frame.start_address()) };
+        let page_table = unsafe { &mut *as_page_table_ptr(&table_frame) };
         page_table.zero();
         parent_table_entry.set(table_frame, PageTableFlags::PRESENT | PageTableFlags::WRITABLE);
         page_table
@@ -110,8 +110,8 @@ pub(crate) fn map_page(page: Page, phys_frame: PhysFrame, flags: PageTableFlags,
     fn get_or_create_next_page_table(frame_allocator: &mut FrameAllocator,
         page_table_entry: &mut PageTableEntry) -> &'static mut PageTable
     {
-        match page_table_entry.points_to() {
-            Some(addr) => unsafe { &mut *as_page_table_ptr(addr) },
+        match page_table_entry.frame() {
+            Some(frame) => unsafe { &mut *as_page_table_ptr(&frame) },
             None => create_and_link_page_table(frame_allocator, page_table_entry)
         }
     }
