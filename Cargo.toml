@@ -1,13 +1,13 @@
 [package]
 name = "bootloader"
-version = "0.1.1"
+version = "0.2.0-alpha-001"
 authors = ["Philipp Oppermann <dev@phil-opp.com>"]
 license = "MIT/Apache-2.0"
 description = "An experimental pure-Rust x86 bootloader."
 
 [dependencies]
 rlibc = "1"
-xmas-elf = { git = "https://github.com/phil-opp/xmas-elf.git" }
+xmas-elf = "0.6.2"
 x86_64 = "0.2.0-alpha-001"
 usize_conversions = "0.2.0"
 os_bootinfo = "0.2.0-alpha"

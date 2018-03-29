@@ -46,13 +46,13 @@ pub(crate) fn map_segment(segment: &ProgramHeader64, kernel_start: PhysAddr, p4:
     let typ = segment.get_type().unwrap();
     match typ {
         program::Type::Load => {
-            let mem_size = segment.mem_size();
-            let file_size = segment.file_size();
-            let file_offset = segment.offset();
+            let mem_size = segment.mem_size;
+            let file_size = segment.file_size;
+            let file_offset = segment.offset;
             let phys_start_addr = kernel_start + file_offset;
-            let virt_start_addr = VirtAddr::new(segment.virtual_addr());
+            let virt_start_addr = VirtAddr::new(segment.virtual_addr);
 
-            let flags = segment.flags();
+            let flags = segment.flags;
             let mut page_table_flags = PageTableFlags::PRESENT;
             if !flags.is_execute() { page_table_flags |= PageTableFlags::NO_EXECUTE };
             if flags.is_write() { page_table_flags |= PageTableFlags::WRITABLE };

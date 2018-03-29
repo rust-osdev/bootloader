@@ -10,7 +10,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "bootloader"
-version = "0.1.1"
+version = "0.2.0-alpha-001"
 dependencies = [
  "fixedvec 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "os_bootinfo 0.2.0-alpha-009 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -18,7 +18,7 @@ dependencies = [
  "spin 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "usize_conversions 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "x86_64 0.2.0-alpha-011 (registry+https://github.com/rust-lang/crates.io-index)",
- "xmas-elf 0.6.1 (git+https://github.com/phil-opp/xmas-elf.git)",
+ "xmas-elf 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -157,8 +157,8 @@ dependencies = [
 
 [[package]]
 name = "xmas-elf"
-version = "0.6.1"
-source = "git+https://github.com/phil-opp/xmas-elf.git#f300011ce119c9962986fac7162dde1c2c1cbad9"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "zero 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -190,5 +190,5 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum winapi-i686-pc-windows-gnu 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ac3b87c63620426dd9b991e5ce0329eff545bccbbb34f3be09ff6fb6ab51b7b6"
 "checksum winapi-x86_64-pc-windows-gnu 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 "checksum x86_64 0.2.0-alpha-011 (registry+https://github.com/rust-lang/crates.io-index)" = "2cd99f455b26d4f01479f3c3bf63c2d7f12d6866e4549dc40f0a00ff59edca0e"
-"checksum xmas-elf 0.6.1 (git+https://github.com/phil-opp/xmas-elf.git)" = "<none>"
+"checksum xmas-elf 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)" = "22678df5df766e8d1e5d609da69f0c3132d794edf6ab5e75e7abcd2270d4cf58"
 "checksum zero 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "5f1bc8a6b2005884962297587045002d8cfb8dcec9db332f4ca216ddc5de82c5"
