@@ -1,5 +1,6 @@
 use os_bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
 use x86_64::structures::paging::{PhysFrame, PAGE_SIZE};
+use x86_64::align_up;
 
 pub(crate) struct FrameAllocator<'a> {
     pub memory_map: &'a mut MemoryMap,
@@ -16,6 +17,7 @@ impl<'a> FrameAllocator<'a> {
             if region.len < page_size {
                 continue;
             }
+
             assert_eq!(
                 0,
                 region.start_addr.as_u64() & 0xfff,
@@ -61,13 +63,15 @@ impl<'a> FrameAllocator<'a> {
         self.add_region_overwrite(region, false);
     }
 
-    fn add_region_overwrite(&mut self, region: MemoryRegion, overwrite: bool) {
+    fn add_region_overwrite(&mut self, mut region: MemoryRegion, overwrite: bool) {
         assert_eq!(
             0,
             region.start_addr.as_u64() & 0xfff,
             "Region start address is not page aligned: {:?}",
             region
         );
+
+        region.len = align_up(region.len, PAGE_SIZE.into());
 
         let mut region_already_inserted = false;
         let mut split_region = None;
