@@ -153,5 +153,7 @@ impl<'a> FrameAllocator<'a> {
         if !region_already_inserted {
             self.memory_map.add_region(region);
         }
+
+        self.memory_map.sort();
     }
 }

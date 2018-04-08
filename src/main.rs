@@ -183,7 +183,7 @@ pub extern "C" fn load_elf(
 
     // Construct boot info structure.
     let mut boot_info = BootInfo::new(page_table, memory_map);
-    boot_info.sort_memory_map();
+    boot_info.memory_map.sort();
 
     // Write boot info to boot info page.
     let boot_info_addr = boot_info_page.start_address();
