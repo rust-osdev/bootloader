@@ -12,7 +12,6 @@
 #![no_std]
 #![no_main]
 
-extern crate rlibc;
 extern crate xmas_elf;
 extern crate x86_64;
 extern crate usize_conversions;

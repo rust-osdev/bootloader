@@ -6,7 +6,6 @@ license = "MIT/Apache-2.0"
 description = "An experimental pure-Rust x86 bootloader."
 
 [dependencies]
-rlibc = "1"
 xmas-elf = "0.6.2"
 x86_64 = "0.2.0-alpha-001"
 usize_conversions = "0.2.0"
