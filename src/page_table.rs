@@ -1,16 +1,18 @@
-use frame_allocator::FrameAllocator;
-use x86_64::{PhysAddr, VirtAddr, align_up};
-use x86_64::structures::paging::{PAGE_SIZE, PageTableFlags, Page, PhysFrame};
-use x86_64::structures::paging::{RecursivePageTable, MapToError, UnmapError};
-use x86_64::instructions::tlb;
-use xmas_elf::program::{self, ProgramHeader64};
 use fixedvec::FixedVec;
+use frame_allocator::FrameAllocator;
 use os_bootinfo::MemoryRegionType;
+use x86_64::instructions::tlb;
+use x86_64::structures::paging::{MapToError, RecursivePageTable, UnmapError};
+use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, PAGE_SIZE};
+use x86_64::{align_up, PhysAddr, VirtAddr};
+use xmas_elf::program::{self, ProgramHeader64};
 
-pub(crate) fn map_kernel(kernel_start: PhysAddr, segments: &FixedVec<ProgramHeader64>,
-    page_table: &mut RecursivePageTable, frame_allocator: &mut FrameAllocator)
-    -> Result<VirtAddr, MapToError>
-{
+pub(crate) fn map_kernel(
+    kernel_start: PhysAddr,
+    segments: &FixedVec<ProgramHeader64>,
+    page_table: &mut RecursivePageTable,
+    frame_allocator: &mut FrameAllocator,
+) -> Result<VirtAddr, MapToError> {
     for segment in segments {
         map_segment(segment, kernel_start, page_table, frame_allocator)?;
     }
@@ -25,7 +27,8 @@ pub(crate) fn map_kernel(kernel_start: PhysAddr, segments: &FixedVec<ProgramHead
     let region_type = MemoryRegionType::Kernel;
 
     for page in Page::range(stack_start, stack_end) {
-        let frame = frame_allocator.allocate_frame(region_type)
+        let frame = frame_allocator
+            .allocate_frame(region_type)
             .ok_or(MapToError::FrameAllocationFailed)?;
         map_page(page, frame, flags, page_table, frame_allocator)?;
     }
@@ -33,10 +36,12 @@ pub(crate) fn map_kernel(kernel_start: PhysAddr, segments: &FixedVec<ProgramHead
     Ok(stack_end.start_address())
 }
 
-pub(crate) fn map_segment(segment: &ProgramHeader64, kernel_start: PhysAddr,
-    page_table: &mut RecursivePageTable, frame_allocator: &mut FrameAllocator)
-    -> Result<(), MapToError>
-{
+pub(crate) fn map_segment(
+    segment: &ProgramHeader64,
+    kernel_start: PhysAddr,
+    page_table: &mut RecursivePageTable,
+    frame_allocator: &mut FrameAllocator,
+) -> Result<(), MapToError> {
     let typ = segment.get_type().unwrap();
     match typ {
         program::Type::Load => {
@@ -52,8 +57,12 @@ pub(crate) fn map_segment(segment: &ProgramHeader64, kernel_start: PhysAddr,
 
             let flags = segment.flags;
             let mut page_table_flags = PageTableFlags::PRESENT;
-            if !flags.is_execute() { page_table_flags |= PageTableFlags::NO_EXECUTE };
-            if flags.is_write() { page_table_flags |= PageTableFlags::WRITABLE };
+            if !flags.is_execute() {
+                page_table_flags |= PageTableFlags::NO_EXECUTE
+            };
+            if flags.is_write() {
+                page_table_flags |= PageTableFlags::WRITABLE
+            };
 
             for frame in PhysFrame::range_inclusive(start_frame, end_frame) {
                 let offset = frame - start_frame;
@@ -72,10 +81,16 @@ pub(crate) fn map_segment(segment: &ProgramHeader64, kernel_start: PhysAddr,
 
                     // TODO: search for a free page dynamically
                     let temp_page = Page::containing_address(VirtAddr::new(0xfeeefeee000));
-                    let new_frame = frame_allocator.allocate_frame(MemoryRegionType::Kernel)
+                    let new_frame = frame_allocator
+                        .allocate_frame(MemoryRegionType::Kernel)
                         .ok_or(MapToError::FrameAllocationFailed)?;
-                    map_page(temp_page.clone(), new_frame.clone(), page_table_flags, page_table,
-                        frame_allocator)?;
+                    map_page(
+                        temp_page.clone(),
+                        new_frame.clone(),
+                        page_table_flags,
+                        page_table,
+                        frame_allocator,
+                    )?;
 
                     type PageArray = [u64; PAGE_SIZE as usize / 8];
 
@@ -93,22 +108,30 @@ pub(crate) fn map_segment(segment: &ProgramHeader64, kernel_start: PhysAddr,
                         return Err(match e {
                             UnmapError::EntryWithInvalidFlagsPresent(_, _) => {
                                 MapToError::EntryWithInvalidFlagsPresent
-                            },
+                            }
                             UnmapError::PageNotMapped(_) => unreachable!(),
                         });
                     }
                     tlb::flush(last_page.start_address());
 
-                    map_page(last_page, new_frame, page_table_flags, page_table, frame_allocator)?;
+                    map_page(
+                        last_page,
+                        new_frame,
+                        page_table_flags,
+                        page_table,
+                        frame_allocator,
+                    )?;
                 }
 
                 // Map additional frames.
-                let start_page = Page::containing_address(
-                    VirtAddr::new(align_up(zero_start.as_u64(), u64::from(PAGE_SIZE)))
-                );
+                let start_page = Page::containing_address(VirtAddr::new(align_up(
+                    zero_start.as_u64(),
+                    u64::from(PAGE_SIZE),
+                )));
                 let end_page = Page::containing_address(zero_end);
                 for page in Page::range_inclusive(start_page, end_page) {
-                    let frame = frame_allocator.allocate_frame(MemoryRegionType::Kernel)
+                    let frame = frame_allocator
+                        .allocate_frame(MemoryRegionType::Kernel)
                         .ok_or(MapToError::FrameAllocationFailed)?;
                     map_page(page, frame, page_table_flags, page_table, frame_allocator)?;
                 }
@@ -119,16 +142,19 @@ pub(crate) fn map_segment(segment: &ProgramHeader64, kernel_start: PhysAddr,
                     unsafe { addr.as_mut_ptr::<u8>().write(0) };
                 }
             }
-        },
-        _ => {},
+        }
+        _ => {}
     }
     Ok(())
 }
 
-pub(crate) fn map_page(page: Page, phys_frame: PhysFrame, flags: PageTableFlags,
-        page_table: &mut RecursivePageTable, frame_allocator: &mut FrameAllocator
-    ) -> Result<(), MapToError>
-{
+pub(crate) fn map_page(
+    page: Page,
+    phys_frame: PhysFrame,
+    flags: PageTableFlags,
+    page_table: &mut RecursivePageTable,
+    frame_allocator: &mut FrameAllocator,
+) -> Result<(), MapToError> {
     page_table.map_to(page, phys_frame, flags, &mut || {
         frame_allocator.allocate_frame(MemoryRegionType::PageTable)
     })

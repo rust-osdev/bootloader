@@ -1,5 +1,5 @@
-use x86_64::structures::paging::{PAGE_SIZE, PhysFrame};
 use os_bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
+use x86_64::structures::paging::{PhysFrame, PAGE_SIZE};
 
 pub(crate) struct FrameAllocator<'a> {
     pub memory_map: &'a mut MemoryMap,
@@ -16,8 +16,12 @@ impl<'a> FrameAllocator<'a> {
             if region.len < page_size {
                 continue;
             }
-            assert_eq!(0, region.start_addr.as_u64() & 0xfff,
-                "Region start address is not page aligned: {:?}", region);
+            assert_eq!(
+                0,
+                region.start_addr.as_u64() & 0xfff,
+                "Region start address is not page aligned: {:?}",
+                region
+            );
 
             frame = Some(PhysFrame::containing_address(region.start_addr));
             region.start_addr += page_size;
@@ -28,7 +32,7 @@ impl<'a> FrameAllocator<'a> {
             self.add_region(MemoryRegion {
                 start_addr: frame.start_address(),
                 len: page_size,
-                region_type
+                region_type,
             });
             Some(frame)
         } else {
@@ -38,11 +42,14 @@ impl<'a> FrameAllocator<'a> {
 
     pub(crate) fn deallocate_frame(&mut self, frame: PhysFrame) {
         let page_size = u64::from(PAGE_SIZE);
-        self.add_region_overwrite(MemoryRegion {
-            start_addr: frame.start_address(),
-            len: page_size,
-            region_type: MemoryRegionType::Usable,
-        }, true);
+        self.add_region_overwrite(
+            MemoryRegion {
+                start_addr: frame.start_address(),
+                len: page_size,
+                region_type: MemoryRegionType::Usable,
+            },
+            true,
+        );
     }
 
     /// Adds the passed region to the memory map.
@@ -50,14 +57,17 @@ impl<'a> FrameAllocator<'a> {
     /// This function automatically adjusts the existing regions so that no overlap occurs.
     ///
     /// Panics if a non-usable region (e.g. a reserved region) overlaps with the passed region.
-    pub(crate) fn add_region(&mut self, region: MemoryRegion)
-    {
+    pub(crate) fn add_region(&mut self, region: MemoryRegion) {
         self.add_region_overwrite(region, false);
     }
 
     fn add_region_overwrite(&mut self, region: MemoryRegion, overwrite: bool) {
-        assert_eq!(0, region.start_addr.as_u64() & 0xfff,
-            "Region start address is not page aligned: {:?}", region);
+        assert_eq!(
+            0,
+            region.start_addr.as_u64() & 0xfff,
+            "Region start address is not page aligned: {:?}",
+            region
+        );
 
         let mut region_already_inserted = false;
         let mut split_region = None;
@@ -69,12 +79,16 @@ impl<'a> FrameAllocator<'a> {
                 match r.region_type {
                     MemoryRegionType::Usable => {
                         if region.region_type == MemoryRegionType::Usable {
-                            panic!("region {:?} overlaps with other usable region {:?}", region, r)
+                            panic!(
+                                "region {:?} overlaps with other usable region {:?}",
+                                region, r
+                            )
                         }
                     }
-                    MemoryRegionType::InUse => {},
-                    MemoryRegionType::Bootloader | MemoryRegionType::Kernel
-                        | MemoryRegionType::PageTable if overwrite => {}
+                    MemoryRegionType::InUse => {}
+                    MemoryRegionType::Bootloader
+                    | MemoryRegionType::Kernel
+                    | MemoryRegionType::PageTable if overwrite => {}
                     _ => {
                         panic!("can't override region {:?} with {:?}", r, region);
                     }
@@ -84,7 +98,10 @@ impl<'a> FrameAllocator<'a> {
                     // ----rrrrrrrrrrr----
                     // ------RRRR---------
                     r.len = region.start_addr() - r.start_addr();
-                    assert!(split_region.is_none(), "area overlaps with multiple regions");
+                    assert!(
+                        split_region.is_none(),
+                        "area overlaps with multiple regions"
+                    );
                     split_region = Some(MemoryRegion {
                         start_addr: region.end_addr(),
                         len: r.end_addr() - region.end_addr(),
@@ -94,8 +111,8 @@ impl<'a> FrameAllocator<'a> {
                     // Case: (r = `r`, R = `region`)
                     // ----rrrrrrrrrrr----
                     // --RRRR-------------
-                        r.len -= region.end_addr() - r.start_addr();
-                        r.start_addr = region.end_addr();
+                    r.len -= region.end_addr() - r.start_addr();
+                    r.start_addr = region.end_addr();
                 } else if region.end_addr() >= r.end_addr() {
                     // Case: (r = `r`, R = `region`)
                     // ----rrrrrrrrrrr----

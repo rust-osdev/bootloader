@@ -1,4 +1,4 @@
-use core::fmt::{Write, Result};
+use core::fmt::{Result, Write};
 use core::slice;
 use spin::Mutex;
 
@@ -13,9 +13,7 @@ pub struct Printer {
 
 impl Printer {
     pub const fn new() -> Printer {
-        Printer {
-            index: 0,
-        }
+        Printer { index: 0 }
     }
 
     pub fn clear_screen(&mut self) {
@@ -27,7 +25,7 @@ impl Printer {
     }
 
     fn vga_buffer() -> &'static mut [u8] {
-         unsafe { slice::from_raw_parts_mut(VGA_BUFFER, SCREEN_SIZE * 2) }
+        unsafe { slice::from_raw_parts_mut(VGA_BUFFER, SCREEN_SIZE * 2) }
     }
 }
 
