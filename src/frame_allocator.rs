@@ -97,7 +97,6 @@ impl<'a> FrameAllocator<'a> {
                     // Case: (r = `r`, R = `region`)
                     // ----rrrrrrrrrrr----
                     // ------RRRR---------
-                    r.len = region.start_addr() - r.start_addr();
                     assert!(
                         split_region.is_none(),
                         "area overlaps with multiple regions"
@@ -107,6 +106,7 @@ impl<'a> FrameAllocator<'a> {
                         len: r.end_addr() - region.end_addr(),
                         region_type: r.region_type,
                     });
+                    r.len = region.start_addr() - r.start_addr();
                 } else if region.start_addr() <= r.start_addr() {
                     // Case: (r = `r`, R = `region`)
                     // ----rrrrrrrrrrr----
