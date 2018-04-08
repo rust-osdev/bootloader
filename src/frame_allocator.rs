@@ -1,6 +1,6 @@
 use os_bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
 use x86_64::structures::paging::{PhysFrame, PAGE_SIZE};
-use x86_64::align_up;
+use x86_64::{align_up, PhysAddr};
 
 pub(crate) struct FrameAllocator<'a> {
     pub memory_map: &'a mut MemoryMap,
@@ -10,26 +10,48 @@ impl<'a> FrameAllocator<'a> {
     pub(crate) fn allocate_frame(&mut self, region_type: MemoryRegionType) -> Option<PhysFrame> {
         let page_size = u64::from(PAGE_SIZE);
         let mut frame = None;
-        for region in self.memory_map.iter_mut() {
-            if region.region_type != MemoryRegionType::Usable {
-                continue;
-            }
-            if region.len < page_size {
-                continue;
-            }
 
-            assert_eq!(
-                0,
-                region.start_addr.as_u64() & 0xfff,
-                "Region start address is not page aligned: {:?}",
-                region
-            );
-
-            frame = Some(PhysFrame::containing_address(region.start_addr));
-            region.start_addr += page_size;
-            region.len -= page_size;
-            break;
+        if frame.is_none() {
+            // look for an adjacent regions of same types
+            let mut last_region_end = PhysAddr::new(0);
+            for region in self.memory_map.iter_mut() {
+                if region.region_type == region_type {
+                    last_region_end = region.end_addr();
+                } else if region.region_type == MemoryRegionType::Usable {
+                    if region.start_addr() == last_region_end {
+                        frame = Some(PhysFrame::containing_address(region.start_addr));
+                        region.start_addr += page_size;
+                        region.len -= page_size;
+                        break
+                    }
+                }
+            }
         }
+
+        if frame.is_none() {
+            // search all regions
+            for region in self.memory_map.iter_mut() {
+                if region.region_type != MemoryRegionType::Usable {
+                    continue;
+                }
+                if region.len < page_size {
+                    continue;
+                }
+
+                assert_eq!(
+                    0,
+                    region.start_addr.as_u64() & 0xfff,
+                    "Region start address is not page aligned: {:?}",
+                    region
+                );
+
+                frame = Some(PhysFrame::containing_address(region.start_addr));
+                region.start_addr += page_size;
+                region.len -= page_size;
+                break;
+            }
+        }
+
         if let Some(frame) = frame {
             self.add_region(MemoryRegion {
                 start_addr: frame.start_address(),
