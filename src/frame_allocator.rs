@@ -71,7 +71,12 @@ impl<'a> FrameAllocator<'a> {
             region
         );
 
-        region.len = align_up(region.len, PAGE_SIZE.into());
+        match region.region_type {
+            MemoryRegionType::Kernel | MemoryRegionType::Bootloader => {
+                region.len = align_up(region.len, PAGE_SIZE.into());
+            }
+            _ => {}
+        }
 
         let mut region_already_inserted = false;
         let mut split_region = None;
