@@ -12,7 +12,6 @@
 #![no_main]
 
 extern crate os_bootinfo;
-extern crate spin;
 extern crate usize_conversions;
 extern crate x86_64;
 extern crate xmas_elf;
@@ -73,6 +72,8 @@ pub extern "C" fn load_elf(
     use fixedvec::FixedVec;
     use os_bootinfo::{MemoryRegion, MemoryRegionType};
     use xmas_elf::program::{ProgramHeader, ProgramHeader64};
+
+    printer::Printer.clear_screen();
 
     let mut memory_map = boot_info::create_from(memory_map_addr, memory_map_entry_count);
 
@@ -192,7 +193,6 @@ pub extern "C" fn load_elf(
     enable_write_protect_bit();
 
     let entry_point = VirtAddr::new(entry_point);
-    printer::PRINTER.lock().clear_screen();
 
     unsafe { context_switch(boot_info_addr, entry_point, stack_end) };
 }
@@ -216,7 +216,7 @@ pub extern "C" fn rust_begin_panic(
     _column: u32,
 ) -> ! {
     use core::fmt::Write;
-    write!(printer::PRINTER.lock(), "PANIC: {}", msg).unwrap();
+    write!(printer::Printer, "PANIC: {}", msg).unwrap();
 
     loop {}
 }

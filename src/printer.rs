@@ -1,27 +1,21 @@
 use core::fmt::{Result, Write};
 use core::slice;
-use spin::Mutex;
+use core::sync::atomic::{AtomicUsize, Ordering};
 
 const VGA_BUFFER: *mut u8 = 0xb8000 as *mut _;
 const SCREEN_SIZE: usize = 80 * 25;
 
-pub static PRINTER: Mutex<Printer> = Mutex::new(Printer::new());
+pub static CURRENT_OFFSET: AtomicUsize = AtomicUsize::new(160);
 
-pub struct Printer {
-    index: usize,
-}
+pub struct Printer;
 
 impl Printer {
-    pub const fn new() -> Printer {
-        Printer { index: 0 }
-    }
-
     pub fn clear_screen(&mut self) {
         let vga_buffer = Self::vga_buffer();
         for byte in vga_buffer {
             *byte = 0;
         }
-        self.index = 0;
+        CURRENT_OFFSET.store(0, Ordering::Relaxed);
     }
 
     fn vga_buffer() -> &'static mut [u8] {
@@ -33,9 +27,9 @@ impl Write for Printer {
     fn write_str(&mut self, s: &str) -> Result {
         let vga_buffer = Self::vga_buffer();
         for byte in s.bytes() {
-            vga_buffer[self.index] = byte;
-            vga_buffer[self.index + 1] = 0x4f;
-            self.index += 2;
+            let index = CURRENT_OFFSET.fetch_add(2, Ordering::Relaxed);
+            vga_buffer[index] = byte;
+            vga_buffer[index + 1] = 0x4f;
         }
 
         Ok(())
