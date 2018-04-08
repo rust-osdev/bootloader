@@ -26,28 +26,15 @@ script:
 - RUST_TARGET_PATH=`pwd` xargo build --target x86_64-bootloader --release
 - objcopy -O binary -S target/x86_64-bootloader/release/bootloader bootimage.bin
 
-after_success:
-  - |
-    if [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ "$TRAVIS_BRANCH" == "master" ]; then
-      REPO=`git config remote.origin.url`
-      SSH_REPO=${REPO/https:\/\/github.com\//git@github.com:}
-
-      git tag -f latest HEAD
-      git config user.name "Travis CI"
-      git config user.email "travis@phil-opp.com"
-
-      eval `ssh-agent -s`
-      openssl aes-256-cbc -K $encrypted_156fe11b627b_key -iv $encrypted_156fe11b627b_iv -in bootloader_id_rsa.enc -d | ssh-add -
-      git push $SSH_REPO latest --force
-    fi
-
 deploy:
-  provider: releases
-  api_key:
-    secure: yO/VIJt4Dl+vMCGzkv8wIDQlHuasUPmQqlbgw1EA/uMz4WeR5mu+l/JKOARXevHeU9xqhF84ooKIDUZ/86N0N68OE77HJzfGAr2eRzeAti9v+zo4uJ7mygl5FmChWe7Ah2AX7/Dg5Ul/OqCHnExB5GjmOu0csvQiB4pyFVB0fw5HPy3LyWqDHuqot/t/eyPtlG2WXIcxjUTXvkHBiKc7nrG/Q6T6R0K1Pzxo+LeY2HNLEuiCc+vhclCeHuRPW/isBOs24FWMEJEl2qkTZIeOJhHWNd0XzOyRfupm9wver0gAVfM4rctkEc3cU6XhbEaRkdqsxna4au0Sborpv5eUld5ELhkxifZFQUjj1m+qu1wyFmNYiQU+RtAqcCpoRBJjt4eczmfb+32XZbTkmCY0MtKV5jIajInmA3JYKKlszk+WyDDlvCXaNj/XD4grTbSZ+WtJQvO3EfeT3F4/OLyk33hMsZ348Vkl8fP0T9PoWko0cYUhBkiSa3dsbbogdCXf/V8cK2IwNSXer/tjZ//AZlkwDiSLOKZ9C94SiB/6VJWdAl+Z9qC6TygKHXrXSB3f6oJFVw7DfFzRhG1SqlaNa9Ujq/PwxJUfZano17zV7kP7WdoJgqHBjukwzeIok0Y3JIrwxp4+xaz6Z/IrnlSzFA3jyUHZ4kLvGeijuc63Pp0=
-  file: bootimage.bin
+  provider: script
   skip_cleanup: true
-  overwrite: true
   on:
     repo: rust-osdev/bootloader
     tags: true
+  script:
+    - |
+      if [[ "$TRAVIS_TAG" == v* ]; then
+        echo "Deploy for $TRAVIS_TAG"
+        echo "UNIMPLEMENTED!"
+      fi
