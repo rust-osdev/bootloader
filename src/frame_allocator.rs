@@ -111,7 +111,7 @@ impl<'a> FrameAllocator<'a> {
                     // Case: (r = `r`, R = `region`)
                     // ----rrrrrrrrrrr----
                     // --RRRR-------------
-                    r.len -= region.end_addr() - r.start_addr();
+                    r.len = r.len.checked_sub(region.end_addr() - r.start_addr()).unwrap();
                     r.start_addr = region.end_addr();
                 } else if region.end_addr() >= r.end_addr() {
                     // Case: (r = `r`, R = `region`)
