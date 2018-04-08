@@ -211,12 +211,12 @@ fn enable_write_protect_bit() {
 #[no_mangle]
 pub extern "C" fn rust_begin_panic(
     msg: core::fmt::Arguments,
-    _file: &'static str,
-    _line: u32,
+    file: &'static str,
+    line: u32,
     _column: u32,
 ) -> ! {
     use core::fmt::Write;
-    write!(printer::Printer, "PANIC: {}", msg).unwrap();
+    write!(printer::Printer, "PANIC: {} in {}:{}", msg, file, line).unwrap();
 
     loop {}
 }
