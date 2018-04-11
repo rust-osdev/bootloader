@@ -12,7 +12,10 @@ impl<'a> FrameAllocator<'a> {
         while let Some(region) = iter.next() {
             if region.region_type == region_type {
                 if let Some(next) = iter.peek() {
-                    if next.range.start == region.range.end && next.region_type == MemoryRegionType::Usable && !next.range.is_empty() {
+                    if next.range.start == region.range.end
+                        && next.region_type == MemoryRegionType::Usable
+                        && !next.range.is_empty()
+                    {
                         let frame = region.range.end;
                         region.range.end += 1;
                         iter.next().unwrap().range.start += 1;
@@ -49,7 +52,8 @@ impl<'a> FrameAllocator<'a> {
         };
 
         if let Some((frame, range)) = result {
-            self.memory_map.add_region(MemoryRegion { range, region_type, });
+            self.memory_map
+                .add_region(MemoryRegion { range, region_type });
             Some(frame)
         } else {
             None
@@ -62,14 +66,17 @@ impl<'a> FrameAllocator<'a> {
     pub(crate) fn mark_allocated_region(&mut self, region: MemoryRegion) {
         for r in self.memory_map.iter_mut() {
             if region.range.start >= r.range.end {
-                continue
+                continue;
             }
             if region.range.end <= r.range.start {
-                continue
+                continue;
             }
 
             if r.region_type != MemoryRegionType::Usable {
-                panic!("region {:x?} overlaps with non-usable region {:x?}", region, r);
+                panic!(
+                    "region {:x?} overlaps with non-usable region {:x?}",
+                    region, r
+                );
             }
 
             if region.range.start == r.range.start {

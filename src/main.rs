@@ -21,12 +21,12 @@ extern crate fixedvec;
 use core::slice;
 use os_bootinfo::BootInfo;
 use usize_conversions::usize_from;
-pub use x86_64::PhysAddr;
-use x86_64::{VirtAddr};
 use x86_64::instructions::tlb;
-use x86_64::structures::paging::{RecursivePageTable, Mapper};
-use x86_64::structures::paging::{Page, PhysFrame, PageTableFlags, Size2MB};
+use x86_64::structures::paging::{Mapper, RecursivePageTable};
+use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, Size2MB};
 use x86_64::ux::u9;
+pub use x86_64::PhysAddr;
+use x86_64::VirtAddr;
 
 global_asm!(include_str!("boot.s"));
 global_asm!(include_str!("second_stage.s"));
@@ -119,7 +119,6 @@ pub extern "C" fn load_elf(
         memory_map: &mut memory_map,
     };
 
-
     // Mark already used memory areas in frame allocator.
     {
         let zero_frame: PhysFrame = PhysFrame::from_start_address(PhysAddr::new(0)).unwrap();
@@ -129,13 +128,15 @@ pub extern "C" fn load_elf(
         });
         let bootloader_start_frame = PhysFrame::containing_address(bootloader_start);
         let bootloader_end_frame = PhysFrame::containing_address(bootloader_end - 1u64);
-        let bootloader_memory_area = PhysFrame::range(bootloader_start_frame, bootloader_end_frame + 1);
+        let bootloader_memory_area =
+            PhysFrame::range(bootloader_start_frame, bootloader_end_frame + 1);
         frame_allocator.mark_allocated_region(MemoryRegion {
             range: bootloader_memory_area,
             region_type: MemoryRegionType::Bootloader,
         });
         let kernel_start_frame = PhysFrame::containing_address(kernel_start.phys());
-        let kernel_end_frame = PhysFrame::containing_address(kernel_start.phys() + kernel_size - 1u64);
+        let kernel_end_frame =
+            PhysFrame::containing_address(kernel_start.phys() + kernel_size - 1u64);
         let kernel_memory_area = PhysFrame::range(kernel_start_frame, kernel_end_frame + 1);
         frame_allocator.mark_allocated_region(MemoryRegion {
             range: kernel_memory_area,
@@ -143,7 +144,8 @@ pub extern "C" fn load_elf(
         });
         let page_table_start_frame = PhysFrame::containing_address(page_table_start);
         let page_table_end_frame = PhysFrame::containing_address(page_table_end - 1u64);
-        let page_table_memory_area = PhysFrame::range(page_table_start_frame, page_table_end_frame + 1);
+        let page_table_memory_area =
+            PhysFrame::range(page_table_start_frame, page_table_end_frame + 1);
         frame_allocator.mark_allocated_region(MemoryRegion {
             range: page_table_memory_area,
             region_type: MemoryRegionType::PageTable,
@@ -152,9 +154,12 @@ pub extern "C" fn load_elf(
 
     // Unmap the ELF file.
     let kernel_start_page: Page<Size2MB> = Page::containing_address(kernel_start.virt());
-    let kernel_end_page: Page<Size2MB> = Page::containing_address(kernel_start.virt() + kernel_size - 1u64);
+    let kernel_end_page: Page<Size2MB> =
+        Page::containing_address(kernel_start.virt() + kernel_size - 1u64);
     for page in Page::range_inclusive(kernel_start_page, kernel_end_page) {
-        rec_page_table.unmap(page, &mut |_| {}).expect("dealloc error");
+        rec_page_table
+            .unmap(page, &mut |_| {})
+            .expect("dealloc error");
     }
     // Flush the translation lookaside buffer since we changed the active mapping.
     tlb::flush_all();
