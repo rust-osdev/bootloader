@@ -1,6 +1,5 @@
 use os_bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
-use x86_64::structures::paging::{PhysFrame, PageSize, PhysFrameRange};
-use x86_64::PhysAddr;
+use x86_64::structures::paging::{PhysFrame, PhysFrameRange};
 
 pub(crate) struct FrameAllocator<'a> {
     pub memory_map: &'a mut MemoryMap,
@@ -55,28 +54,6 @@ impl<'a> FrameAllocator<'a> {
         } else {
             None
         }
-    }
-
-    pub(crate) fn deallocate_frame(&mut self, frame: PhysFrame) {
-        // try to find an existing region of same type that can be enlarged
-        let mut iter = self.memory_map.iter_mut().peekable();
-        while let Some(region) = iter.next() {
-            if region.range.end == frame && region.region_type == MemoryRegionType::Usable {
-                region.range.end += 1;
-                if let Some(next) = iter.next() {
-                    if next.range.start == frame {
-                        next.range.start += 1;
-                    }
-                }
-                return;
-            }
-        }
-
-        // insert frame as a new region
-        self.memory_map.add_region(MemoryRegion {
-            range: PhysFrame::range(frame, frame + 1),
-            region_type: MemoryRegionType::Usable,
-        });
     }
 
     /// Marks the passed region in the memory map.

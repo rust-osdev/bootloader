@@ -3,7 +3,7 @@ use frame_allocator::FrameAllocator;
 use os_bootinfo::MemoryRegionType;
 use x86_64::instructions::tlb;
 use x86_64::structures::paging::{MapToError, RecursivePageTable, UnmapError};
-use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, Mapper, PageSize, Size4KB, Size2MB};
+use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, Mapper, PageSize, Size4KB};
 use x86_64::{align_up, PhysAddr, VirtAddr};
 use xmas_elf::program::{self, ProgramHeader64};
 
