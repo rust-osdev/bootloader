@@ -1,6 +1,6 @@
 use os_bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
-use x86_64::structures::paging::{PhysFrame, PAGE_SIZE};
-use x86_64::{align_up, PhysAddr};
+use x86_64::structures::paging::{PhysFrame, PageSize, PhysFrameRange};
+use x86_64::PhysAddr;
 
 pub(crate) struct FrameAllocator<'a> {
     pub memory_map: &'a mut MemoryMap,
@@ -8,56 +8,49 @@ pub(crate) struct FrameAllocator<'a> {
 
 impl<'a> FrameAllocator<'a> {
     pub(crate) fn allocate_frame(&mut self, region_type: MemoryRegionType) -> Option<PhysFrame> {
-        let page_size = u64::from(PAGE_SIZE);
-        let mut frame = None;
-
-        if frame.is_none() {
-            // look for an adjacent regions of same types
-            let mut last_region_end = PhysAddr::new(0);
-            for region in self.memory_map.iter_mut() {
-                if region.region_type == region_type {
-                    last_region_end = region.end_addr();
-                } else if region.region_type == MemoryRegionType::Usable {
-                    if region.start_addr() == last_region_end {
-                        frame = Some(PhysFrame::containing_address(region.start_addr));
-                        region.start_addr += page_size;
-                        region.len -= page_size;
-                        break
+        // try to find an existing region of same type that can be enlarged
+        let mut iter = self.memory_map.iter_mut().peekable();
+        while let Some(region) = iter.next() {
+            if region.region_type == region_type {
+                if let Some(next) = iter.peek() {
+                    if next.range.start == region.range.end && next.region_type == MemoryRegionType::Usable && !next.range.is_empty() {
+                        let frame = region.range.end;
+                        region.range.end += 1;
+                        iter.next().unwrap().range.start += 1;
+                        return Some(frame);
                     }
                 }
             }
         }
 
-        if frame.is_none() {
-            // search all regions
-            for region in self.memory_map.iter_mut() {
+        fn split_usable_region<'a, I>(iter: &mut I) -> Option<(PhysFrame, PhysFrameRange)>
+        where
+            I: Iterator<Item = &'a mut MemoryRegion>,
+        {
+            for region in iter {
                 if region.region_type != MemoryRegionType::Usable {
                     continue;
                 }
-                if region.len < page_size {
+                if region.range.is_empty() {
                     continue;
                 }
 
-                assert_eq!(
-                    0,
-                    region.start_addr.as_u64() & 0xfff,
-                    "Region start address is not page aligned: {:?}",
-                    region
-                );
-
-                frame = Some(PhysFrame::containing_address(region.start_addr));
-                region.start_addr += page_size;
-                region.len -= page_size;
-                break;
+                let frame = region.range.start;
+                region.range.start += 1;
+                return Some((frame, PhysFrame::range(frame, frame + 1)));
             }
+            None
         }
 
-        if let Some(frame) = frame {
-            self.add_region(MemoryRegion {
-                start_addr: frame.start_address(),
-                len: page_size,
-                region_type,
-            });
+        let result = if region_type == MemoryRegionType::PageTable {
+            // prevent fragmentation when page tables are allocated in between
+            split_usable_region(&mut self.memory_map.iter_mut().rev())
+        } else {
+            split_usable_region(&mut self.memory_map.iter_mut())
+        };
+
+        if let Some((frame, range)) = result {
+            self.memory_map.add_region(MemoryRegion { range, region_type, });
             Some(frame)
         } else {
             None
@@ -65,122 +58,83 @@ impl<'a> FrameAllocator<'a> {
     }
 
     pub(crate) fn deallocate_frame(&mut self, frame: PhysFrame) {
-        let page_size = u64::from(PAGE_SIZE);
-        self.add_region_overwrite(
-            MemoryRegion {
-                start_addr: frame.start_address(),
-                len: page_size,
-                region_type: MemoryRegionType::Usable,
-            },
-            true,
-        );
-    }
-
-    /// Adds the passed region to the memory map.
-    ///
-    /// This function automatically adjusts the existing regions so that no overlap occurs.
-    ///
-    /// Panics if a non-usable region (e.g. a reserved region) overlaps with the passed region.
-    pub(crate) fn add_region(&mut self, region: MemoryRegion) {
-        self.add_region_overwrite(region, false);
-    }
-
-    fn add_region_overwrite(&mut self, mut region: MemoryRegion, overwrite: bool) {
-        assert_eq!(
-            0,
-            region.start_addr.as_u64() & 0xfff,
-            "Region start address is not page aligned: {:?}",
-            region
-        );
-
-        match region.region_type {
-            MemoryRegionType::Kernel | MemoryRegionType::Bootloader => {
-                region.len = align_up(region.len, PAGE_SIZE.into());
-            }
-            _ => {}
-        }
-
-        let mut region_already_inserted = false;
-        let mut split_region = None;
-
-        for r in self.memory_map.iter_mut() {
-            // check if region overlaps with another region
-            if r.start_addr() < region.end_addr() && r.end_addr() > region.start_addr() {
-                // region overlaps with `r`
-                match r.region_type {
-                    MemoryRegionType::Usable => {
-                        if region.region_type == MemoryRegionType::Usable {
-                            panic!(
-                                "region {:?} overlaps with other usable region {:?}",
-                                region, r
-                            )
-                        }
-                    }
-                    MemoryRegionType::InUse => {}
-                    MemoryRegionType::Bootloader
-                    | MemoryRegionType::Kernel
-                    | MemoryRegionType::PageTable if overwrite => {}
-                    _ => {
-                        panic!("can't override region {:?} with {:?}", r, region);
+        // try to find an existing region of same type that can be enlarged
+        let mut iter = self.memory_map.iter_mut().peekable();
+        while let Some(region) = iter.next() {
+            if region.range.end == frame && region.region_type == MemoryRegionType::Usable {
+                region.range.end += 1;
+                if let Some(next) = iter.next() {
+                    if next.range.start == frame {
+                        next.range.start += 1;
                     }
                 }
-                if r.start_addr() < region.start_addr() && r.end_addr() > region.end_addr() {
+                return;
+            }
+        }
+
+        // insert frame as a new region
+        self.memory_map.add_region(MemoryRegion {
+            range: PhysFrame::range(frame, frame + 1),
+            region_type: MemoryRegionType::Usable,
+        });
+    }
+
+    /// Marks the passed region in the memory map.
+    ///
+    /// Panics if a non-usable region (e.g. a reserved region) overlaps with the passed region.
+    pub(crate) fn mark_allocated_region(&mut self, region: MemoryRegion) {
+        for r in self.memory_map.iter_mut() {
+            if region.range.start >= r.range.end {
+                continue
+            }
+            if region.range.end <= r.range.start {
+                continue
+            }
+
+            if r.region_type != MemoryRegionType::Usable {
+                panic!("region {:x?} overlaps with non-usable region {:x?}", region, r);
+            }
+
+            if region.range.start == r.range.start {
+                if region.range.end < r.range.end {
+                    // Case: (r = `r`, R = `region`)
+                    // ----rrrrrrrrrrr----
+                    // ----RRRR-----------
+                    r.range.start = region.range.end;
+                    self.memory_map.add_region(region);
+                } else {
+                    // Case: (r = `r`, R = `region`)
+                    // ----rrrrrrrrrrr----
+                    // ----RRRRRRRRRRRRRR-
+                    *r = region;
+                }
+            } else if region.range.start > r.range.start {
+                if region.range.end < r.range.end {
                     // Case: (r = `r`, R = `region`)
                     // ----rrrrrrrrrrr----
                     // ------RRRR---------
-                    assert!(
-                        split_region.is_none(),
-                        "area overlaps with multiple regions"
-                    );
-                    split_region = Some(MemoryRegion {
-                        start_addr: region.end_addr(),
-                        len: r.end_addr() - region.end_addr(),
-                        region_type: r.region_type,
-                    });
-                    r.len = region.start_addr() - r.start_addr();
-                } else if region.start_addr() <= r.start_addr() {
-                    // Case: (r = `r`, R = `region`)
-                    // ----rrrrrrrrrrr----
-                    // --RRRR-------------
-                    r.len = r.len.checked_sub(region.end_addr() - r.start_addr()).unwrap();
-                    r.start_addr = region.end_addr();
-                } else if region.end_addr() >= r.end_addr() {
-                    // Case: (r = `r`, R = `region`)
-                    // ----rrrrrrrrrrr----
-                    // -------------RRRR--
-                    r.len = region.start_addr() - r.start_addr();
+                    let mut behind_r = r.clone();
+                    behind_r.range.start = region.range.end;
+                    r.range.end = region.range.start;
+                    self.memory_map.add_region(behind_r);
+                    self.memory_map.add_region(region);
                 } else {
-                    unreachable!("region overlaps in an unexpected way")
-                }
-            }
-            // check if region is adjacent to already existing region (only if same type)
-            if r.region_type == region.region_type {
-                if region.end_addr() == r.start_addr() {
                     // Case: (r = `r`, R = `region`)
-                    // ------rrrrrrrrrrr--
-                    // --RRRR-------------
-                    // => merge regions
-                    r.start_addr = region.start_addr();
-                    r.len += region.len;
-                    region_already_inserted = true;
-                } else if region.start_addr() == r.end_addr() {
-                    // Case: (r = `r`, R = `region`)
-                    // --rrrrrrrrrrr------
+                    // ----rrrrrrrrrrr----
+                    // -----------RRRR---- or
                     // -------------RRRR--
-                    // => merge regions
-                    r.len += region.len;
-                    region_already_inserted = true;
+                    r.range.end = region.range.start;
+                    self.memory_map.add_region(region);
                 }
+            } else {
+                // Case: (r = `r`, R = `region`)
+                // ----rrrrrrrrrrr----
+                // --RRRR-------------
+                r.range.start = region.range.end;
+                self.memory_map.add_region(region);
             }
+            return;
         }
-
-        if let Some(split_region) = split_region {
-            self.memory_map.add_region(split_region);
-        }
-        if !region_already_inserted {
-            self.memory_map.add_region(region);
-        }
-
-        self.memory_map.sort();
+        panic!("region {:x?} is not a usable memory region", region);
     }
 }

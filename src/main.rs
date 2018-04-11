@@ -22,10 +22,10 @@ use core::slice;
 use os_bootinfo::BootInfo;
 use usize_conversions::usize_from;
 pub use x86_64::PhysAddr;
-use x86_64::VirtAddr;
+use x86_64::{VirtAddr};
 use x86_64::instructions::tlb;
-use x86_64::structures::paging::RecursivePageTable;
-use x86_64::structures::paging::{Page, PageTableFlags, PAGE_SIZE};
+use x86_64::structures::paging::{RecursivePageTable, Mapper};
+use x86_64::structures::paging::{Page, PhysFrame, PageTableFlags, Size2MB};
 use x86_64::ux::u9;
 
 global_asm!(include_str!("boot.s"));
@@ -119,39 +119,42 @@ pub extern "C" fn load_elf(
         memory_map: &mut memory_map,
     };
 
+
     // Mark already used memory areas in frame allocator.
     {
-        frame_allocator.add_region(MemoryRegion {
-            start_addr: kernel_start.phys(),
-            len: kernel_size,
-            region_type: MemoryRegionType::Kernel,
+        let zero_frame: PhysFrame = PhysFrame::from_start_address(PhysAddr::new(0)).unwrap();
+        frame_allocator.mark_allocated_region(MemoryRegion {
+            range: PhysFrame::range(zero_frame, zero_frame + 1),
+            region_type: MemoryRegionType::FrameZero,
         });
-        frame_allocator.add_region(MemoryRegion {
-            start_addr: page_table_start,
-            len: page_table_end - page_table_start,
-            region_type: MemoryRegionType::PageTable,
-        });
-        frame_allocator.add_region(MemoryRegion {
-            start_addr: bootloader_start,
-            len: bootloader_end - bootloader_start,
+        let bootloader_start_frame = PhysFrame::containing_address(bootloader_start);
+        let bootloader_end_frame = PhysFrame::containing_address(bootloader_end - 1u64);
+        let bootloader_memory_area = PhysFrame::range(bootloader_start_frame, bootloader_end_frame + 1);
+        frame_allocator.mark_allocated_region(MemoryRegion {
+            range: bootloader_memory_area,
             region_type: MemoryRegionType::Bootloader,
         });
-        frame_allocator.add_region(MemoryRegion {
-            start_addr: PhysAddr::new(0),
-            len: u64::from(PAGE_SIZE),
-            region_type: MemoryRegionType::FrameZero,
+        let kernel_start_frame = PhysFrame::containing_address(kernel_start.phys());
+        let kernel_end_frame = PhysFrame::containing_address(kernel_start.phys() + kernel_size - 1u64);
+        let kernel_memory_area = PhysFrame::range(kernel_start_frame, kernel_end_frame + 1);
+        frame_allocator.mark_allocated_region(MemoryRegion {
+            range: kernel_memory_area,
+            region_type: MemoryRegionType::Kernel,
+        });
+        let page_table_start_frame = PhysFrame::containing_address(page_table_start);
+        let page_table_end_frame = PhysFrame::containing_address(page_table_end - 1u64);
+        let page_table_memory_area = PhysFrame::range(page_table_start_frame, page_table_end_frame + 1);
+        frame_allocator.mark_allocated_region(MemoryRegion {
+            range: page_table_memory_area,
+            region_type: MemoryRegionType::PageTable,
         });
     }
 
     // Unmap the ELF file.
-    let kernel_start_page = Page::containing_address(kernel_start.virt());
-    let kernel_end_page = Page::containing_address(kernel_start.virt() + kernel_size - 1u64);
-    for page in Page::range_inclusive(kernel_start_page, kernel_end_page).step_by(512) {
-        rec_page_table
-            .unmap(page, &mut |frame| {
-                frame_allocator.deallocate_frame(frame);
-            })
-            .expect("dealloc error");
+    let kernel_start_page: Page<Size2MB> = Page::containing_address(kernel_start.virt());
+    let kernel_end_page: Page<Size2MB> = Page::containing_address(kernel_start.virt() + kernel_size - 1u64);
+    for page in Page::range_inclusive(kernel_start_page, kernel_end_page) {
+        rec_page_table.unmap(page, &mut |_| {}).expect("dealloc error");
     }
     // Flush the translation lookaside buffer since we changed the active mapping.
     tlb::flush_all();
@@ -166,9 +169,9 @@ pub extern "C" fn load_elf(
 
     // Map a page for the boot info structure
     let boot_info_page = {
-        let page = Page::containing_address(VirtAddr::new(0xb0071f0000));
+        let page: Page = Page::containing_address(VirtAddr::new(0xb0071f0000));
         let frame = frame_allocator
-            .allocate_frame(MemoryRegionType::Bootloader)
+            .allocate_frame(MemoryRegionType::BootInfo)
             .expect("frame allocation failed");
         let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
         page_table::map_page(

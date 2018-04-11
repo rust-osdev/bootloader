@@ -7,7 +7,7 @@ description = "An experimental pure-Rust x86 bootloader."
 
 [dependencies]
 xmas-elf = "0.6.2"
-x86_64 = "0.2.0-alpha-001"
+x86_64 = "0.2.0-alpha"
 usize_conversions = "0.2.0"
 os_bootinfo = "0.2.0-alpha"
 fixedvec = "0.2.3"
