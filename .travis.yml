@@ -34,7 +34,7 @@ deploy:
     tags: true
   script:
     - |
-      if [[ "$TRAVIS_TAG" == v* ]; then
+      if [[ "$TRAVIS_TAG" == v* ]]; then
         echo "Deploy for $TRAVIS_TAG"
         echo "UNIMPLEMENTED!"
       fi
