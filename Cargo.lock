@@ -9,7 +9,7 @@ version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "bootloader_precompiled"
+name = "bootloader"
 version = "0.2.0-alpha-002"
 dependencies = [
  "fixedvec 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
