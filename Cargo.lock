@@ -15,7 +15,7 @@ dependencies = [
  "fixedvec 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "os_bootinfo 0.2.0-alpha-011 (registry+https://github.com/rust-lang/crates.io-index)",
  "usize_conversions 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "x86_64 0.2.0-alpha-016 (registry+https://github.com/rust-lang/crates.io-index)",
+ "x86_64 0.2.0-alpha-017 (registry+https://github.com/rust-lang/crates.io-index)",
  "xmas-elf 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -56,7 +56,7 @@ name = "os_bootinfo"
 version = "0.2.0-alpha-011"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "x86_64 0.2.0-alpha-016 (registry+https://github.com/rust-lang/crates.io-index)",
+ "x86_64 0.2.0-alpha-017 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -134,7 +134,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "x86_64"
-version = "0.2.0-alpha-016"
+version = "0.2.0-alpha-017"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bit_field 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -175,6 +175,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum winapi 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)" = "04e3bd221fcbe8a271359c04f21a76db7d0c6028862d1bb5512d85e1e2eb5bb3"
 "checksum winapi-i686-pc-windows-gnu 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ac3b87c63620426dd9b991e5ce0329eff545bccbbb34f3be09ff6fb6ab51b7b6"
 "checksum winapi-x86_64-pc-windows-gnu 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
-"checksum x86_64 0.2.0-alpha-016 (registry+https://github.com/rust-lang/crates.io-index)" = "d24ed9f0fc569e3c726effec80fb3781234570586ae32d4843caed661d90c111"
+"checksum x86_64 0.2.0-alpha-017 (registry+https://github.com/rust-lang/crates.io-index)" = "5bce1040d47b9202af83355205392b84474b8687495e39d1fb39b4e1977bf9f0"
 "checksum xmas-elf 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)" = "22678df5df766e8d1e5d609da69f0c3132d794edf6ab5e75e7abcd2270d4cf58"
 "checksum zero 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "5f1bc8a6b2005884962297587045002d8cfb8dcec9db332f4ca216ddc5de82c5"

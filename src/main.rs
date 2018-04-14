@@ -21,7 +21,6 @@ extern crate fixedvec;
 use core::slice;
 use os_bootinfo::BootInfo;
 use usize_conversions::usize_from;
-use x86_64::instructions::tlb;
 use x86_64::structures::paging::{Mapper, RecursivePageTable};
 use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, Size2MB};
 use x86_64::ux::u9;
@@ -159,10 +158,8 @@ pub extern "C" fn load_elf(
     for page in Page::range_inclusive(kernel_start_page, kernel_end_page) {
         rec_page_table
             .unmap(page, &mut |_| {})
-            .expect("dealloc error");
+            .expect("dealloc error").flush();
     }
-    // Flush the translation lookaside buffer since we changed the active mapping.
-    tlb::flush_all();
 
     // Map kernel segments.
     let stack_end = page_table::map_kernel(
@@ -185,7 +182,7 @@ pub extern "C" fn load_elf(
             flags,
             &mut rec_page_table,
             &mut frame_allocator,
-        ).expect("Mapping of bootinfo page failed");
+        ).expect("Mapping of bootinfo page failed").flush();
         page
     };
 
