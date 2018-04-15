@@ -19,9 +19,9 @@ pub(crate) fn create_from(memory_map_addr: VirtAddr, entry_count: u64) -> Memory
     let mut iter = memory_map.iter_mut().peekable();
     while let Some(region) = iter.next() {
         if let Some(next) = iter.peek() {
-            if region.range.end > next.range.start {
+            if region.range.end_frame_number > next.range.start_frame_number {
                 if region.region_type == MemoryRegionType::Usable {
-                    region.range.end = next.range.start;
+                    region.range.end_frame_number = next.range.start_frame_number;
                 } else {
                     panic!("two non-usable regions overlap: {:?} {:?}", region, next);
                 }

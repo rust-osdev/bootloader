@@ -118,11 +118,12 @@ pub extern "C" fn load_elf(
         memory_map: &mut memory_map,
     };
 
+
     // Mark already used memory areas in frame allocator.
     {
         let zero_frame: PhysFrame = PhysFrame::from_start_address(PhysAddr::new(0)).unwrap();
         frame_allocator.mark_allocated_region(MemoryRegion {
-            range: PhysFrame::range(zero_frame, zero_frame + 1),
+            range: PhysFrame::range(zero_frame, zero_frame + 1).into(),
             region_type: MemoryRegionType::FrameZero,
         });
         let bootloader_start_frame = PhysFrame::containing_address(bootloader_start);
@@ -130,7 +131,7 @@ pub extern "C" fn load_elf(
         let bootloader_memory_area =
             PhysFrame::range(bootloader_start_frame, bootloader_end_frame + 1);
         frame_allocator.mark_allocated_region(MemoryRegion {
-            range: bootloader_memory_area,
+            range: bootloader_memory_area.into(),
             region_type: MemoryRegionType::Bootloader,
         });
         let kernel_start_frame = PhysFrame::containing_address(kernel_start.phys());
@@ -138,7 +139,7 @@ pub extern "C" fn load_elf(
             PhysFrame::containing_address(kernel_start.phys() + kernel_size - 1u64);
         let kernel_memory_area = PhysFrame::range(kernel_start_frame, kernel_end_frame + 1);
         frame_allocator.mark_allocated_region(MemoryRegion {
-            range: kernel_memory_area,
+            range: kernel_memory_area.into(),
             region_type: MemoryRegionType::Kernel,
         });
         let page_table_start_frame = PhysFrame::containing_address(page_table_start);
@@ -146,10 +147,11 @@ pub extern "C" fn load_elf(
         let page_table_memory_area =
             PhysFrame::range(page_table_start_frame, page_table_end_frame + 1);
         frame_allocator.mark_allocated_region(MemoryRegion {
-            range: page_table_memory_area,
+            range: page_table_memory_area.into(),
             region_type: MemoryRegionType::PageTable,
         });
     }
+
 
     // Unmap the ELF file.
     let kernel_start_page: Page<Size2MB> = Page::containing_address(kernel_start.virt());
@@ -187,7 +189,7 @@ pub extern "C" fn load_elf(
     };
 
     // Construct boot info structure.
-    let mut boot_info = BootInfo::new(page_table, memory_map);
+    let mut boot_info = BootInfo::new(recursive_page_table_addr.start_address().as_u64(), memory_map);
     boot_info.memory_map.sort();
 
     // Write boot info to boot info page.

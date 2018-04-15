@@ -12,13 +12,13 @@ impl<'a> FrameAllocator<'a> {
         while let Some(region) = iter.next() {
             if region.region_type == region_type {
                 if let Some(next) = iter.peek() {
-                    if next.range.start == region.range.end
+                    if next.range.start_frame_number == region.range.end_frame_number
                         && next.region_type == MemoryRegionType::Usable
                         && !next.range.is_empty()
                     {
-                        let frame = region.range.end;
-                        region.range.end += 1;
-                        iter.next().unwrap().range.start += 1;
+                        let frame = PhysFrameRange::from(region.range).end;
+                        region.range.end_frame_number += 1;
+                        iter.next().unwrap().range.start_frame_number += 1;
                         return Some(frame);
                     }
                 }
@@ -37,8 +37,8 @@ impl<'a> FrameAllocator<'a> {
                     continue;
                 }
 
-                let frame = region.range.start;
-                region.range.start += 1;
+                let frame = PhysFrameRange::from(region.range).start;
+                region.range.start_frame_number += 1;
                 return Some((frame, PhysFrame::range(frame, frame + 1)));
             }
             None
@@ -53,7 +53,7 @@ impl<'a> FrameAllocator<'a> {
 
         if let Some((frame, range)) = result {
             self.memory_map
-                .add_region(MemoryRegion { range, region_type });
+                .add_region(MemoryRegion { range: range.into(), region_type });
             Some(frame)
         } else {
             None
@@ -65,10 +65,10 @@ impl<'a> FrameAllocator<'a> {
     /// Panics if a non-usable region (e.g. a reserved region) overlaps with the passed region.
     pub(crate) fn mark_allocated_region(&mut self, region: MemoryRegion) {
         for r in self.memory_map.iter_mut() {
-            if region.range.start >= r.range.end {
+            if region.range.start_frame_number >= r.range.end_frame_number {
                 continue;
             }
-            if region.range.end <= r.range.start {
+            if region.range.end_frame_number <= r.range.start_frame_number {
                 continue;
             }
 
@@ -79,12 +79,12 @@ impl<'a> FrameAllocator<'a> {
                 );
             }
 
-            if region.range.start == r.range.start {
-                if region.range.end < r.range.end {
+            if region.range.start_frame_number == r.range.start_frame_number {
+                if region.range.end_frame_number < r.range.end_frame_number {
                     // Case: (r = `r`, R = `region`)
                     // ----rrrrrrrrrrr----
                     // ----RRRR-----------
-                    r.range.start = region.range.end;
+                    r.range.start_frame_number = region.range.end_frame_number;
                     self.memory_map.add_region(region);
                 } else {
                     // Case: (r = `r`, R = `region`)
@@ -92,14 +92,14 @@ impl<'a> FrameAllocator<'a> {
                     // ----RRRRRRRRRRRRRR-
                     *r = region;
                 }
-            } else if region.range.start > r.range.start {
-                if region.range.end < r.range.end {
+            } else if region.range.start_frame_number > r.range.start_frame_number {
+                if region.range.end_frame_number < r.range.end_frame_number {
                     // Case: (r = `r`, R = `region`)
                     // ----rrrrrrrrrrr----
                     // ------RRRR---------
                     let mut behind_r = r.clone();
-                    behind_r.range.start = region.range.end;
-                    r.range.end = region.range.start;
+                    behind_r.range.start_frame_number = region.range.end_frame_number;
+                    r.range.end_frame_number = region.range.start_frame_number;
                     self.memory_map.add_region(behind_r);
                     self.memory_map.add_region(region);
                 } else {
@@ -107,14 +107,14 @@ impl<'a> FrameAllocator<'a> {
                     // ----rrrrrrrrrrr----
                     // -----------RRRR---- or
                     // -------------RRRR--
-                    r.range.end = region.range.start;
+                    r.range.end_frame_number = region.range.start_frame_number;
                     self.memory_map.add_region(region);
                 }
             } else {
                 // Case: (r = `r`, R = `region`)
                 // ----rrrrrrrrrrr----
                 // --RRRR-------------
-                r.range.start = region.range.end;
+                r.range.start_frame_number = region.range.end_frame_number;
                 self.memory_map.add_region(region);
             }
             return;
