@@ -13,7 +13,7 @@ You need a nightly [Rust](https://www.rust-lang.org) compiler, [xargo](https://g
 
 ### Mac OS
 
-If you are building on Mac OS and get a error saying `ld.bfd not found` you first need to cross compile binutils and install it and then adjust
+If you are building on Mac OS and get a error saying `ld.bfd not found` you first need to [cross compile binutils](https://os.phil-opp.com/cross-compile-binutils) and then adjust
 the linker name in the `x86_64-bootloader.json` file. The reason for this is the default rust LLVM linker doesn't support some features this project needs.
 
 After doing that continue with the instructions for Linux.
