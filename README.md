@@ -11,6 +11,15 @@ The idea is to build the kernel as a `no_std` longmode executable and then build
 ## Build and Run
 You need a nightly [Rust](https://www.rust-lang.org) compiler, [xargo](https://github.com/japaric/xargo), [objcopy](https://sourceware.org/binutils/docs/binutils/objcopy.html) (or a similar tool), and [QEMU](https://www.qemu.org/) (for running it).
 
+### Mac OS
+
+If you are building on Mac OS and get a error saying `ld.bfd not found` you first need to [cross compile binutils](https://os.phil-opp.com/cross-compile-binutils) and then adjust
+the linker name in the `x86_64-bootloader.json` file. The reason for this is the default rust LLVM linker doesn't support some features this project needs.
+
+After doing that continue with the instructions for Linux.
+
+### Linux
+
 ```
 > RUST_TARGET_PATH=$(pwd) xargo build --target x86_64-bootloader --release
 > objcopy -O binary -S target/x86_64-bootloader/release/bootloader bootimage.bin
