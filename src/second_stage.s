@@ -10,6 +10,18 @@ second_stage:
     lea si, second_stage_start_str
     call println
 
+set_target_operating_mode:
+    # Some BIOSs assume the processor will only operate in Legacy Mode. We change the Target
+    # Operating Mode to "Long Mode Target Only", so the firmware expects each CPU to enter Long Mode
+    # once and then stay in it. This allows the firmware to enable mode-specifc optimizations.
+    # We save the flags, because CF is set if the callback is not supported (in which case, this is
+    # a NOP)
+    pushf
+    mov ax, 0xec00
+    mov bl, 0x2
+    int 0x15
+    popf
+
 load_kernel_from_disk:
     # start of memory buffer
     lea eax, _kernel_buffer
