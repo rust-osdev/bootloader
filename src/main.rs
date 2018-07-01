@@ -8,6 +8,7 @@
 #![feature(pointer_methods)]
 #![feature(const_fn)]
 #![feature(nll)]
+#![feature(panic_implementation)]
 #![no_std]
 #![no_main]
 
@@ -19,6 +20,7 @@ extern crate xmas_elf;
 extern crate fixedvec;
 
 use core::slice;
+use core::panic::PanicInfo;
 use os_bootinfo::BootInfo;
 use usize_conversions::usize_from;
 use x86_64::structures::paging::{Mapper, RecursivePageTable};
@@ -214,17 +216,11 @@ fn enable_write_protect_bit() {
     unsafe { Cr0::update(|cr0| *cr0 |= Cr0Flags::WRITE_PROTECT) };
 }
 
-#[lang = "panic_fmt"]
+#[panic_implementation]
 #[no_mangle]
-pub extern "C" fn rust_begin_panic(
-    msg: core::fmt::Arguments,
-    file: &'static str,
-    line: u32,
-    _column: u32,
-) -> ! {
+pub extern "C" fn panic(info: &PanicInfo) -> ! {
     use core::fmt::Write;
-    write!(printer::Printer, "PANIC: {} in {}:{}", msg, file, line).unwrap();
-
+    write!(printer::Printer, "{}", info).unwrap();
     loop {}
 }
 
