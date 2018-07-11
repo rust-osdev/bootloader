@@ -1,8 +1,8 @@
 use fixedvec::FixedVec;
 use frame_allocator::FrameAllocator;
 use os_bootinfo::MemoryRegionType;
-use x86_64::structures::paging::{MapToError, RecursivePageTable, UnmapError};
-use x86_64::structures::paging::{Mapper, MapperFlush, Page, PageSize, PageTableFlags, PhysFrame, Size4KB};
+use x86_64::structures::paging::{self, MapToError, RecursivePageTable, UnmapError};
+use x86_64::structures::paging::{Mapper, MapperFlush, Page, PageSize, PageTableFlags, PhysFrame, Size4KiB};
 use x86_64::{align_up, PhysAddr, VirtAddr};
 use xmas_elf::program::{self, ProgramHeader64};
 
@@ -91,7 +91,7 @@ pub(crate) fn map_segment(
                         frame_allocator,
                     )?.flush();
 
-                    type PageArray = [u64; Size4KB::SIZE as usize / 8];
+                    type PageArray = [u64; Size4KiB::SIZE as usize / 8];
 
                     let last_page = Page::containing_address(virt_start_addr + file_size - 1u64);
                     let last_page_ptr = last_page.start_address().as_ptr::<PageArray>();
@@ -103,13 +103,13 @@ pub(crate) fn map_segment(
                     }
 
                     // remap last page
-                    if let Err(e) = page_table.unmap(last_page.clone(), &mut |_| {}) {
+                    if let Err(e) = page_table.unmap(last_page.clone()) {
                         return Err(match e {
-                            UnmapError::EntryWithInvalidFlagsPresent(_) => {
-                                MapToError::EntryWithInvalidFlagsPresent
+                            UnmapError::ParentEntryHugePage => {
+                                MapToError::ParentEntryHugePage
                             }
                             UnmapError::PageNotMapped => unreachable!(),
-                            UnmapError::InvalidFrameAddressInPageTable => unreachable!(),
+                            UnmapError::InvalidFrameAddress(_) => unreachable!(),
                         });
                     }
 
@@ -125,7 +125,7 @@ pub(crate) fn map_segment(
                 // Map additional frames.
                 let start_page: Page = Page::containing_address(VirtAddr::new(align_up(
                     zero_start.as_u64(),
-                    Size4KB::SIZE,
+                    Size4KiB::SIZE,
                 )));
                 let end_page = Page::containing_address(zero_end);
                 for page in Page::range_inclusive(start_page, end_page) {
@@ -158,7 +158,13 @@ where
     S: PageSize,
     RecursivePageTable<'a>: Mapper<S>,
 {
-    page_table.map_to(page, phys_frame, flags, &mut || {
-        frame_allocator.allocate_frame(MemoryRegionType::PageTable)
-    })
+    struct PageTableAllocator<'a, 'b: 'a>(&'a mut FrameAllocator<'b>);
+
+    impl<'a, 'b> paging::FrameAllocator<Size4KiB> for PageTableAllocator<'a, 'b> {
+        fn alloc(&mut self) -> Option<PhysFrame<Size4KiB>> {
+            self.0.allocate_frame(MemoryRegionType::PageTable)
+        }
+    }
+
+    page_table.map_to(page, phys_frame, flags, &mut PageTableAllocator(frame_allocator))
 }

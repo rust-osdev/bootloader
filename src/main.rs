@@ -24,7 +24,7 @@ use core::panic::PanicInfo;
 use os_bootinfo::BootInfo;
 use usize_conversions::usize_from;
 use x86_64::structures::paging::{Mapper, RecursivePageTable};
-use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, Size2MB};
+use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, Size2MiB};
 use x86_64::ux::u9;
 pub use x86_64::PhysAddr;
 use x86_64::VirtAddr;
@@ -156,13 +156,11 @@ pub extern "C" fn load_elf(
 
 
     // Unmap the ELF file.
-    let kernel_start_page: Page<Size2MB> = Page::containing_address(kernel_start.virt());
-    let kernel_end_page: Page<Size2MB> =
+    let kernel_start_page: Page<Size2MiB> = Page::containing_address(kernel_start.virt());
+    let kernel_end_page: Page<Size2MiB> =
         Page::containing_address(kernel_start.virt() + kernel_size - 1u64);
     for page in Page::range_inclusive(kernel_start_page, kernel_end_page) {
-        rec_page_table
-            .unmap(page, &mut |_| {})
-            .expect("dealloc error").flush();
+        rec_page_table.unmap(page).expect("dealloc error").1.flush();
     }
 
     // Map kernel segments.
