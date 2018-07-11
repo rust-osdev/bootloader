@@ -25,16 +25,3 @@ notifications:
 script:
 - RUST_TARGET_PATH=`pwd` xargo build --target x86_64-bootloader --release
 - objcopy -O binary -S target/x86_64-bootloader/release/bootloader bootimage.bin
-
-deploy:
-  provider: script
-  skip_cleanup: true
-  on:
-    repo: rust-osdev/bootloader
-    tags: true
-  script:
-    - |
-      if [[ "$TRAVIS_TAG" == v* ]]; then
-        echo "Deploy for $TRAVIS_TAG"
-        echo "UNIMPLEMENTED!"
-      fi
