@@ -12,7 +12,8 @@ _start:
     mov fs, ax
     mov gs, ax
 
-    # TODO explain
+    # clear the direction flag (e.g. go forward in memory when using
+    # instructions like lodsb)
     cld
 
 
@@ -29,6 +30,7 @@ enable_a20:
     out 0x92, al
 
 enter_protected_mode:
+    # clear interrupts
     cli
     push ds
     push es
@@ -118,6 +120,9 @@ println:
 print:
     cld
 print_loop:
+    # note: if direction flag is set (via std)
+    # this will DECREMENT the ptr, effectively
+    # reading/printing in reverse.
     lodsb al, BYTE PTR [esi]
     test al, al
     jz print_done
