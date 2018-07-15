@@ -56,7 +56,11 @@ load_next_kernel_block_from_disk:
     push ecx
     push esi
     mov ecx, 512 / 4
+    # move with zero extension
+    # because we are moving a word ptr
+    # to esi, a 32-bit register.
     movzx esi, word ptr [dap_buffer_addr]
+    # move from esi to edi ecx times.
     rep movsd [edi], [esi]
     pop esi
     pop ecx
@@ -256,7 +260,7 @@ gdt_64_pointer:
 
 long_mode:
     # call load_elf with kernel start address, size, and memory map as arguments
-    movabs rdi, 0x400000
+    movabs rdi, 0x400000 # move absolute 64-bit to register
     mov rsi, _kib_kernel_size
     lea rdx, _memory_map
     movzx rcx, word ptr mmap_ent
