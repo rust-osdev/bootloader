@@ -1,6 +1,10 @@
 #![no_std]
 
-pub extern crate os_bootinfo as bootinfo;
+extern crate os_bootinfo;
+
+pub mod bootinfo {
+    pub use os_bootinfo::*;
+}
 
 /// Defines the entry point function.
 ///
