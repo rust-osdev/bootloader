@@ -81,13 +81,7 @@ check_cpu:
     call check_cpuid
     call check_long_mode
 
-disable_irqs:
-    mov al, 0xFF     # Out 0xFF to 0xA1 and 0x21 to disable all IRQs.
-    out 0xA1, al
-    out 0x21, al
-
-    nop
-    nop
+    cli                   # disable interrupts
 
     lidt zero_idt         # Load a zero length IDT so that any NMI causes a triple fault.
 
