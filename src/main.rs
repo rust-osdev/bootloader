@@ -18,6 +18,7 @@ extern crate x86_64;
 extern crate xmas_elf;
 #[macro_use]
 extern crate fixedvec;
+extern crate spin;
 
 use core::slice;
 use core::panic::PanicInfo;
@@ -38,10 +39,11 @@ extern "C" {
     fn context_switch(boot_info: VirtAddr, entry_point: VirtAddr, stack_pointer: VirtAddr) -> !;
 }
 
+#[macro_use]
+mod printer;
 mod boot_info;
 mod frame_allocator;
 mod page_table;
-mod printer;
 
 pub struct IdentityMappedAddr(PhysAddr);
 
@@ -74,7 +76,7 @@ pub extern "C" fn load_elf(
     use os_bootinfo::{MemoryRegion, MemoryRegionType};
     use xmas_elf::program::{ProgramHeader, ProgramHeader64};
 
-    printer::Printer.clear_screen();
+    printer::PRINTER.lock().clear_screen();
 
     let mut memory_map = boot_info::create_from(memory_map_addr, memory_map_entry_count);
 
@@ -217,8 +219,7 @@ fn enable_write_protect_bit() {
 #[panic_implementation]
 #[no_mangle]
 pub extern "C" fn panic(info: &PanicInfo) -> ! {
-    use core::fmt::Write;
-    write!(printer::Printer, "{}", info).unwrap();
+    println!("{}", info);
     loop {}
 }
 

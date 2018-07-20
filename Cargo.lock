@@ -14,6 +14,7 @@ version = "0.2.0-beta"
 dependencies = [
  "fixedvec 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "os_bootinfo 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spin 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "usize_conversions 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "x86_64 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "xmas-elf 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -93,6 +94,11 @@ dependencies = [
  "pulldown-cmark 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "tempdir 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "spin"
+version = "0.4.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "tempdir"
@@ -175,6 +181,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum rand 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)" = "eba5f8cb59cc50ed56be8880a5c7b496bfd9bd26394e176bc67884094145c2c5"
 "checksum remove_dir_all 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)" = "3488ba1b9a2084d38645c4c08276a1752dcbf2c7130d74f1569681ad5d2799c5"
 "checksum skeptic 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "061203a849117b0f7090baf8157aa91dac30545208fbb85166ac58b4ca33d89c"
+"checksum spin 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)" = "14db77c5b914df6d6173dda9a3b3f5937bd802934fa5edaf934df06a3491e56f"
 "checksum tempdir 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)" = "15f2b5fb00ccdf689e0149d1b1b3c03fead81c2b37735d812fa8bddbbf41b6d8"
 "checksum unicode-width 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "882386231c45df4700b275c7ff55b6f3698780a650026380e72dabe76fa46526"
 "checksum usize_conversions 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f70329e2cbe45d6c97a5112daad40c34cd9a4e18edb5a2a18fefeb584d8d25e5"

@@ -14,6 +14,7 @@ x86_64 = "0.2.7"
 usize_conversions = "0.2.0"
 os_bootinfo = "0.2.0"
 fixedvec = "0.2.3"
+spin = "0.4.8"
 
 [profile.dev]
 panic = "abort"
