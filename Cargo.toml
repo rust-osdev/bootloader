@@ -15,6 +15,11 @@ usize_conversions = "0.2.0"
 os_bootinfo = "0.2.0"
 fixedvec = "0.2.3"
 spin = "0.4.8"
+uart_16550 = { version = "0.1.0", optional = true }
+lazy_static = { version = "1.0.2", features = ["spin_no_std"] }
+
+[features]
+serial = ["uart_16550"]
 
 [profile.dev]
 panic = "abort"

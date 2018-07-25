@@ -19,6 +19,10 @@ extern crate xmas_elf;
 #[macro_use]
 extern crate fixedvec;
 extern crate spin;
+#[macro_use]
+extern crate lazy_static;
+#[cfg(feature = "serial")]
+extern crate uart_16550;
 
 use core::slice;
 use core::panic::PanicInfo;
