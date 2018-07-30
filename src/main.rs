@@ -80,8 +80,6 @@ pub extern "C" fn load_elf(
     use os_bootinfo::{MemoryRegion, MemoryRegionType};
     use xmas_elf::program::{ProgramHeader, ProgramHeader64};
 
-    printer::PRINTER.lock().clear_screen();
-
     let mut memory_map = boot_info::create_from(memory_map_addr, memory_map_entry_count);
 
     // Extract required information from the ELF file.

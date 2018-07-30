@@ -19,7 +19,9 @@ uart_16550 = { version = "0.1.0", optional = true }
 lazy_static = { version = "1.0.2", features = ["spin_no_std"] }
 
 [features]
+default = ["vga"]
 serial = ["uart_16550"]
+vga = []
 
 [profile.dev]
 panic = "abort"
