@@ -9,7 +9,7 @@
 #![no_std]
 #![no_main]
 
-extern crate os_bootinfo;
+extern crate bootloader;
 extern crate usize_conversions;
 extern crate x86_64;
 extern crate xmas_elf;
@@ -18,7 +18,7 @@ extern crate fixedvec;
 
 use core::slice;
 use core::panic::PanicInfo;
-use os_bootinfo::BootInfo;
+use bootloader::bootinfo::BootInfo;
 use usize_conversions::usize_from;
 use x86_64::structures::paging::{Mapper, RecursivePageTable};
 use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, Size2MiB};
@@ -68,7 +68,7 @@ pub extern "C" fn load_elf(
     bootloader_end: PhysAddr,
 ) -> ! {
     use fixedvec::FixedVec;
-    use os_bootinfo::{MemoryRegion, MemoryRegionType};
+    use bootloader::bootinfo::{MemoryRegion, MemoryRegionType};
     use xmas_elf::program::{ProgramHeader, ProgramHeader64};
 
     printer::Printer.clear_screen();
@@ -186,7 +186,7 @@ pub extern "C" fn load_elf(
     };
 
     // Construct boot info structure.
-    let mut boot_info = BootInfo::new(recursive_page_table_addr.start_address().as_u64(), memory_map);
+    let mut boot_info = BootInfo::new(recursive_page_table_addr.start_address().as_u64(), memory_map, &[]);
     boot_info.memory_map.sort();
 
     // Write boot info to boot info page.

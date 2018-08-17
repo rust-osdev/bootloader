@@ -12,7 +12,6 @@ publish-lockfile = true
 xmas-elf = "0.6.2"
 x86_64 = "0.2.7"
 usize_conversions = "0.2.0"
-os_bootinfo = "0.2.0"
 fixedvec = "0.2.3"
 
 [profile.dev]

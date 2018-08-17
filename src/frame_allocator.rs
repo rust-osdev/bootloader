@@ -1,4 +1,4 @@
-use os_bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
+use bootloader::bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
 use x86_64::structures::paging::{PhysFrame, PhysFrameRange};
 
 pub(crate) struct FrameAllocator<'a> {

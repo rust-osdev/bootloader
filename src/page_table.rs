@@ -1,6 +1,6 @@
 use fixedvec::FixedVec;
 use frame_allocator::FrameAllocator;
-use os_bootinfo::MemoryRegionType;
+use bootloader::bootinfo::MemoryRegionType;
 use x86_64::structures::paging::{self, MapToError, RecursivePageTable, UnmapError};
 use x86_64::structures::paging::{Mapper, MapperFlush, Page, PageSize, PageTableFlags, PhysFrame, Size4KiB};
 use x86_64::{align_up, PhysAddr, VirtAddr};

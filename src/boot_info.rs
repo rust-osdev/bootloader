@@ -1,6 +1,6 @@
 use core::slice;
 
-use os_bootinfo::{E820MemoryRegion, MemoryMap, MemoryRegion, MemoryRegionType};
+use bootloader::bootinfo::{E820MemoryRegion, MemoryMap, MemoryRegion, MemoryRegionType};
 use usize_conversions::usize_from;
 use x86_64::VirtAddr;
 
