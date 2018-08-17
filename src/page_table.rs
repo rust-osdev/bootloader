@@ -1,8 +1,10 @@
+use bootloader::bootinfo::MemoryRegionType;
 use fixedvec::FixedVec;
 use frame_allocator::FrameAllocator;
-use os_bootinfo::MemoryRegionType;
 use x86_64::structures::paging::{self, MapToError, RecursivePageTable, UnmapError};
-use x86_64::structures::paging::{Mapper, MapperFlush, Page, PageSize, PageTableFlags, PhysFrame, Size4KiB};
+use x86_64::structures::paging::{
+    Mapper, MapperFlush, Page, PageSize, PageTableFlags, PhysFrame, Size4KiB,
+};
 use x86_64::{align_up, PhysAddr, VirtAddr};
 use xmas_elf::program::{self, ProgramHeader64};
 
@@ -105,9 +107,7 @@ pub(crate) fn map_segment(
                     // remap last page
                     if let Err(e) = page_table.unmap(last_page.clone()) {
                         return Err(match e {
-                            UnmapError::ParentEntryHugePage => {
-                                MapToError::ParentEntryHugePage
-                            }
+                            UnmapError::ParentEntryHugePage => MapToError::ParentEntryHugePage,
                             UnmapError::PageNotMapped => unreachable!(),
                             UnmapError::InvalidFrameAddress(_) => unreachable!(),
                         });
@@ -166,5 +166,10 @@ where
         }
     }
 
-    page_table.map_to(page, phys_frame, flags, &mut PageTableAllocator(frame_allocator))
+    page_table.map_to(
+        page,
+        phys_frame,
+        flags,
+        &mut PageTableAllocator(frame_allocator),
+    )
 }

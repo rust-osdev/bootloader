@@ -13,7 +13,6 @@ name = "bootloader"
 version = "0.2.1"
 dependencies = [
  "fixedvec 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "os_bootinfo 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "usize_conversions 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "x86_64 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "xmas-elf 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
