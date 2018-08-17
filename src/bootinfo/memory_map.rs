@@ -34,17 +34,15 @@ impl MemoryMap {
             } else if r2.range.is_empty() {
                 Ordering::Less
             } else {
-                
-                let ordering = r1.range
+                let ordering = r1
+                    .range
                     .start_frame_number
                     .cmp(&r2.range.start_frame_number);
-                
+
                 if ordering == Ordering::Equal {
-                    r1.range
-                    .end_frame_number
-                    .cmp(&r2.range.end_frame_number)
+                    r1.range.end_frame_number.cmp(&r2.range.end_frame_number)
                 } else {
-                    ordering   
+                    ordering
                 }
             }
         });

@@ -1,8 +1,8 @@
 #![deny(improper_ctypes)]
 
+pub use self::memory_map::*;
 use core::ops::Deref;
 use core::slice;
-pub use self::memory_map::*;
 
 mod memory_map;
 
@@ -45,7 +45,10 @@ extern "C" {
     fn _improper_ctypes_check(_boot_info: BootInfo);
 }
 
-use x86_64::{PhysAddr, structures::paging::{PhysFrame, PhysFrameRange}};
+use x86_64::{
+    structures::paging::{PhysFrame, PhysFrameRange},
+    PhysAddr,
+};
 
 impl From<FrameRange> for PhysFrameRange {
     fn from(range: FrameRange) -> Self {

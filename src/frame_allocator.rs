@@ -52,8 +52,10 @@ impl<'a> FrameAllocator<'a> {
         };
 
         if let Some((frame, range)) = result {
-            self.memory_map
-                .add_region(MemoryRegion { range: range.into(), region_type });
+            self.memory_map.add_region(MemoryRegion {
+                range: range.into(),
+                region_type,
+            });
             Some(frame)
         } else {
             None
