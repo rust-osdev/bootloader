@@ -111,6 +111,7 @@ println:
     call print_char
     mov al, 10 # \n
     jmp print_char
+    ret
 
 # print a string
 # IN
