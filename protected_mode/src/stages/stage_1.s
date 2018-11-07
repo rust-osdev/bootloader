@@ -1,9 +1,12 @@
 .section .boot, "awx"
-.global _start
+.global first_stage
 .intel_syntax noprefix
 .code16
 
-_start:
+# This stage initializes the stack, enables the A20 line, loads the rest of
+# the bootloader from disk, and jumps to it.
+
+first_stage:
     # zero segment registers
     xor ax, ax
     mov ds, ax
@@ -15,7 +18,6 @@ _start:
     # clear the direction flag (e.g. go forward in memory when using
     # instructions like lodsb)
     cld
-
 
     # initialize stack
     mov sp, 0x7c00
@@ -29,40 +31,6 @@ enable_a20:
     or al, 2
     out 0x92, al
 
-enter_protected_mode:
-    # clear interrupts
-    cli
-    push ds
-    push es
-
-    lgdt [gdtinfo]
-
-    mov eax, cr0
-    or al, 1    # set protected mode bit
-    mov cr0, eax
-
-    jmp protected_mode                # tell 386/486 to not crash
-
-protected_mode:
-    mov bx, 0x8
-    mov ds, bx # set data segment
-    mov es, bx # set extra segment
-
-    and al, 0xfe    # clear protected mode bit
-    mov cr0, eax
-
-unreal_mode:
-    pop es # get back old extra segment
-    pop ds # get back old data segment
-    sti
-
-    # back to real mode, but internal data segment register is still loaded
-    # with gdt segment -> we can access the full 4GiB of memory
-
-    mov bx, 0x0f01         # attrib/char of smiley
-    mov eax, 0xb8f00       # note 32 bit offset
-    mov word ptr ds:[eax], bx
-
 check_int13h_extensions:
     mov ah, 0x41
     mov bx, 0x55aa
@@ -70,8 +38,8 @@ check_int13h_extensions:
     int 0x13
     jc no_int13h_extensions
 
-load_second_stage_from_disk:
-    lea eax, _second_stage_start_addr
+load_bootloader_rest_from_disk:
+    lea eax, _bootloader_rest_start_addr
 
     # start of memory buffer
     mov [dap_buffer_addr], ax
@@ -91,14 +59,12 @@ load_second_stage_from_disk:
     lea si, dap
     mov ah, 0x42
     int 0x13
-    jc second_stage_load_failed
+    jc bootloader_rest_load_failed
 
 jump_to_second_stage:
-    lea eax, second_stage
-    jmp eax
-
-spin:
-    jmp spin
+    jmp second_stage
+spin_1st_stage:
+    jmp spin_1st_stage
 
 # print a string and a newline
 # IN
@@ -141,71 +107,22 @@ print_char:
     int 0x10
     ret
 
-# print a number in hex
-# IN
-#   bx: the number
-# CLOBBER
-#   al, cx
-print_hex:
-    mov cx, 4
-.lp:
-    mov al, bh
-    shr al, 4
-
-    cmp al, 0xA
-    jb .below_0xA
-
-    add al, 'A' - 0xA - '0'
-.below_0xA:
-    add al, '0'
-
-    call print_char
-
-    shl bx, 4
-    loop .lp
-
-    ret
-
 error:
     call println
+error_spin:
     jmp spin
 
 no_int13h_extensions:
     lea si, no_int13h_extensions_str
     jmp error
 
-second_stage_load_failed:
-    lea si, second_stage_load_failed_str
-    jmp error
-
-kernel_load_failed:
-    lea si, kernel_load_failed_str
+bootloader_rest_load_failed:
+    lea si, bootloader_rest_load_failed_str
     jmp error
 
 boot_start_str: .asciz "Booting (first stage)..."
-second_stage_start_str: .asciz "Booting (second stage)..."
-error_str: .asciz "Error: "
-no_cpuid_str: .asciz "No CPUID support"
 no_int13h_extensions_str: .asciz "No support for int13h extensions"
-second_stage_load_failed_str: .asciz "Failed to load second stage of bootloader"
-
-gdtinfo:
-   .word gdt_end - gdt - 1  # last byte in table
-   .word gdt                # start of table
-
-gdt:
-    # entry 0 is always unused
-    .quad 0
-flatdesc:
-    .byte 0xff
-    .byte 0xff
-    .byte 0
-    .byte 0
-    .byte 0
-    .byte 0x92
-    .byte 0xcf
-    .byte 0
-gdt_end:
+bootloader_rest_load_failed_str: .asciz "Failed to load rest of bootloader"
 
 dap: # disk access packet
     .byte 0x10 # size of dap

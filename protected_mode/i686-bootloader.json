@@ -4,11 +4,6 @@
     "llvm-target": "i686-unknown-linux-gnu",
     "linker-flavor": "ld.lld",
     "linker": "rust-lld",
-    "pre-link-args": {
-        "ld.lld": [
-	        "--script=linker.ld"
-	    ]
-    },
     "target-endian": "little",
     "target-pointer-width": "32",
     "target-c-int-width": "32",

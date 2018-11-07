@@ -1,0 +1,11 @@
+[package]
+name = "protected_mode"
+version = "0.1.0"
+authors = ["Philipp Oppermann <dev@phil-opp.com>"]
+edition = "2018"
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+x86_64 = "0.3"

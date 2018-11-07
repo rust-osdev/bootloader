@@ -1,4 +1,4 @@
-ENTRY(_start)
+ENTRY(entry_point)
 
 SECTIONS {
     . = 0x500;
@@ -31,14 +31,14 @@ SECTIONS {
         *(.boot)
 
         /* second stage */
-        _second_stage_start_addr = .;
+        _bootloader_rest_start_addr = .;
         *(.second_stage)
         *(.context_switch)
         *(.text .text.*)
         *(.rodata .rodata.*)
         *(.data .data.*)
         . = ALIGN(512);
-        _second_stage_end_addr = .;
+        _bootloader_rest_end_addr = .;
     }
 
     _kernel_info_block_start = .;

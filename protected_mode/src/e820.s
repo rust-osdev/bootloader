@@ -1,4 +1,5 @@
 .section .second_stage, "awx"
+.global do_e820
 .intel_syntax noprefix
 .code16
 
