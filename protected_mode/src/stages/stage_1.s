@@ -51,7 +51,7 @@ load_bootloader_rest_from_disk:
     mov [dap_blocks], bx
 
     # number of start block
-    lea ebx, _start
+    lea ebx, first_stage
     sub eax, ebx
     shr eax, 9 # divide by 512 (block size)
     mov [dap_start_lba], eax

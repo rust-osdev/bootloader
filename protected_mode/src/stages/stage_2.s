@@ -33,7 +33,7 @@ load_kernel_from_disk:
 
     # number of start block
     lea eax, _kernel_start_addr
-    lea ebx, _start
+    lea ebx, first_stage
     sub eax, ebx
     shr eax, 9 # divide by 512 (block size)
     mov [dap_start_lba], eax

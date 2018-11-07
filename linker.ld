@@ -1,4 +1,4 @@
-ENTRY(entry_point)
+ENTRY(first_stage)
 
 SECTIONS {
     . = 0x500;

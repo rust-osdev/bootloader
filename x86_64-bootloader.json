@@ -9,6 +9,11 @@
 	        "--script=linker.ld"
 	    ]
     },
+    "post-link-args": {
+        "ld.lld": [
+	        "protected_mode/target/i686-bootloader/release/libprotected_mode.rlib"
+	    ]
+    },
     "target-endian": "little",
     "target-pointer-width": "32",
     "target-c-int-width": "32",
