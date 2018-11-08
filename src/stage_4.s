@@ -5,6 +5,9 @@
 # This stage calls into Rust code, passing various values as arguments.
 
 stage_4:
+    mov bx, 0x0
+    mov ss, bx # set stack segment
+call_load_elf:
     # call load_elf with kernel start address, size, and memory map as arguments
     movabs rdi, 0x400000 # move absolute 64-bit to register
     mov rsi, _kib_kernel_size
