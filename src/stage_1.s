@@ -3,6 +3,9 @@
 .intel_syntax noprefix
 .code16
 
+# This stage initializes the stack, enables the A20 line, loads the rest of
+# the bootloader from disk, and jumps to stage_2.
+
 _start:
     # zero segment registers
     xor ax, ax

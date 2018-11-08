@@ -2,6 +2,11 @@
 .intel_syntax noprefix
 .code32
 
+# This stage performs some checks on the CPU (cpuid, long mode), sets up an
+# initial page table mapping (identity map the bootloader, map the P4
+# recursively, map the kernel blob to 4MB), enables paging, switches to long
+# mode, and jumps to stage_4.
+
 stage_3:
     mov bx, 0x10
     mov ds, bx # set data segment

@@ -2,6 +2,10 @@
 .intel_syntax noprefix
 .code16
 
+# This stage sets the target operating mode, loads the kernel from disk,
+# creates an e820 memory map, enters protected mode, and jumps to the
+# third stage.
+
 second_stage_start_str: .asciz "Booting (second stage)..."
 kernel_load_failed_str: .asciz "Failed to load kernel from disk"
 

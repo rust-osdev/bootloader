@@ -2,6 +2,8 @@
 .intel_syntax noprefix
 .code64
 
+# This stage calls into Rust code, passing various values as arguments.
+
 stage_4:
     # call load_elf with kernel start address, size, and memory map as arguments
     movabs rdi, 0x400000 # move absolute 64-bit to register
