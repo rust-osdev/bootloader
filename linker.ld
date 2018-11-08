@@ -37,6 +37,7 @@ SECTIONS {
         *(.text .text.*)
         *(.rodata .rodata.*)
         *(.data .data.*)
+        *(.got)
         . = ALIGN(512);
         _rest_of_bootloader_end_addr = .;
     }
