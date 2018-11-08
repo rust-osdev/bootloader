@@ -90,6 +90,11 @@ set_up_page_tables:
     mov [_p1 + ecx * 8], eax
 
 enable_paging:
+    # Write back cache and add a memory fence. I'm not sure if this is
+    # necessary, but better be on the safe side.
+    wbinvd
+    mfence
+
     # load P4 to cr3 register (cpu uses this to access the P4 table)
     lea eax, [_p4]
     mov cr3, eax
