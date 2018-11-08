@@ -34,7 +34,7 @@ enter_protected_mode:
     push ds
     push es
 
-    lgdt [gdtinfo]
+    lgdt [gdt32info]
 
     mov eax, cr0
     or al, 1    # set protected mode bit
@@ -43,7 +43,7 @@ enter_protected_mode:
     jmp protected_mode                # tell 386/486 to not crash
 
 protected_mode:
-    mov bx, 0x8
+    mov bx, 0x10
     mov ds, bx # set data segment
     mov es, bx # set extra segment
 
@@ -183,14 +183,23 @@ no_cpuid_str: .asciz "No CPUID support"
 no_int13h_extensions_str: .asciz "No support for int13h extensions"
 rest_of_bootloader_load_failed_str: .asciz "Failed to load rest of bootloader"
 
-gdtinfo:
-   .word gdt_end - gdt - 1  # last byte in table
-   .word gdt                # start of table
+gdt32info:
+   .word gdt32_end - gdt32 - 1  # last byte in table
+   .word gdt32                  # start of table
 
-gdt:
+gdt32:
     # entry 0 is always unused
     .quad 0
-flatdesc:
+codedesc:
+    .byte 0xff
+    .byte 0xff
+    .byte 0
+    .byte 0
+    .byte 0
+    .byte 0x9a
+    .byte 0xcf
+    .byte 0
+datadesc:
     .byte 0xff
     .byte 0xff
     .byte 0
@@ -199,7 +208,7 @@ flatdesc:
     .byte 0x92
     .byte 0xcf
     .byte 0
-gdt_end:
+gdt32_end:
 
 dap: # disk access packet
     .byte 0x10 # size of dap

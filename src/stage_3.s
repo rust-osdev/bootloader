@@ -5,6 +5,11 @@
 no_long_mode_str: .asciz "No long mode support"
 
 stage_3:
+    mov bx, 0x10
+    mov ds, bx # set data segment
+    mov es, bx # set extra segment
+    mov ss, bx # set stack segment
+
 check_cpu:
     call check_cpuid
     call check_long_mode

@@ -78,9 +78,16 @@ create_memory_map:
     call do_e820
 
 enter_protected_mode_again:
-jmp enter_protected_mode_again
+    cli
+    lgdt [gdt32info]
+    mov eax, cr0
+    or al, 1    # set protected mode bit
+    mov cr0, eax
 
+    push 0x8
     lea eax, [stage_3]
-    jmp eax
+    push eax
+    retf
+
 spin32:
     jmp spin32
