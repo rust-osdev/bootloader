@@ -32,8 +32,10 @@ check_cpu:
 
 set_up_page_tables:
     # zero out buffer for page tables
-    lea edi, [_p4]
-    mov ecx, 0x1000 / 4 * 3
+    lea edi, [__page_table_start]
+    lea ecx, [__page_table_end]
+    sub ecx, edi
+    shr ecx, 2 # one stosd zeros 4 bytes -> divide by 4
     xor eax, eax
     rep stosd
 
