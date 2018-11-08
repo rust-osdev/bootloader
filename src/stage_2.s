@@ -3,13 +3,18 @@
 .code16
 
 second_stage_start_str: .asciz "Booting (second stage)..."
-loading_kernel_block_str: .asciz "loading kernel block..."
-kernel_load_failed_str: .asciz "Failed to load kernel"
+kernel_load_failed_str: .asciz "Failed to load kernel from disk"
 
 kernel_load_failed:
-jmp kernel_load_failed
+    lea si, [kernel_load_failed_str]
+    call println
+kernel_load_failed_spin:
+    jmp kernel_load_failed_spin
 
 stage_2:
+    lea si, [second_stage_start_str]
+    call println
+
 set_target_operating_mode:
     # Some BIOSs assume the processor will only operate in Legacy Mode. We change the Target
     # Operating Mode to "Long Mode Target Only", so the firmware expects each CPU to enter Long Mode

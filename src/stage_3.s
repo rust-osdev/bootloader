@@ -2,13 +2,23 @@
 .intel_syntax noprefix
 .code32
 
-no_long_mode_str: .asciz "No long mode support"
-
 stage_3:
     mov bx, 0x10
     mov ds, bx # set data segment
     mov es, bx # set extra segment
     mov ss, bx # set stack segment
+
+    # print "3rd stage" to the top right
+    mov eax, 0x0f720f33 # "3r"
+    mov [0xb808c], eax
+    mov eax, 0x0f200f64 # "d "
+    mov [0xb808c + 4], eax
+    mov eax, 0x0f740f73 # "st"
+    mov [0xb808c + 8], eax
+    mov eax, 0x0f670f61 # "ag"
+    mov [0xb808c + 12], eax
+    mov eax, 0x0f200f65 # "e "
+    mov [0xb808c + 16], eax
 
 check_cpu:
     call check_cpuid
@@ -143,8 +153,18 @@ check_cpuid:
     je no_cpuid
     ret
 no_cpuid:
-    lea si, no_cpuid_str
-    jmp no_cpuid
+    # print "no cpuid" to the top right
+    mov eax, 0x4f6f4f6e # "no"
+    mov [0xb8130], eax
+    mov eax, 0x4f634f20 # " c"
+    mov [0xb8130 + 4], eax
+    mov eax, 0x4f754f70 # "pu"
+    mov [0xb8130 + 8], eax
+    mov eax, 0x4f644f69 # "id"
+    mov [0xb8130 + 12], eax
+no_cpuid_spin:
+    hlt
+    jmp no_cpuid_spin
 
 check_long_mode:
     # test if extended processor info in available
@@ -160,8 +180,22 @@ check_long_mode:
     jz no_long_mode        # If it's not set, there is no long mode
     ret
 no_long_mode:
-    lea si, no_long_mode_str
-    jmp no_long_mode
+    # print "no long mode" to the top right
+    mov eax, 0x4f6f4f6e # "no"
+    mov [0xb8128], eax
+    mov eax, 0x4f6c4f20 # " l"
+    mov [0xb8128 + 4], eax
+    mov eax, 0x4f6e4f6f # "on"
+    mov [0xb8128 + 8], eax
+    mov eax, 0x4f204f67 # "g "
+    mov [0xb8128 + 12], eax
+    mov eax, 0x4f6f4f6d # "mo"
+    mov [0xb8128 + 16], eax
+    mov eax, 0x4f654f64 # "de"
+    mov [0xb8128 + 20], eax
+no_long_mode_spin:
+    hlt
+    jmp no_long_mode_spin
 
 
 .align 4
