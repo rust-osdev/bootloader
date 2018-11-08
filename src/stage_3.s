@@ -105,7 +105,7 @@ enable_paging:
 
     # enable paging in the cr0 register
     mov eax, cr0
-    or eax, ((1 << 31) | 1)
+    or eax, (1 << 31)
     mov cr0, eax
 
 load_64bit_gdt:
