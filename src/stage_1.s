@@ -1,7 +1,10 @@
-.section .boot, "awx"
+.section .boot-first-stage, "awx"
 .global _start
 .intel_syntax noprefix
 .code16
+
+# This stage initializes the stack, enables the A20 line, loads the rest of
+# the bootloader from disk, and jumps to stage_2.
 
 _start:
     # zero segment registers
@@ -15,7 +18,6 @@ _start:
     # clear the direction flag (e.g. go forward in memory when using
     # instructions like lodsb)
     cld
-
 
     # initialize stack
     mov sp, 0x7c00
@@ -35,7 +37,7 @@ enter_protected_mode:
     push ds
     push es
 
-    lgdt [gdtinfo]
+    lgdt [gdt32info]
 
     mov eax, cr0
     or al, 1    # set protected mode bit
@@ -44,7 +46,7 @@ enter_protected_mode:
     jmp protected_mode                # tell 386/486 to not crash
 
 protected_mode:
-    mov bx, 0x8
+    mov bx, 0x10
     mov ds, bx # set data segment
     mov es, bx # set extra segment
 
@@ -70,15 +72,15 @@ check_int13h_extensions:
     int 0x13
     jc no_int13h_extensions
 
-load_second_stage_from_disk:
-    lea eax, _second_stage_start_addr
+load_rest_of_bootloader_from_disk:
+    lea eax, _rest_of_bootloader_start_addr
 
     # start of memory buffer
     mov [dap_buffer_addr], ax
 
     # number of disk blocks to load
     lea ebx, _kernel_info_block_end
-    sub ebx, eax # second stage end - second stage start
+    sub ebx, eax # end - start
     shr ebx, 9 # divide by 512 (block size)
     mov [dap_blocks], bx
 
@@ -91,10 +93,10 @@ load_second_stage_from_disk:
     lea si, dap
     mov ah, 0x42
     int 0x13
-    jc second_stage_load_failed
+    jc rest_of_bootloader_load_failed
 
 jump_to_second_stage:
-    lea eax, second_stage
+    lea eax, [stage_2]
     jmp eax
 
 spin:
@@ -174,29 +176,33 @@ no_int13h_extensions:
     lea si, no_int13h_extensions_str
     jmp error
 
-second_stage_load_failed:
-    lea si, second_stage_load_failed_str
-    jmp error
-
-kernel_load_failed:
-    lea si, kernel_load_failed_str
+rest_of_bootloader_load_failed:
+    lea si, rest_of_bootloader_load_failed_str
     jmp error
 
 boot_start_str: .asciz "Booting (first stage)..."
-second_stage_start_str: .asciz "Booting (second stage)..."
 error_str: .asciz "Error: "
 no_cpuid_str: .asciz "No CPUID support"
 no_int13h_extensions_str: .asciz "No support for int13h extensions"
-second_stage_load_failed_str: .asciz "Failed to load second stage of bootloader"
+rest_of_bootloader_load_failed_str: .asciz "Failed to load rest of bootloader"
 
-gdtinfo:
-   .word gdt_end - gdt - 1  # last byte in table
-   .word gdt                # start of table
+gdt32info:
+   .word gdt32_end - gdt32 - 1  # last byte in table
+   .word gdt32                  # start of table
 
-gdt:
+gdt32:
     # entry 0 is always unused
     .quad 0
-flatdesc:
+codedesc:
+    .byte 0xff
+    .byte 0xff
+    .byte 0
+    .byte 0
+    .byte 0
+    .byte 0x9a
+    .byte 0xcf
+    .byte 0
+datadesc:
     .byte 0xff
     .byte 0xff
     .byte 0
@@ -205,7 +211,7 @@ flatdesc:
     .byte 0x92
     .byte 0xcf
     .byte 0
-gdt_end:
+gdt32_end:
 
 dap: # disk access packet
     .byte 0x10 # size of dap

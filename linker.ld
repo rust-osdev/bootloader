@@ -28,17 +28,18 @@ SECTIONS {
     .bootloader :
     {
         /* first stage */
-        *(.boot)
+        *(.boot-first-stage)
 
-        /* second stage */
-        _second_stage_start_addr = .;
-        *(.second_stage)
+        /* rest of bootloader */
+        _rest_of_bootloader_start_addr = .;
+        *(.boot)
         *(.context_switch)
         *(.text .text.*)
         *(.rodata .rodata.*)
         *(.data .data.*)
+        *(.got)
         . = ALIGN(512);
-        _second_stage_end_addr = .;
+        _rest_of_bootloader_end_addr = .;
     }
 
     _kernel_info_block_start = .;

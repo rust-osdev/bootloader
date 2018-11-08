@@ -25,9 +25,11 @@ use x86_64::ux::u9;
 pub use x86_64::PhysAddr;
 use x86_64::VirtAddr;
 
-global_asm!(include_str!("boot.s"));
-global_asm!(include_str!("second_stage.s"));
-global_asm!(include_str!("memory_map.s"));
+global_asm!(include_str!("stage_1.s"));
+global_asm!(include_str!("stage_2.s"));
+global_asm!(include_str!("e820.s"));
+global_asm!(include_str!("stage_3.s"));
+global_asm!(include_str!("stage_4.s"));
 global_asm!(include_str!("context_switch.s"));
 
 extern "C" {

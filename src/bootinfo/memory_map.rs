@@ -3,9 +3,11 @@ use core::ops::{Deref, DerefMut};
 
 const PAGE_SIZE: u64 = 4096;
 
+const MAX_MEMORY_MAP_SIZE: usize = 64;
+
 #[repr(C)]
 pub struct MemoryMap {
-    entries: [MemoryRegion; 32],
+    entries: [MemoryRegion; MAX_MEMORY_MAP_SIZE],
     // u64 instead of usize so that the structure layout is platform
     // independent
     next_entry_index: u64,
@@ -14,12 +16,14 @@ pub struct MemoryMap {
 impl MemoryMap {
     pub fn new() -> Self {
         MemoryMap {
-            entries: [MemoryRegion::empty(); 32],
+            entries: [MemoryRegion::empty(); MAX_MEMORY_MAP_SIZE],
             next_entry_index: 0,
         }
     }
 
     pub fn add_region(&mut self, region: MemoryRegion) {
+        assert!(self.next_entry_index() < MAX_MEMORY_MAP_SIZE,
+            "too many memory regions in memory map");
         self.entries[self.next_entry_index()] = region;
         self.next_entry_index += 1;
         self.sort();

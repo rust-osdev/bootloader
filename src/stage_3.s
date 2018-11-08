@@ -1,81 +1,29 @@
-.section .second_stage, "awx"
+.section .boot, "awx"
 .intel_syntax noprefix
-.code16
+.code32
 
-loading_kernel_block_str: .asciz "loading kernel block..."
-kernel_load_failed_str: .asciz "Failed to load kernel"
-no_long_mode_str: .asciz "No long mode support"
+# This stage performs some checks on the CPU (cpuid, long mode), sets up an
+# initial page table mapping (identity map the bootloader, map the P4
+# recursively, map the kernel blob to 4MB), enables paging, switches to long
+# mode, and jumps to stage_4.
 
-second_stage:
-    lea si, second_stage_start_str
-    call println
+stage_3:
+    mov bx, 0x10
+    mov ds, bx # set data segment
+    mov es, bx # set extra segment
+    mov ss, bx # set stack segment
 
-set_target_operating_mode:
-    # Some BIOSs assume the processor will only operate in Legacy Mode. We change the Target
-    # Operating Mode to "Long Mode Target Only", so the firmware expects each CPU to enter Long Mode
-    # once and then stay in it. This allows the firmware to enable mode-specifc optimizations.
-    # We save the flags, because CF is set if the callback is not supported (in which case, this is
-    # a NOP)
-    pushf
-    mov ax, 0xec00
-    mov bl, 0x2
-    int 0x15
-    popf
-
-load_kernel_from_disk:
-    # start of memory buffer
-    lea eax, _kernel_buffer
-    mov [dap_buffer_addr], ax
-
-    # number of disk blocks to load
-    mov word ptr [dap_blocks], 1
-
-    # number of start block
-    lea eax, _kernel_start_addr
-    lea ebx, _start
-    sub eax, ebx
-    shr eax, 9 # divide by 512 (block size)
-    mov [dap_start_lba], eax
-
-    # destination address
-    mov edi, 0x400000
-
-    # block count
-    mov ecx, _kib_kernel_size
-    add ecx, 511 # align up
-    shr ecx, 9
-
-load_next_kernel_block_from_disk:
-    # load block from disk
-    lea si, dap
-    mov ah, 0x42
-    int 0x13
-    jc kernel_load_failed
-
-    # copy block to 2MiB
-    push ecx
-    push esi
-    mov ecx, 512 / 4
-    # move with zero extension
-    # because we are moving a word ptr
-    # to esi, a 32-bit register.
-    movzx esi, word ptr [dap_buffer_addr]
-    # move from esi to edi ecx times.
-    rep movsd [edi], [esi]
-    pop esi
-    pop ecx
-
-    # next block
-    mov eax, [dap_start_lba]
-    add eax, 1
-    mov [dap_start_lba], eax
-
-    sub ecx, 1
-    jnz load_next_kernel_block_from_disk
-
-create_memory_map:
-    lea di, es:[_memory_map]
-    call do_e820
+    # print "3rd stage" to the top right
+    mov eax, 0x0f720f33 # "3r"
+    mov [0xb808c], eax
+    mov eax, 0x0f200f64 # "d "
+    mov [0xb808c + 4], eax
+    mov eax, 0x0f740f73 # "st"
+    mov [0xb808c + 8], eax
+    mov eax, 0x0f670f61 # "ag"
+    mov [0xb808c + 12], eax
+    mov eax, 0x0f200f65 # "e "
+    mov [0xb808c + 16], eax
 
 check_cpu:
     call check_cpuid
@@ -89,8 +37,10 @@ check_cpu:
 
 set_up_page_tables:
     # zero out buffer for page tables
-    lea edi, [_p4]
-    mov ecx, 0x1000 / 4 * 3
+    lea edi, [__page_table_start]
+    lea ecx, [__page_table_end]
+    sub ecx, edi
+    shr ecx, 2 # one stosd zeros 4 bytes -> divide by 4
     xor eax, eax
     rep stosd
 
@@ -144,8 +94,12 @@ set_up_page_tables:
     shr ecx, 12
     mov [_p1 + ecx * 8], eax
 
-
 enable_paging:
+    # Write back cache and add a memory fence. I'm not sure if this is
+    # necessary, but better be on the safe side.
+    wbinvd
+    mfence
+
     # load P4 to cr3 register (cpu uses this to access the P4 table)
     lea eax, [_p4]
     mov cr3, eax
@@ -163,7 +117,7 @@ enable_paging:
 
     # enable paging in the cr0 register
     mov eax, cr0
-    or eax, ((1 << 31) | 1)
+    or eax, (1 << 31)
     mov cr0, eax
 
 load_64bit_gdt:
@@ -171,12 +125,12 @@ load_64bit_gdt:
 
 jump_to_long_mode:
     push 0x8
-    lea eax, [long_mode]
+    lea eax, [stage_4]
     push eax
     retf # Load CS with 64 bit segment and flush the instruction cache
 
-    jmp spin
-
+spin_here:
+    jmp spin_here
 
 check_cpuid:
     # Check if CPUID is supported by attempting to flip the ID bit (bit 21)
@@ -211,8 +165,18 @@ check_cpuid:
     je no_cpuid
     ret
 no_cpuid:
-    lea si, no_cpuid_str
-    jmp error
+    # print "no cpuid" to the top right
+    mov eax, 0x4f6f4f6e # "no"
+    mov [0xb8130], eax
+    mov eax, 0x4f634f20 # " c"
+    mov [0xb8130 + 4], eax
+    mov eax, 0x4f754f70 # "pu"
+    mov [0xb8130 + 8], eax
+    mov eax, 0x4f644f69 # "id"
+    mov [0xb8130 + 12], eax
+no_cpuid_spin:
+    hlt
+    jmp no_cpuid_spin
 
 check_long_mode:
     # test if extended processor info in available
@@ -228,8 +192,22 @@ check_long_mode:
     jz no_long_mode        # If it's not set, there is no long mode
     ret
 no_long_mode:
-    lea si, no_long_mode_str
-    jmp error
+    # print "no long mode" to the top right
+    mov eax, 0x4f6f4f6e # "no"
+    mov [0xb8128], eax
+    mov eax, 0x4f6c4f20 # " l"
+    mov [0xb8128 + 4], eax
+    mov eax, 0x4f6e4f6f # "on"
+    mov [0xb8128 + 8], eax
+    mov eax, 0x4f204f67 # "g "
+    mov [0xb8128 + 12], eax
+    mov eax, 0x4f6f4f6d # "mo"
+    mov [0xb8128 + 16], eax
+    mov eax, 0x4f654f64 # "de"
+    mov [0xb8128 + 20], eax
+no_long_mode_spin:
+    hlt
+    jmp no_long_mode_spin
 
 
 .align 4
@@ -248,22 +226,3 @@ gdt_64:
 gdt_64_pointer:
     .word gdt_64_pointer - gdt_64 - 1    # 16-bit Size (Limit) of GDT.
     .long gdt_64                            # 32-bit Base Address of GDT. (CPU will zero extend to 64-bit)
-
-
-.code64
-
-long_mode:
-    # call load_elf with kernel start address, size, and memory map as arguments
-    movabs rdi, 0x400000 # move absolute 64-bit to register
-    mov rsi, _kib_kernel_size
-    lea rdx, _memory_map
-    movzx rcx, word ptr mmap_ent
-    lea r8, __page_table_start
-    lea r9, __page_table_end
-    lea rax, __bootloader_end
-    push rax
-    lea rax, __bootloader_start
-    push rax
-    call load_elf
-spin64:
-    jmp spin64
