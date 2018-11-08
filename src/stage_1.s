@@ -1,4 +1,4 @@
-.section .boot, "awx"
+.section .boot-first-stage, "awx"
 .global _start
 .intel_syntax noprefix
 .code16
@@ -15,7 +15,6 @@ _start:
     # clear the direction flag (e.g. go forward in memory when using
     # instructions like lodsb)
     cld
-
 
     # initialize stack
     mov sp, 0x7c00
@@ -70,15 +69,15 @@ check_int13h_extensions:
     int 0x13
     jc no_int13h_extensions
 
-load_second_stage_from_disk:
-    lea eax, _second_stage_start_addr
+load_rest_of_bootloader_from_disk:
+    lea eax, _rest_of_bootloader_start_addr
 
     # start of memory buffer
     mov [dap_buffer_addr], ax
 
     # number of disk blocks to load
     lea ebx, _kernel_info_block_end
-    sub ebx, eax # second stage end - second stage start
+    sub ebx, eax # end - start
     shr ebx, 9 # divide by 512 (block size)
     mov [dap_blocks], bx
 
@@ -91,10 +90,10 @@ load_second_stage_from_disk:
     lea si, dap
     mov ah, 0x42
     int 0x13
-    jc second_stage_load_failed
+    jc rest_of_bootloader_load_failed
 
 jump_to_second_stage:
-    lea eax, second_stage
+    lea eax, [stage_2]
     jmp eax
 
 spin:
@@ -174,20 +173,15 @@ no_int13h_extensions:
     lea si, no_int13h_extensions_str
     jmp error
 
-second_stage_load_failed:
-    lea si, second_stage_load_failed_str
-    jmp error
-
-kernel_load_failed:
-    lea si, kernel_load_failed_str
+rest_of_bootloader_load_failed:
+    lea si, rest_of_bootloader_load_failed_str
     jmp error
 
 boot_start_str: .asciz "Booting (first stage)..."
-second_stage_start_str: .asciz "Booting (second stage)..."
 error_str: .asciz "Error: "
 no_cpuid_str: .asciz "No CPUID support"
 no_int13h_extensions_str: .asciz "No support for int13h extensions"
-second_stage_load_failed_str: .asciz "Failed to load second stage of bootloader"
+rest_of_bootloader_load_failed_str: .asciz "Failed to load rest of bootloader"
 
 gdtinfo:
    .word gdt_end - gdt - 1  # last byte in table

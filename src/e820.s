@@ -1,4 +1,4 @@
-.section .second_stage, "awx"
+.section .boot, "awx"
 .intel_syntax noprefix
 .code16
 
