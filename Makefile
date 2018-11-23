@@ -12,6 +12,7 @@ objcopy: build
 endif
 ifeq ($(UNAME), Darwin)
 objcopy: build
+	# This is installed via `brew install binutils`
 	/usr/local/opt/binutils/bin/objcopy -O binary -S target/x86_64-bootloader/release/bootloader bootimage.bin
 endif
 
