@@ -3,17 +3,30 @@ language: rust
 rust:
 - nightly
 
-os: linux
+os:
+  - linux
+  - osx
+  - windows
 
 cache:
   directories:
     - $HOME/.cargo
-    - $HOME/.xargo
+    - $HOME/Library/Caches/Homebrew
     - $TRAVIS_BUILD_DIR/target
+    - $TRAVIS_BUILD_DIR/example-kernel/target
+
+addons:
+  apt:
+    packages:
+      - qemu-system-x86
+
+install:
+  - if [ $TRAVIS_OS_NAME = osx ]; then brew update; brew install qemu; fi
+  - if [ $TRAVIS_OS_NAME = windows ]; then wget https://qemu.weilnetz.de/w64/2018/qemu-w64-setup-20180801.exe; 7z x qemu-w64-setup-20180801.exe; fi
 
 before_script:
 - rustup component add rust-src
-- "(test -x $HOME/.cargo/bin/xargo || cargo install xargo)"
+- "(test -x $HOME/.cargo/bin/cargo-xbuild || cargo install cargo-xbuild)"
 
 sudo: false
 
@@ -23,5 +36,6 @@ notifications:
     on_failure: change
 
 script:
-- RUST_TARGET_PATH=`pwd` xargo build --target x86_64-bootloader --release
-- objcopy -O binary -S target/x86_64-bootloader/release/bootloader bootimage.bin
+- cd example-kernel; cargo xbuild --target x86_64-example-kernel.json; cd ..
+- cd builder; cargo run -- --kernel ../example-kernel/target/x86_64-example-kernel/debug/example-kernel; cd ..
+- qemu-system-x86_64 -drive format=raw,file=target/x86_64-bootloader/release/bootimage.bin -device isa-debug-exit,iobase=0xf4,iosize=0x04 -display none; if [ $? -eq 123 ]; then (exit 0); else (exit 1); fi
