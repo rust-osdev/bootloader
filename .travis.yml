@@ -3,7 +3,15 @@ language: rust
 rust:
 - nightly
 
-os: linux
+matrix:
+  include:
+    - os: linux
+    - os: osx
+
+addons:
+  homebrew:
+    packages:
+    - binutils
 
 cache:
   directories:
@@ -23,5 +31,4 @@ notifications:
     on_failure: change
 
 script:
-- RUST_TARGET_PATH=`pwd` xargo build --target x86_64-bootloader --release
-- objcopy -O binary -S target/x86_64-bootloader/release/bootloader bootimage.bin
+- make objcopy
