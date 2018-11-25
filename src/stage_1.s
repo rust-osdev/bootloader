@@ -23,7 +23,7 @@ _start:
     mov sp, 0x7c00
 
     lea si, boot_start_str
-    call println
+    call real_mode_println
 
 enable_a20:
     # enable A20-Line via IO-Port 92, might not work on all motherboards
@@ -107,30 +107,30 @@ spin:
 #   esi: points at zero-terminated String
 # CLOBBER
 #   ax
-println:
-    call print
+real_mode_println:
+    call real_mode_print
     mov al, 13 # \r
-    call print_char
+    call real_mode_print_char
     mov al, 10 # \n
-    jmp print_char
+    jmp real_mode_print_char
 
 # print a string
 # IN
 #   esi: points at zero-terminated String
 # CLOBBER
 #   ax
-print:
+real_mode_print:
     cld
-print_loop:
+real_mode_print_loop:
     # note: if direction flag is set (via std)
     # this will DECREMENT the ptr, effectively
     # reading/printing in reverse.
     lodsb al, BYTE PTR [esi]
     test al, al
-    jz print_done
-    call print_char
-    jmp print_loop
-print_done:
+    jz real_mode_print_done
+    call real_mode_print_char
+    jmp real_mode_print_loop
+real_mode_print_done:
     ret
 
 # print a character
@@ -138,7 +138,7 @@ print_done:
 #   al: character to print
 # CLOBBER
 #   ah
-print_char:
+real_mode_print_char:
     mov ah, 0x0e
     int 0x10
     ret
@@ -148,7 +148,7 @@ print_char:
 #   bx: the number
 # CLOBBER
 #   al, cx
-print_hex:
+real_mode_print_hex:
     mov cx, 4
 .lp:
     mov al, bh
@@ -161,24 +161,24 @@ print_hex:
 .below_0xA:
     add al, '0'
 
-    call print_char
+    call real_mode_print_char
 
     shl bx, 4
     loop .lp
 
     ret
 
-error:
-    call println
+real_mode_error:
+    call real_mode_println
     jmp spin
 
 no_int13h_extensions:
     lea si, no_int13h_extensions_str
-    jmp error
+    jmp real_mode_error
 
 rest_of_bootloader_load_failed:
     lea si, rest_of_bootloader_load_failed_str
-    jmp error
+    jmp real_mode_error
 
 boot_start_str: .asciz "Booting (first stage)..."
 error_str: .asciz "Error: "
