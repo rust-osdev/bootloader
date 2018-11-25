@@ -35,3 +35,8 @@ dd if=target/x86_64-blog_os/debug/bootimage-blog_os.bin of=/dev/sdX && sync
 ```
 
 Where sdX is the device name of your USB stick. **Be careful** to choose the correct device name, because everything on that device is overwritten.
+
+## Features
+The bootloader crate can be configured through some cargo features:
+
+- `vga_320x200`: This feature switches the VGA hardware to mode 0x13, a graphics mode with resolution 320x200 and 256 colors per pixel. The framebuffer is linear and lives at address `0xa0000`.
