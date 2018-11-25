@@ -86,6 +86,9 @@ create_memory_map:
     lea di, es:[_memory_map]
     call do_e820
 
+video_mode_config:
+    call config_video_mode
+
 enter_protected_mode_again:
     cli
     lgdt [gdt32info]

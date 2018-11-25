@@ -15,6 +15,15 @@ x86_64 = "0.2.7"
 usize_conversions = "0.2.0"
 fixedvec = "0.2.3"
 
+[dependencies.font8x8]
+version = "0.2.4"
+default-features = false
+features = ["unicode"]
+
+[features]
+default = []
+vga_320x200 = []
+
 [profile.dev]
 panic = "abort"
 

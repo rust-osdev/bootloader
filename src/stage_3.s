@@ -13,17 +13,8 @@ stage_3:
     mov es, bx # set extra segment
     mov ss, bx # set stack segment
 
-    # print "3rd stage" to the top right
-    mov eax, 0x0f720f33 # "3r"
-    mov [0xb808c], eax
-    mov eax, 0x0f200f64 # "d "
-    mov [0xb808c + 4], eax
-    mov eax, 0x0f740f73 # "st"
-    mov [0xb808c + 8], eax
-    mov eax, 0x0f670f61 # "ag"
-    mov [0xb808c + 12], eax
-    mov eax, 0x0f200f65 # "e "
-    mov [0xb808c + 16], eax
+    lea si, boot_third_stage_str
+    call vga_println
 
 check_cpu:
     call check_cpuid
@@ -86,13 +77,8 @@ set_up_page_tables:
     add ecx, 1
     cmp ecx, edx
     jb map_p1_table
-    #
-    map_vga_buffer:
-    mov eax, 0xb8000
-    or eax, (1 | 2)
-    mov ecx, 0xb8000
-    shr ecx, 12
-    mov [_p1 + ecx * 8], eax
+    map_framebuffer:
+    call vga_map_frame_buffer
 
 enable_paging:
     # Write back cache and add a memory fence. I'm not sure if this is
@@ -165,15 +151,8 @@ check_cpuid:
     je no_cpuid
     ret
 no_cpuid:
-    # print "no cpuid" to the top right
-    mov eax, 0x4f6f4f6e # "no"
-    mov [0xb8130], eax
-    mov eax, 0x4f634f20 # " c"
-    mov [0xb8130 + 4], eax
-    mov eax, 0x4f754f70 # "pu"
-    mov [0xb8130 + 8], eax
-    mov eax, 0x4f644f69 # "id"
-    mov [0xb8130 + 12], eax
+    lea esi, no_cpuid_str
+    call vga_println
 no_cpuid_spin:
     hlt
     jmp no_cpuid_spin
@@ -192,19 +171,8 @@ check_long_mode:
     jz no_long_mode        # If it's not set, there is no long mode
     ret
 no_long_mode:
-    # print "no long mode" to the top right
-    mov eax, 0x4f6f4f6e # "no"
-    mov [0xb8128], eax
-    mov eax, 0x4f6c4f20 # " l"
-    mov [0xb8128 + 4], eax
-    mov eax, 0x4f6e4f6f # "on"
-    mov [0xb8128 + 8], eax
-    mov eax, 0x4f204f67 # "g "
-    mov [0xb8128 + 12], eax
-    mov eax, 0x4f6f4f6d # "mo"
-    mov [0xb8128 + 16], eax
-    mov eax, 0x4f654f64 # "de"
-    mov [0xb8128 + 20], eax
+    lea esi, no_long_mode_str
+    call vga_println
 no_long_mode_spin:
     hlt
     jmp no_long_mode_spin
@@ -226,3 +194,7 @@ gdt_64:
 gdt_64_pointer:
     .word gdt_64_pointer - gdt_64 - 1    # 16-bit Size (Limit) of GDT.
     .long gdt_64                            # 32-bit Base Address of GDT. (CPU will zero extend to 64-bit)
+
+boot_third_stage_str: .asciz "Booting (third stage)..."
+no_cpuid_str: .asciz "Error: CPU does not support CPUID"
+no_long_mode_str: .asciz "Error: CPU does not support long mode"

@@ -14,6 +14,7 @@ extern crate x86_64;
 extern crate xmas_elf;
 #[macro_use]
 extern crate fixedvec;
+extern crate font8x8;
 
 use bootloader::bootinfo::BootInfo;
 use core::panic::PanicInfo;
@@ -31,6 +32,11 @@ global_asm!(include_str!("e820.s"));
 global_asm!(include_str!("stage_3.s"));
 global_asm!(include_str!("stage_4.s"));
 global_asm!(include_str!("context_switch.s"));
+
+#[cfg(feature = "vga_320x200")]
+global_asm!(include_str!("video_mode/vga_320x200.s"));
+#[cfg(not(feature = "vga_320x200"))]
+global_asm!(include_str!("video_mode/vga_text_80x25.s"));
 
 extern "C" {
     fn context_switch(boot_info: VirtAddr, entry_point: VirtAddr, stack_pointer: VirtAddr) -> !;
