@@ -11,13 +11,13 @@ kernel_load_failed_str: .asciz "Failed to load kernel from disk"
 
 kernel_load_failed:
     lea si, [kernel_load_failed_str]
-    call println
+    call real_mode_println
 kernel_load_failed_spin:
     jmp kernel_load_failed_spin
 
 stage_2:
     lea si, [second_stage_start_str]
-    call println
+    call real_mode_println
 
 set_target_operating_mode:
     # Some BIOSs assume the processor will only operate in Legacy Mode. We change the Target
@@ -85,6 +85,9 @@ load_next_kernel_block_from_disk:
 create_memory_map:
     lea di, es:[_memory_map]
     call do_e820
+
+video_mode_config:
+    call config_video_mode
 
 enter_protected_mode_again:
     cli
