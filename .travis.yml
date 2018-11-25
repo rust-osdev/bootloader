@@ -41,3 +41,5 @@ script:
 - cd example-kernel; cargo xbuild --target x86_64-example-kernel.json; cd ..
 - cd builder; cargo run -- --kernel ../example-kernel/target/x86_64-example-kernel/debug/example-kernel; cd ..
 - qemu-system-x86_64 -drive format=raw,file=target/x86_64-bootloader/release/bootimage.bin -device isa-debug-exit,iobase=0xf4,iosize=0x04 -display none; if [ $? -eq 123 ]; then (exit 0); else (exit 1); fi
+- cd builder; cargo run -- --kernel ../example-kernel/target/x86_64-example-kernel/debug/example-kernel --features vga_320x200; cd ..
+- qemu-system-x86_64 -drive format=raw,file=target/x86_64-bootloader/release/bootimage.bin -device isa-debug-exit,iobase=0xf4,iosize=0x04 -display none; if [ $? -eq 123 ]; then (exit 0); else (exit 1); fi
