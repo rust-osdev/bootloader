@@ -39,8 +39,8 @@ vga_println:
     mov vga_position, eax
 
     pop edx
-    pop ebx
     pop ecx
+    pop ebx
     pop eax
 
     ret
