@@ -30,7 +30,6 @@ global_asm!(include_str!("stage_1.s"));
 global_asm!(include_str!("stage_2.s"));
 global_asm!(include_str!("e820.s"));
 global_asm!(include_str!("stage_3.s"));
-global_asm!(include_str!("stage_4.s"));
 global_asm!(include_str!("context_switch.s"));
 
 #[cfg(feature = "vga_320x200")]
@@ -63,8 +62,44 @@ impl IdentityMappedAddr {
     }
 }
 
+// Symbols defined in `linker.ld`
+extern {
+    static mmap_ent: usize;
+    static _memory_map: usize;
+    static _kib_kernel_size: usize;
+    static __page_table_start: usize;
+    static __page_table_end: usize;
+    static __bootloader_end: usize;
+    static __bootloader_start: usize;
+}
+
 #[no_mangle]
-pub extern "C" fn load_elf(
+pub unsafe extern "C" fn stage_4() -> ! {
+    asm!("mov bx, 0x0" :::: "intel");
+    asm!("mov ss, bx" :::: "intel"); // Set stack segment
+
+    let kernel_start = 0x400000;
+    let kernel_size = _kib_kernel_size as u64;
+    let memory_map_addr = &_memory_map as *const _ as u64;
+    let memory_map_entry_count = (mmap_ent & 0xff) as u64; // Extract lower 8 bits
+    let page_table_start = &__page_table_start as *const _ as u64;
+    let page_table_end = &__page_table_end as *const _ as u64;
+    let bootloader_start = &__bootloader_start as *const _ as u64;
+    let bootloader_end = &__bootloader_end as *const _ as u64;
+
+    load_elf(
+        IdentityMappedAddr(PhysAddr::new(kernel_start)),
+        kernel_size,
+        VirtAddr::new(memory_map_addr),
+        memory_map_entry_count,
+        PhysAddr::new(page_table_start),
+        PhysAddr::new(page_table_end),
+        PhysAddr::new(bootloader_start),
+        PhysAddr::new(bootloader_end),
+    )
+}
+
+fn load_elf(
     kernel_start: IdentityMappedAddr,
     kernel_size: u64,
     memory_map_addr: VirtAddr,
