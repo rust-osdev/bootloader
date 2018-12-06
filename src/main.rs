@@ -75,8 +75,9 @@ extern {
 
 #[no_mangle]
 pub unsafe extern "C" fn stage_4() -> ! {
-    asm!("mov bx, 0x0" :::: "intel");
-    asm!("mov ss, bx" :::: "intel"); // Set stack segment
+    // Set stack segment
+    asm!("mov bx, 0x0
+          mov ss, bx" ::: "bx" : "intel");
 
     let kernel_start = 0x400000;
     let kernel_size = _kib_kernel_size as u64;
