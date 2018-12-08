@@ -37,7 +37,7 @@ global_asm!(include_str!("video_mode/vga_320x200.s"));
 global_asm!(include_str!("video_mode/vga_text_80x25.s"));
 
 unsafe fn context_switch(boot_info: VirtAddr, entry_point: VirtAddr, stack_pointer: VirtAddr) -> ! {
-    asm!("jmp $1; .spin: jmp spin" :: "{rsp}"(stack_pointer), "r"(entry_point), "{rdi}"(boot_info) :: "intel");
+    asm!("jmp $1; context_switch_spin: jmp context_switch_spin" :: "{rsp}"(stack_pointer), "r"(entry_point), "{rdi}"(boot_info) :: "intel");
     ::core::hint::unreachable_unchecked()
 }
 
