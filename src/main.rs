@@ -30,15 +30,15 @@ global_asm!(include_str!("stage_1.s"));
 global_asm!(include_str!("stage_2.s"));
 global_asm!(include_str!("e820.s"));
 global_asm!(include_str!("stage_3.s"));
-global_asm!(include_str!("context_switch.s"));
 
 #[cfg(feature = "vga_320x200")]
 global_asm!(include_str!("video_mode/vga_320x200.s"));
 #[cfg(not(feature = "vga_320x200"))]
 global_asm!(include_str!("video_mode/vga_text_80x25.s"));
 
-extern "C" {
-    fn context_switch(boot_info: VirtAddr, entry_point: VirtAddr, stack_pointer: VirtAddr) -> !;
+unsafe fn context_switch(boot_info: VirtAddr, entry_point: VirtAddr, stack_pointer: VirtAddr) -> ! {
+    asm!("jmp $1; .spin: jmp spin" :: "{rsp}"(stack_pointer), "r"(entry_point), "{rdi}"(boot_info) :: "intel");
+    ::core::hint::unreachable_unchecked()
 }
 
 mod boot_info;
