@@ -11,7 +11,7 @@ publish-lockfile = true
 
 [dependencies]
 xmas-elf = "0.6.2"
-x86_64 = "0.2.7"
+x86_64 = "0.3.5"
 usize_conversions = "0.2.0"
 fixedvec = "0.2.3"
 
