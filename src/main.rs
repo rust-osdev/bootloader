@@ -23,8 +23,7 @@ use usize_conversions::usize_from;
 use x86_64::structures::paging::{Mapper, RecursivePageTable};
 use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, Size2MiB};
 use x86_64::ux::u9;
-pub use x86_64::PhysAddr;
-use x86_64::VirtAddr;
+use x86_64::{PhysAddr, VirtAddr};
 
 global_asm!(include_str!("stage_1.s"));
 global_asm!(include_str!("stage_2.s"));
