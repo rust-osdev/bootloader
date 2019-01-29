@@ -223,7 +223,7 @@ fn load_elf(
     };
 
     // Construct boot info structure.
-    let mut boot_info = BootInfo::new(memory_map, &[]);
+    let mut boot_info = BootInfo::new(memory_map);
     boot_info.memory_map.sort();
 
     // Write boot info to boot info page.
