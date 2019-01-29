@@ -18,6 +18,10 @@ use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, PhysFrameRange
 use x86_64::ux::u9;
 use x86_64::{PhysAddr, VirtAddr};
 
+/// The offset into the virtual address space where the physical memory is mapped if
+/// the `map_physical_memory` is activated.
+const PHYSICAL_MEMORY_OFFSET: u64 = 0o_177777_770_000_000_000_0000;
+
 global_asm!(include_str!("stage_1.s"));
 global_asm!(include_str!("stage_2.s"));
 global_asm!(include_str!("e820.s"));
@@ -150,8 +154,8 @@ fn load_elf(
         recursive_index,
         recursive_index,
         recursive_index,
-    );
-    let page_table = unsafe { &mut *(recursive_page_table_addr.start_address().as_mut_ptr()) };
+    ).start_address();
+    let page_table = unsafe { &mut *(recursive_page_table_addr.as_mut_ptr()) };
     let mut rec_page_table =
         RecursivePageTable::new(page_table).expect("recursive page table creation failed");
 
@@ -229,10 +233,9 @@ fn load_elf(
         page
     };
 
-    #[cfg(feature = "map_physical_memory")]
-    {
+    if cfg!(feature = "map_physical_memory") {
         fn virt_for_phys(phys: PhysAddr) -> VirtAddr {
-            VirtAddr::new(phys.as_u64() + bootloader::PHYSICAL_MEMORY_OFFSET)
+            VirtAddr::new(phys.as_u64() + PHYSICAL_MEMORY_OFFSET)
         }
 
         let start_frame = PhysFrame::<Size2MiB>::containing_address(PhysAddr::new(0));
@@ -253,7 +256,7 @@ fn load_elf(
     }
 
     // Construct boot info structure.
-    let mut boot_info = BootInfo::new(memory_map);
+    let mut boot_info = BootInfo::new(memory_map, recursive_page_table_addr.as_u64(), PHYSICAL_MEMORY_OFFSET);
     boot_info.memory_map.sort();
 
     // Write boot info to boot info page.
@@ -262,12 +265,6 @@ fn load_elf(
 
     // Make sure that the kernel respects the write-protection bits, even when in ring 0.
     enable_write_protect_bit();
-
-    #[cfg(feature = "recursive_level_4_table")]
-    assert_eq!(
-        recursive_page_table_addr.start_address().as_u64(),
-        bootloader::RECURSIVE_LEVEL_4_TABLE_ADDR
-    );
 
     if cfg!(not(feature = "recursive_level_4_table")) {
         // unmap recursive entry
