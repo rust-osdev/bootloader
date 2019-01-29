@@ -9,7 +9,6 @@ mod memory_map;
 #[derive(Debug)]
 #[repr(C)]
 pub struct BootInfo {
-    pub p4_table_addr: u64,
     pub memory_map: MemoryMap,
     pub package: Package,
 }
@@ -29,9 +28,8 @@ impl Deref for Package {
 }
 
 impl BootInfo {
-    pub fn new(p4_table_addr: u64, memory_map: MemoryMap, package: &'static [u8]) -> Self {
+    pub fn new(memory_map: MemoryMap, package: &'static [u8]) -> Self {
         BootInfo {
-            p4_table_addr,
             memory_map,
             package: Package {
                 ptr: package.as_ptr(),

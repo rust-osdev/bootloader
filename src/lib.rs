@@ -1,5 +1,9 @@
 #![no_std]
 
+/// The virtual address of the recursively mapped level 4 page table.
+#[cfg(feature = "recursive_level_4_table")]
+pub const RECURSIVE_LEVEL_4_TABLE_ADDR: u64 = 0o_177777_777_777_777_777_0000;
+
 pub mod bootinfo;
 
 /// Defines the entry point function.
