@@ -23,6 +23,7 @@ features = ["unicode"]
 [features]
 default = []
 vga_320x200 = []
+recursive_level_4_table = []
 
 [profile.dev]
 panic = "abort"

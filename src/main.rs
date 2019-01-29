@@ -18,7 +18,7 @@ extern crate font8x8;
 
 use bootloader::bootinfo::BootInfo;
 use core::panic::PanicInfo;
-use core::slice;
+use core::{mem, slice};
 use usize_conversions::usize_from;
 use x86_64::structures::paging::{Mapper, RecursivePageTable};
 use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, Size2MiB};
@@ -244,6 +244,13 @@ fn load_elf(
 
     // Make sure that the kernel respects the write-protection bits, even when in ring 0.
     enable_write_protect_bit();
+
+    if cfg!(not(feature = "recursive_level_4_table")) {
+        // unmap recursive entry
+        rec_page_table.unmap(recursive_page_table_addr)
+            .expect("error deallocating recursive entry").1.flush();
+        mem::drop(rec_page_table);
+    }
 
     let entry_point = VirtAddr::new(entry_point);
 
