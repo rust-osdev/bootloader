@@ -8,13 +8,13 @@
 #![no_std]
 #![no_main]
 
-use bootloader::bootinfo::BootInfo;
+use bootloader::bootinfo::{BootInfo, FrameRange};
 use core::panic::PanicInfo;
 use core::{mem, slice};
 use fixedvec::alloc_stack;
 use usize_conversions::usize_from;
 use x86_64::structures::paging::{Mapper, RecursivePageTable};
-use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, Size2MiB};
+use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, PhysFrameRange, Size2MiB};
 use x86_64::ux::u9;
 use x86_64::{PhysAddr, VirtAddr};
 
@@ -157,7 +157,7 @@ fn load_elf(
     {
         let zero_frame: PhysFrame = PhysFrame::from_start_address(PhysAddr::new(0)).unwrap();
         frame_allocator.mark_allocated_region(MemoryRegion {
-            range: PhysFrame::range(zero_frame, zero_frame + 1).into(),
+            range: frame_range(PhysFrame::range(zero_frame, zero_frame + 1)),
             region_type: MemoryRegionType::FrameZero,
         });
         let bootloader_start_frame = PhysFrame::containing_address(bootloader_start);
@@ -165,7 +165,7 @@ fn load_elf(
         let bootloader_memory_area =
             PhysFrame::range(bootloader_start_frame, bootloader_end_frame + 1);
         frame_allocator.mark_allocated_region(MemoryRegion {
-            range: bootloader_memory_area.into(),
+            range: frame_range(bootloader_memory_area),
             region_type: MemoryRegionType::Bootloader,
         });
         let kernel_start_frame = PhysFrame::containing_address(kernel_start.phys());
@@ -173,7 +173,7 @@ fn load_elf(
             PhysFrame::containing_address(kernel_start.phys() + kernel_size - 1u64);
         let kernel_memory_area = PhysFrame::range(kernel_start_frame, kernel_end_frame + 1);
         frame_allocator.mark_allocated_region(MemoryRegion {
-            range: kernel_memory_area.into(),
+            range: frame_range(kernel_memory_area),
             region_type: MemoryRegionType::Kernel,
         });
         let page_table_start_frame = PhysFrame::containing_address(page_table_start);
@@ -181,7 +181,7 @@ fn load_elf(
         let page_table_memory_area =
             PhysFrame::range(page_table_start_frame, page_table_end_frame + 1);
         frame_allocator.mark_allocated_region(MemoryRegion {
-            range: page_table_memory_area.into(),
+            range: frame_range(page_table_memory_area),
             region_type: MemoryRegionType::PageTable,
         });
     }
@@ -281,4 +281,18 @@ pub extern "C" fn eh_personality() {
 #[no_mangle]
 pub extern "C" fn _Unwind_Resume() {
     loop {}
+}
+
+fn phys_frame_range(range: FrameRange) -> PhysFrameRange {
+    PhysFrameRange {
+        start: PhysFrame::from_start_address(PhysAddr::new(range.start_addr())).unwrap(),
+        end: PhysFrame::from_start_address(PhysAddr::new(range.end_addr())).unwrap(),
+    }
+}
+
+fn frame_range(range: PhysFrameRange) -> FrameRange {
+    FrameRange::new(
+        range.start.start_address().as_u64(),
+        range.end.start_address().as_u64(),
+    )
 }

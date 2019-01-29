@@ -42,26 +42,3 @@ impl BootInfo {
 extern "C" {
     fn _improper_ctypes_check(_boot_info: BootInfo);
 }
-
-use x86_64::{
-    structures::paging::{PhysFrame, PhysFrameRange},
-    PhysAddr,
-};
-
-impl From<FrameRange> for PhysFrameRange {
-    fn from(range: FrameRange) -> Self {
-        PhysFrameRange {
-            start: PhysFrame::from_start_address(PhysAddr::new(range.start_addr())).unwrap(),
-            end: PhysFrame::from_start_address(PhysAddr::new(range.end_addr())).unwrap(),
-        }
-    }
-}
-
-impl From<PhysFrameRange> for FrameRange {
-    fn from(range: PhysFrameRange) -> Self {
-        FrameRange::new(
-            range.start.start_address().as_u64(),
-            range.end.start_address().as_u64(),
-        )
-    }
-}

@@ -1,5 +1,6 @@
 use bootloader::bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
 use x86_64::structures::paging::{PhysFrame, PhysFrameRange};
+use super::{frame_range, phys_frame_range};
 
 pub(crate) struct FrameAllocator<'a> {
     pub memory_map: &'a mut MemoryMap,
@@ -16,7 +17,7 @@ impl<'a> FrameAllocator<'a> {
                         && next.region_type == MemoryRegionType::Usable
                         && !next.range.is_empty()
                     {
-                        let frame = PhysFrameRange::from(region.range).end;
+                        let frame = phys_frame_range(region.range).end;
                         region.range.end_frame_number += 1;
                         iter.next().unwrap().range.start_frame_number += 1;
                         return Some(frame);
@@ -37,7 +38,7 @@ impl<'a> FrameAllocator<'a> {
                     continue;
                 }
 
-                let frame = PhysFrameRange::from(region.range).start;
+                let frame = phys_frame_range(region.range).start;
                 region.range.start_frame_number += 1;
                 return Some((frame, PhysFrame::range(frame, frame + 1)));
             }
@@ -53,7 +54,7 @@ impl<'a> FrameAllocator<'a> {
 
         if let Some((frame, range)) = result {
             self.memory_map.add_region(MemoryRegion {
-                range: range.into(),
+                range: frame_range(range),
                 region_type,
             });
             Some(frame)
