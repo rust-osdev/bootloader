@@ -8,11 +8,15 @@ mod memory_map;
 #[repr(C)]
 pub struct BootInfo {
     pub memory_map: MemoryMap,
+    _non_exhaustive: u8, // `()` is not FFI safe
 }
 
 impl BootInfo {
     pub fn new(memory_map: MemoryMap) -> Self {
-        BootInfo { memory_map }
+        BootInfo {
+            memory_map,
+            _non_exhaustive: 0,
+        }
     }
 }
 
