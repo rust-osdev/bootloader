@@ -8,14 +8,6 @@
 #![no_std]
 #![no_main]
 
-extern crate bootloader;
-extern crate usize_conversions;
-extern crate x86_64;
-extern crate xmas_elf;
-#[macro_use]
-extern crate fixedvec;
-extern crate font8x8;
-
 use bootloader::bootinfo::BootInfo;
 use core::panic::PanicInfo;
 use core::{mem, slice};
@@ -24,6 +16,7 @@ use x86_64::structures::paging::{Mapper, RecursivePageTable};
 use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, Size2MiB};
 use x86_64::ux::u9;
 use x86_64::{PhysAddr, VirtAddr};
+use fixedvec::alloc_stack;
 
 global_asm!(include_str!("stage_1.s"));
 global_asm!(include_str!("stage_2.s"));
