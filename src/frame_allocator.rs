@@ -1,6 +1,6 @@
+use super::{frame_range, phys_frame_range};
 use bootloader::bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
 use x86_64::structures::paging::{PhysFrame, PhysFrameRange};
-use super::{frame_range, phys_frame_range};
 
 pub(crate) struct FrameAllocator<'a> {
     pub memory_map: &'a mut MemoryMap,

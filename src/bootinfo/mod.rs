@@ -1,8 +1,6 @@
 #![deny(improper_ctypes)]
 
 pub use self::memory_map::*;
-use core::ops::Deref;
-use core::slice;
 
 mod memory_map;
 
@@ -14,9 +12,7 @@ pub struct BootInfo {
 
 impl BootInfo {
     pub fn new(memory_map: MemoryMap) -> Self {
-        BootInfo {
-            memory_map,
-        }
+        BootInfo { memory_map }
     }
 }
 
