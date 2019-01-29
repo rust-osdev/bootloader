@@ -11,12 +11,12 @@
 use bootloader::bootinfo::BootInfo;
 use core::panic::PanicInfo;
 use core::{mem, slice};
+use fixedvec::alloc_stack;
 use usize_conversions::usize_from;
 use x86_64::structures::paging::{Mapper, RecursivePageTable};
 use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, Size2MiB};
 use x86_64::ux::u9;
 use x86_64::{PhysAddr, VirtAddr};
-use fixedvec::alloc_stack;
 
 global_asm!(include_str!("stage_1.s"));
 global_asm!(include_str!("stage_2.s"));
@@ -239,8 +239,11 @@ fn load_elf(
 
     if cfg!(not(feature = "recursive_level_4_table")) {
         // unmap recursive entry
-        rec_page_table.unmap(recursive_page_table_addr)
-            .expect("error deallocating recursive entry").1.flush();
+        rec_page_table
+            .unmap(recursive_page_table_addr)
+            .expect("error deallocating recursive entry")
+            .1
+            .flush();
         mem::drop(rec_page_table);
     }
 
