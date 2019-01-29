@@ -233,6 +233,12 @@ fn load_elf(
     // Make sure that the kernel respects the write-protection bits, even when in ring 0.
     enable_write_protect_bit();
 
+    #[cfg(feature = "recursive_level_4_table")]
+    assert_eq!(
+        recursive_page_table_addr.start_address().as_u64(),
+        bootloader::RECURSIVE_LEVEL_4_TABLE_ADDR
+    );
+
     if cfg!(not(feature = "recursive_level_4_table")) {
         // unmap recursive entry
         rec_page_table
