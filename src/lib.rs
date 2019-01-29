@@ -15,7 +15,7 @@ pub const RECURSIVE_LEVEL_4_TABLE_ADDR: u64 = 0o_177777_777_777_777_777_0000;
 #[cfg(feature = "map_physical_memory")]
 pub const PHYSICAL_MEMORY_OFFSET: u64 = 0o_177777_770_000_000_000_0000;
 
-pub use bootinfo::BootInfo;
+pub use crate::bootinfo::BootInfo;
 
 pub mod bootinfo;
 
