@@ -4,6 +4,8 @@
 #[cfg(feature = "recursive_level_4_table")]
 pub const RECURSIVE_LEVEL_4_TABLE_ADDR: u64 = 0o_177777_777_777_777_777_0000;
 
+pub use bootinfo::BootInfo;
+
 pub mod bootinfo;
 
 /// Defines the entry point function.
