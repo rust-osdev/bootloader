@@ -25,6 +25,7 @@ features = ["unicode"]
 default = []
 vga_320x200 = []
 recursive_level_4_table = []
+map_physical_memory = []
 
 [profile.dev]
 panic = "abort"

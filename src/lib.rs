@@ -4,6 +4,17 @@
 #[cfg(feature = "recursive_level_4_table")]
 pub const RECURSIVE_LEVEL_4_TABLE_ADDR: u64 = 0o_177777_777_777_777_777_0000;
 
+/// The offset into the virtual address space where the physical memory is mapped.
+///
+/// Physical addresses can be converted to virtual addresses by adding this offset to them.
+///
+/// The mapping of the physical memory allows to access arbitrary physical frames. Accessing
+/// frames that are also mapped at other virtual addresses can easily break memory safety and
+/// cause undefined behavior. Only frames reported as `USABLE` by the memory map in the `BootInfo`
+/// can be safely accessed.
+#[cfg(feature = "map_physical_memory")]
+pub const PHYSICAL_MEMORY_OFFSET: u64 = 0o_177777_770_000_000_000_0000;
+
 pub use bootinfo::BootInfo;
 
 pub mod bootinfo;

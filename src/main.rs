@@ -111,6 +111,13 @@ fn load_elf(
 
     let mut memory_map = boot_info::create_from(memory_map_addr, memory_map_entry_count);
 
+    #[cfg(feature = "map_physical_memory")]
+    let max_phys_addr = memory_map
+        .iter()
+        .map(|r| r.range.end_addr())
+        .max()
+        .expect("no physical memory regions found");
+
     // Extract required information from the ELF file.
     let mut preallocated_space = alloc_stack!([ProgramHeader64; 32]);
     let mut segments = FixedVec::new(&mut preallocated_space);
@@ -221,6 +228,29 @@ fn load_elf(
         .flush();
         page
     };
+
+    #[cfg(feature = "map_physical_memory")]
+    {
+        fn virt_for_phys(phys: PhysAddr) -> VirtAddr {
+            VirtAddr::new(phys.as_u64() + bootloader::PHYSICAL_MEMORY_OFFSET)
+        }
+
+        let start_frame = PhysFrame::<Size2MiB>::containing_address(PhysAddr::new(0));
+        let end_frame = PhysFrame::<Size2MiB>::containing_address(PhysAddr::new(max_phys_addr));
+        for frame in PhysFrame::range_inclusive(start_frame, end_frame) {
+            let page = Page::containing_address(virt_for_phys(frame.start_address()));
+            let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+            page_table::map_page(
+                page,
+                frame,
+                flags,
+                &mut rec_page_table,
+                &mut frame_allocator,
+            )
+            .expect("Mapping of bootinfo page failed")
+            .flush();
+        }
+    }
 
     // Construct boot info structure.
     let mut boot_info = BootInfo::new(memory_map);
