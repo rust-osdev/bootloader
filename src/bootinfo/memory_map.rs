@@ -22,8 +22,10 @@ impl MemoryMap {
     }
 
     pub fn add_region(&mut self, region: MemoryRegion) {
-        assert!(self.next_entry_index() < MAX_MEMORY_MAP_SIZE,
-            "too many memory regions in memory map");
+        assert!(
+            self.next_entry_index() < MAX_MEMORY_MAP_SIZE,
+            "too many memory regions in memory map"
+        );
         self.entries[self.next_entry_index()] = region;
         self.next_entry_index += 1;
         self.sort();
