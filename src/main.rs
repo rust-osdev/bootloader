@@ -64,7 +64,7 @@ impl IdentityMappedAddr {
 }
 
 // Symbols defined in `linker.ld`
-extern {
+extern "C" {
     static mmap_ent: usize;
     static _memory_map: usize;
     static _kib_kernel_size: usize;
@@ -208,7 +208,8 @@ fn load_elf(
         &segments,
         &mut rec_page_table,
         &mut frame_allocator,
-    ).expect("kernel mapping failed");
+    )
+    .expect("kernel mapping failed");
 
     // Map a page for the boot info structure
     let boot_info_page = {
@@ -223,7 +224,8 @@ fn load_elf(
             flags,
             &mut rec_page_table,
             &mut frame_allocator,
-        ).expect("Mapping of bootinfo page failed")
+        )
+        .expect("Mapping of bootinfo page failed")
         .flush();
         page
     };

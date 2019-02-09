@@ -54,7 +54,7 @@ impl Printer {
                 for (y, byte) in rendered.iter().enumerate() {
                     for (x, bit) in (0..8).enumerate() {
                         if *byte & (1 << bit) == 0 {
-                            continue
+                            continue;
                         }
                         let color = 0xf;
                         vga_buffer[(y_pos + y) * SCREEN_WIDTH + x_pos + x] = color;
