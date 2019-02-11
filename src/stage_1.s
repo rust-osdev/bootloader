@@ -109,7 +109,7 @@ spin:
 
 # print a string and a newline
 # IN
-#   esi: points at zero-terminated String
+#   si: points at zero-terminated String
 # CLOBBER
 #   ax
 real_mode_println:
@@ -121,7 +121,7 @@ real_mode_println:
 
 # print a string
 # IN
-#   esi: points at zero-terminated String
+#   si: points at zero-terminated String
 # CLOBBER
 #   ax
 real_mode_print:
@@ -130,7 +130,7 @@ real_mode_print_loop:
     # note: if direction flag is set (via std)
     # this will DECREMENT the ptr, effectively
     # reading/printing in reverse.
-    lodsb al, BYTE PTR [esi]
+    lodsb al, BYTE PTR [si]
     test al, al
     jz real_mode_print_done
     call real_mode_print_char
