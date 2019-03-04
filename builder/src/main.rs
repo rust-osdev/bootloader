@@ -33,8 +33,13 @@ fn main() {
     let mut kernel_file = match File::open(kernel_path) {
         Ok(file) => file,
         Err(err) => {
-            writeln!(io::stderr(), "Failed to open kernel at {:?}: {}", kernel_path, err)
-                .expect("Failed to write to stderr");
+            writeln!(
+                io::stderr(),
+                "Failed to open kernel at {:?}: {}",
+                kernel_path,
+                err
+            )
+            .expect("Failed to write to stderr");
             process::exit(1);
         }
     };
