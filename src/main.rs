@@ -14,7 +14,8 @@ use core::{mem, slice};
 use fixedvec::alloc_stack;
 use usize_conversions::usize_from;
 use x86_64::structures::paging::{Mapper, RecursivePageTable};
-use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, PhysFrameRange, Size2MiB};
+use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, PhysFrameRange, Size4KiB,
+    Size2MiB};
 use x86_64::ux::u9;
 use x86_64::{PhysAddr, VirtAddr};
 
@@ -115,7 +116,6 @@ fn load_elf(
 
     let mut memory_map = boot_info::create_from(memory_map_addr, memory_map_entry_count);
 
-    #[cfg(feature = "map_physical_memory")]
     let max_phys_addr = memory_map
         .iter()
         .map(|r| r.range.end_addr())
@@ -269,7 +269,7 @@ fn load_elf(
     if cfg!(not(feature = "recursive_page_table")) {
         // unmap recursive entry
         rec_page_table
-            .unmap(recursive_page_table_addr)
+            .unmap(Page::<Size4KiB>::containing_address(recursive_page_table_addr))
             .expect("error deallocating recursive entry")
             .1
             .flush();
