@@ -50,11 +50,11 @@ steps:
   displayName: 'Install Rust (Linux/macOS)'
 
 - script: |
-    set -euxo pipefail
     curl -sSf -o rustup-init.exe https://win.rustup.rs
     rustup-init.exe -y --default-toolchain %RUSTUP_TOOLCHAIN%
     echo ##vso[task.setvariable variable=PATH;]%PATH%;%USERPROFILE%\.cargo\bin
   condition: eq( variables['Agent.OS'], 'Windows_NT' )
+  failOnStderr: true
   displayName: 'Install Rust (Windows)'
 
 - script: |
@@ -66,10 +66,7 @@ steps:
 - script: rustup component add rust-src
   displayName: 'Install Rustup Src Component'
 
-- script: |
-    set -euxo pipefail
-    cargo install cargo-xbuild --debug
-    cargo install bootimage --debug
+- script: cargo install cargo-xbuild bootimage --debug
   displayName: 'Install cargo-xbuild and bootimage'
 
 - script: sudo apt install qemu-system-x86
@@ -86,12 +83,12 @@ steps:
   displayName: 'Install QEMU (macOS)'
 
 - script: |
-    set -euxo pipefail
     choco install qemu --limit-output --no-progress
     echo ##vso[task.setvariable variable=PATH;]%PATH%;C:\Program Files\qemu
     set PATH=%PATH%;C:\Program Files\qemu
     qemu-system-x86_64 --version
   condition: eq( variables['Agent.OS'], 'Windows_NT' )
+  failOnStderr: true
   displayName: 'Install QEMU (Windows)'
 
 - script: cargo xbuild --target x86_64-example-kernel.json
