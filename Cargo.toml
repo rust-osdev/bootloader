@@ -24,7 +24,7 @@ features = ["unicode"]
 [features]
 default = []
 vga_320x200 = []
-recursive_level_4_table = []
+recursive_page_table = []
 map_physical_memory = []
 
 [profile.dev]
@@ -36,4 +36,4 @@ lto = false
 debug = true
 
 [package.metadata.docs.rs]
-features = [ "recursive_level_4_table", "map_physical_memory" ]
+features = [ "recursive_page_table", "map_physical_memory" ]

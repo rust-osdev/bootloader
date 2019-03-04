@@ -9,8 +9,8 @@ mod memory_map;
 pub struct BootInfo {
     pub memory_map: MemoryMap,
     /// The virtual address of the recursively mapped level 4 page table.
-    #[cfg(feature = "recursive_level_4_table")]
-    pub recursive_level_4_table_addr: u64,
+    #[cfg(feature = "recursive_page_table")]
+    pub recursive_page_table_addr: u64,
     /// The offset into the virtual address space where the physical memory is mapped.
     ///
     /// Physical addresses can be converted to virtual addresses by adding this offset to them.
@@ -26,11 +26,11 @@ pub struct BootInfo {
 
 impl BootInfo {
     #[allow(unused_variables)]
-    pub fn new(memory_map: MemoryMap, recursive_level_4_table_addr: u64, physical_memory_offset: u64) -> Self {
+    pub fn new(memory_map: MemoryMap, recursive_page_table_addr: u64, physical_memory_offset: u64) -> Self {
         BootInfo {
             memory_map,
-            #[cfg(feature = "recursive_level_4_table")]
-            recursive_level_4_table_addr,
+            #[cfg(feature = "recursive_page_table")]
+            recursive_page_table_addr,
             #[cfg(feature = "map_physical_memory")]
             physical_memory_offset,
             _non_exhaustive: 0,

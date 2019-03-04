@@ -266,7 +266,7 @@ fn load_elf(
     // Make sure that the kernel respects the write-protection bits, even when in ring 0.
     enable_write_protect_bit();
 
-    if cfg!(not(feature = "recursive_level_4_table")) {
+    if cfg!(not(feature = "recursive_page_table")) {
         // unmap recursive entry
         rec_page_table
             .unmap(recursive_page_table_addr)

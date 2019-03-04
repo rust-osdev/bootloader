@@ -1,6 +1,6 @@
 ## Breaking
 
-- The level 4 page table is only recursively mapped if the `recursive_level_4_table` feature is enabled.
+- The level 4 page table is only recursively mapped if the `recursive_page_table` feature is enabled.
 - Replace `BootInfo::p4_table_addr` with `RECURSIVE_LEVEL_4_TABLE_ADDR` constant (only present if the cargo feature is enabled)
 - Remove `From<PhysFrameRange>` implemenations for x86_64 `FrameRange`
   - This only works when the versions align, so it is not a good general solution.
