@@ -5,6 +5,7 @@ const PAGE_SIZE: u64 = 4096;
 
 const MAX_MEMORY_MAP_SIZE: usize = 64;
 
+/// A map of the physical memory regions of the underlying machine.
 #[repr(C)]
 pub struct MemoryMap {
     entries: [MemoryRegion; MAX_MEMORY_MAP_SIZE],
@@ -13,6 +14,7 @@ pub struct MemoryMap {
     next_entry_index: u64,
 }
 
+#[doc(hidden)]
 impl MemoryMap {
     pub fn new() -> Self {
         MemoryMap {
@@ -83,13 +85,17 @@ impl fmt::Debug for MemoryMap {
     }
 }
 
+/// Represents a region of physical memory.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 pub struct MemoryRegion {
+    /// The range of frames that belong to the region.
     pub range: FrameRange,
+    /// The type of the region.
     pub region_type: MemoryRegionType,
 }
 
+#[doc(hidden)]
 impl MemoryRegion {
     pub fn empty() -> Self {
         MemoryRegion {
@@ -102,11 +108,19 @@ impl MemoryRegion {
     }
 }
 
+/// A range of frames with an exclusive upper bound.
 #[derive(Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 pub struct FrameRange {
+    /// The frame _number_ of the first 4KiB frame in the region.
+    ///
+    /// This convert this frame number to a physical address, multiply it with the
+    /// page size (4KiB).
     pub start_frame_number: u64,
-    // exclusive
+    /// The frame _number_ of the first 4KiB frame that does no longer belong to the region.
+    ///
+    /// This convert this frame number to a physical address, multiply it with the
+    /// page size (4KiB).
     pub end_frame_number: u64,
 }
 
@@ -122,14 +136,17 @@ impl FrameRange {
         }
     }
 
+    /// Returns true if the frame range contains no frames.
     pub fn is_empty(&self) -> bool {
         self.start_frame_number == self.end_frame_number
     }
 
+    /// Returns the physical start address of the memory region.
     pub fn start_addr(&self) -> u64 {
         self.start_frame_number * PAGE_SIZE
     }
 
+    /// Returns the physical end address of the memory region.
     pub fn end_addr(&self) -> u64 {
         self.end_frame_number * PAGE_SIZE
     }
@@ -146,14 +163,15 @@ impl fmt::Debug for FrameRange {
     }
 }
 
+/// Represents possible types for memory regions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 pub enum MemoryRegionType {
-    /// free RAM
+    /// Unused memory, can be freely used by the kernel.
     Usable,
-    /// used RAM
+    /// Memory that is already in use.
     InUse,
-    /// unusable
+    /// Memory reserved by the hardware. Not usable.
     Reserved,
     /// ACPI reclaimable memory
     AcpiReclaimable,
@@ -161,26 +179,31 @@ pub enum MemoryRegionType {
     AcpiNvs,
     /// Area containing bad memory
     BadMemory,
-    /// kernel memory
+    /// Memory used for loading the kernel.
     Kernel,
-    /// kernel stack memory
+    /// Memory used for the kernel stack.
     KernelStack,
-    /// memory used by page tables
+    /// Memory used for creating page tables.
     PageTable,
-    /// memory used by the bootloader
+    /// Memory used by the bootloader.
     Bootloader,
-    /// frame at address zero
+    /// Frame at address zero.
     ///
     /// (shouldn't be used because it's easy to make mistakes related to null pointers)
     FrameZero,
-    /// an empty region with size 0
+    /// An empty region with size 0
     Empty,
-    /// used for storing the boot information
+    /// Memory used for storing the boot information.
     BootInfo,
-    /// used for storing the supplied package
+    /// Memory used for storing the supplied package
     Package,
+    /// Additional variant to ensure that we can add more variants in the future without
+    /// breaking backwards compatibility.
+    #[doc(hidden)]
+    NonExhaustive,
 }
 
+#[doc(hidden)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 pub struct E820MemoryRegion {
