@@ -1,3 +1,5 @@
+# 0.4.0
+
 ## Breaking
 
 - The level 4 page table is only recursively mapped if the `recursive_page_table` feature is enabled.
