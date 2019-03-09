@@ -43,17 +43,20 @@ steps:
   continueOnError: true
 
 - script: |
+    set -euxo pipefail
     curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUSTUP_TOOLCHAIN
     echo "##vso[task.setvariable variable=PATH;]$PATH:$HOME/.cargo/bin"
   condition: or(eq( variables['Agent.OS'], 'Linux' ),  eq( variables['Agent.OS'], 'Darwin' ))
   displayName: 'Install Rust (Linux/macOS)'
 
-- script: |
-    curl -sSf -o rustup-init.exe https://win.rustup.rs
-    rustup-init.exe -y --default-toolchain %RUSTUP_TOOLCHAIN%
-    echo ##vso[task.setvariable variable=PATH;]%PATH%;%USERPROFILE%\.cargo\bin
+- script: curl -sSf -o rustup-init.exe https://win.rustup.rs && rustup-init.exe -y --default-toolchain %RUSTUP_TOOLCHAIN%
   condition: eq( variables['Agent.OS'], 'Windows_NT' )
   displayName: 'Install Rust (Windows)'
+
+- script: |
+    echo ##vso[task.setvariable variable=PATH;]%PATH%;%USERPROFILE%\.cargo\bin
+  condition: eq( variables['Agent.OS'], 'Windows_NT' )
+  displayName: 'Add ~/.cargo/bin to PATH (Windows)'
 
 - script: |
     rustc -Vv
@@ -64,9 +67,7 @@ steps:
 - script: rustup component add rust-src
   displayName: 'Install Rustup Src Component'
 
-- script: |
-    cargo install cargo-xbuild --debug
-    cargo install bootimage --debug
+- script: cargo install cargo-xbuild bootimage --debug
   displayName: 'Install cargo-xbuild and bootimage'
 
 - script: sudo apt install qemu-system-x86
@@ -74,6 +75,7 @@ steps:
   displayName: 'Install QEMU (Linux)'
 
 - script: |
+    set -euxo pipefail
     export HOMEBREW_NO_AUTO_UPDATE=1
     export HOMEBREW_NO_BOTTLE_SOURCE_FALLBACK=1
     export HOMEBREW_NO_INSTALL_CLEANUP=1
@@ -87,18 +89,15 @@ steps:
     set PATH=%PATH%;C:\Program Files\qemu
     qemu-system-x86_64 --version
   condition: eq( variables['Agent.OS'], 'Windows_NT' )
+  failOnStderr: true
   displayName: 'Install QEMU (Windows)'
 
-- script: |
-    cd example-kernel
-    cargo xbuild --target x86_64-example-kernel.json
-    cd ..
+- script: cargo xbuild --target x86_64-example-kernel.json
+  workingDirectory: example-kernel
   displayName: 'Build Example Kernel'
 
-- script: |
-    cd builder
-    cargo run -- --kernel ../example-kernel/target/x86_64-example-kernel/debug/example-kernel
-    cd ..
+- script: cargo run -- --kernel ../example-kernel/target/x86_64-example-kernel/debug/example-kernel
+  workingDirectory: builder
   displayName: 'Build Bootloader'
 
 - bash: |
@@ -106,10 +105,8 @@ steps:
     if [ $? -eq 123 ]; then (exit 0); else (exit 1); fi
   displayName: 'Test Bootloader'
 
-- script: |
-    cd builder
-    cargo run -- --kernel ../example-kernel/target/x86_64-example-kernel/debug/example-kernel --features vga_320x200
-    cd ..
+- script: cargo run -- --kernel ../example-kernel/target/x86_64-example-kernel/debug/example-kernel --features vga_320x200
+  workingDirectory: builder
   displayName: 'Build Bootloader (Feature vga_320x200)'
 
 - bash: |

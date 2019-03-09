@@ -8,23 +8,20 @@
 #![no_std]
 #![no_main]
 
-extern crate bootloader;
-extern crate usize_conversions;
-extern crate x86_64;
-extern crate xmas_elf;
-#[macro_use]
-extern crate fixedvec;
-extern crate font8x8;
-
-use bootloader::bootinfo::BootInfo;
+use bootloader::bootinfo::{BootInfo, FrameRange};
 use core::panic::PanicInfo;
-use core::slice;
+use core::{mem, slice};
+use fixedvec::alloc_stack;
 use usize_conversions::usize_from;
 use x86_64::structures::paging::{Mapper, RecursivePageTable};
-use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, Size2MiB};
+use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, PhysFrameRange, Size4KiB,
+    Size2MiB};
 use x86_64::ux::u9;
-pub use x86_64::PhysAddr;
-use x86_64::VirtAddr;
+use x86_64::{PhysAddr, VirtAddr};
+
+/// The offset into the virtual address space where the physical memory is mapped if
+/// the `map_physical_memory` is activated.
+const PHYSICAL_MEMORY_OFFSET: u64 = 0o_177777_770_000_000_000_0000;
 
 global_asm!(include_str!("stage_1.s"));
 global_asm!(include_str!("stage_2.s"));
@@ -119,6 +116,12 @@ fn load_elf(
 
     let mut memory_map = boot_info::create_from(memory_map_addr, memory_map_entry_count);
 
+    let max_phys_addr = memory_map
+        .iter()
+        .map(|r| r.range.end_addr())
+        .max()
+        .expect("no physical memory regions found");
+
     // Extract required information from the ELF file.
     let mut preallocated_space = alloc_stack!([ProgramHeader64; 32]);
     let mut segments = FixedVec::new(&mut preallocated_space);
@@ -151,8 +154,8 @@ fn load_elf(
         recursive_index,
         recursive_index,
         recursive_index,
-    );
-    let page_table = unsafe { &mut *(recursive_page_table_addr.start_address().as_mut_ptr()) };
+    ).start_address();
+    let page_table = unsafe { &mut *(recursive_page_table_addr.as_mut_ptr()) };
     let mut rec_page_table =
         RecursivePageTable::new(page_table).expect("recursive page table creation failed");
 
@@ -165,7 +168,7 @@ fn load_elf(
     {
         let zero_frame: PhysFrame = PhysFrame::from_start_address(PhysAddr::new(0)).unwrap();
         frame_allocator.mark_allocated_region(MemoryRegion {
-            range: PhysFrame::range(zero_frame, zero_frame + 1).into(),
+            range: frame_range(PhysFrame::range(zero_frame, zero_frame + 1)),
             region_type: MemoryRegionType::FrameZero,
         });
         let bootloader_start_frame = PhysFrame::containing_address(bootloader_start);
@@ -173,7 +176,7 @@ fn load_elf(
         let bootloader_memory_area =
             PhysFrame::range(bootloader_start_frame, bootloader_end_frame + 1);
         frame_allocator.mark_allocated_region(MemoryRegion {
-            range: bootloader_memory_area.into(),
+            range: frame_range(bootloader_memory_area),
             region_type: MemoryRegionType::Bootloader,
         });
         let kernel_start_frame = PhysFrame::containing_address(kernel_start.phys());
@@ -181,7 +184,7 @@ fn load_elf(
             PhysFrame::containing_address(kernel_start.phys() + kernel_size - 1u64);
         let kernel_memory_area = PhysFrame::range(kernel_start_frame, kernel_end_frame + 1);
         frame_allocator.mark_allocated_region(MemoryRegion {
-            range: kernel_memory_area.into(),
+            range: frame_range(kernel_memory_area),
             region_type: MemoryRegionType::Kernel,
         });
         let page_table_start_frame = PhysFrame::containing_address(page_table_start);
@@ -189,7 +192,7 @@ fn load_elf(
         let page_table_memory_area =
             PhysFrame::range(page_table_start_frame, page_table_end_frame + 1);
         frame_allocator.mark_allocated_region(MemoryRegion {
-            range: page_table_memory_area.into(),
+            range: frame_range(page_table_memory_area),
             region_type: MemoryRegionType::PageTable,
         });
     }
@@ -230,12 +233,30 @@ fn load_elf(
         page
     };
 
+    if cfg!(feature = "map_physical_memory") {
+        fn virt_for_phys(phys: PhysAddr) -> VirtAddr {
+            VirtAddr::new(phys.as_u64() + PHYSICAL_MEMORY_OFFSET)
+        }
+
+        let start_frame = PhysFrame::<Size2MiB>::containing_address(PhysAddr::new(0));
+        let end_frame = PhysFrame::<Size2MiB>::containing_address(PhysAddr::new(max_phys_addr));
+        for frame in PhysFrame::range_inclusive(start_frame, end_frame) {
+            let page = Page::containing_address(virt_for_phys(frame.start_address()));
+            let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+            page_table::map_page(
+                page,
+                frame,
+                flags,
+                &mut rec_page_table,
+                &mut frame_allocator,
+            )
+            .expect("Mapping of bootinfo page failed")
+            .flush();
+        }
+    }
+
     // Construct boot info structure.
-    let mut boot_info = BootInfo::new(
-        recursive_page_table_addr.start_address().as_u64(),
-        memory_map,
-        &[],
-    );
+    let mut boot_info = BootInfo::new(memory_map, recursive_page_table_addr.as_u64(), PHYSICAL_MEMORY_OFFSET);
     boot_info.memory_map.sort();
 
     // Write boot info to boot info page.
@@ -244,6 +265,16 @@ fn load_elf(
 
     // Make sure that the kernel respects the write-protection bits, even when in ring 0.
     enable_write_protect_bit();
+
+    if cfg!(not(feature = "recursive_page_table")) {
+        // unmap recursive entry
+        rec_page_table
+            .unmap(Page::<Size4KiB>::containing_address(recursive_page_table_addr))
+            .expect("error deallocating recursive entry")
+            .1
+            .flush();
+        mem::drop(rec_page_table);
+    }
 
     let entry_point = VirtAddr::new(entry_point);
 
@@ -277,4 +308,18 @@ pub extern "C" fn eh_personality() {
 #[no_mangle]
 pub extern "C" fn _Unwind_Resume() {
     loop {}
+}
+
+fn phys_frame_range(range: FrameRange) -> PhysFrameRange {
+    PhysFrameRange {
+        start: PhysFrame::from_start_address(PhysAddr::new(range.start_addr())).unwrap(),
+        end: PhysFrame::from_start_address(PhysAddr::new(range.end_addr())).unwrap(),
+    }
+}
+
+fn frame_range(range: PhysFrameRange) -> FrameRange {
+    FrameRange::new(
+        range.start.start_address().as_u64(),
+        range.end.start_address().as_u64(),
+    )
 }

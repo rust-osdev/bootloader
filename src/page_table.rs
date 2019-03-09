@@ -1,6 +1,6 @@
+use crate::frame_allocator::FrameAllocator;
 use bootloader::bootinfo::MemoryRegionType;
 use fixedvec::FixedVec;
-use frame_allocator::FrameAllocator;
 use x86_64::structures::paging::{self, MapToError, RecursivePageTable, UnmapError};
 use x86_64::structures::paging::{
     Mapper, MapperFlush, Page, PageSize, PageTableFlags, PhysFrame, Size4KiB,

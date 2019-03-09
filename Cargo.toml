@@ -8,6 +8,7 @@ license = "MIT/Apache-2.0"
 description = "An experimental pure-Rust x86 bootloader."
 repository = "https://github.com/rust-osdev/bootloader"
 publish-lockfile = true
+edition = "2018"
 
 [dependencies]
 xmas-elf = "0.6.2"
@@ -23,6 +24,8 @@ features = ["unicode"]
 [features]
 default = []
 vga_320x200 = []
+recursive_page_table = []
+map_physical_memory = []
 
 [profile.dev]
 panic = "abort"
@@ -31,3 +34,6 @@ panic = "abort"
 panic = "abort"
 lto = false
 debug = true
+
+[package.metadata.docs.rs]
+features = [ "recursive_page_table", "map_physical_memory" ]
