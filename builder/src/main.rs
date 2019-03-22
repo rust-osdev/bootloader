@@ -152,6 +152,7 @@ fn run_xbuild(args: &[String]) -> io::Result<process::ExitStatus> {
     command.args(args);
     let exit_status = command.status()?;
 
+
     if !exit_status.success() {
         let mut help_command = process::Command::new("cargo");
         help_command.arg("xbuild").arg("--help");

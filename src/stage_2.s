@@ -50,7 +50,7 @@ load_kernel_from_disk:
     mov edi, 0x400000
 
     # block count
-    mov ecx, _kib_kernel_size
+    lea ecx, _kernel_size
     add ecx, 511 # align up
     shr ecx, 9
 

@@ -9,6 +9,7 @@ description = "An experimental pure-Rust x86 bootloader."
 repository = "https://github.com/rust-osdev/bootloader"
 publish-lockfile = true
 edition = "2018"
+build = "build.rs"
 
 [dependencies]
 xmas-elf = "0.6.2"

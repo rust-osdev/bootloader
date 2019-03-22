@@ -40,13 +40,11 @@ SECTIONS {
         *(.got)
         . = ALIGN(512);
         _rest_of_bootloader_end_addr = .;
+        __bootloader_end = .;
     }
 
-    _kernel_info_block_start = .;
-    _kib_kernel_size = .;
-    . += 512; /* kernel info block */
-    _kernel_info_block_end = .;
-
-    __bootloader_end = .;
-    _kernel_start_addr = .;
+    .kernel :
+    {
+        KEEP(*(.kernel))
+    }
 }

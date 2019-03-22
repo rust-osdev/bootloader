@@ -63,7 +63,9 @@ impl IdentityMappedAddr {
 extern "C" {
     static mmap_ent: usize;
     static _memory_map: usize;
-    static _kib_kernel_size: usize;
+    static _kernel_start_addr: usize;
+    static _kernel_end_addr: usize;
+    static _kernel_size: usize;
     static __page_table_start: usize;
     static __page_table_end: usize;
     static __bootloader_end: usize;
@@ -77,7 +79,7 @@ pub unsafe extern "C" fn stage_4() -> ! {
           mov ss, bx" ::: "bx" : "intel");
 
     let kernel_start = 0x400000;
-    let kernel_size = _kib_kernel_size as u64;
+    let kernel_size = &_kernel_size as *const _ as u64;
     let memory_map_addr = &_memory_map as *const _ as u64;
     let memory_map_entry_count = (mmap_ent & 0xff) as u64; // Extract lower 8 bits
     let page_table_start = &__page_table_start as *const _ as u64;
