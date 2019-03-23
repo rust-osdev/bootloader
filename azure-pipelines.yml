@@ -10,8 +10,6 @@ trigger:
     - trying
     # Build pull requests.
     - master
-    # Build post braches
-    - post-*
 
 strategy:
   matrix:
@@ -64,11 +62,11 @@ steps:
   displayName: 'Print Rust Version'
   continueOnError: true
 
-- script: rustup component add rust-src
-  displayName: 'Install Rustup Src Component'
+- script: rustup component add rust-src llvm-tools-preview
+  displayName: 'Install Rustup Components'
 
-- script: cargo install cargo-xbuild bootimage --debug
-  displayName: 'Install cargo-xbuild and bootimage'
+- script: cargo install cargo-xbuild cargo-binutils --debug
+  displayName: 'Install cargo-xbuild cargo-binutils'
 
 - script: sudo apt update && sudo apt install qemu-system-x86
   condition: eq( variables['Agent.OS'], 'Linux' )
@@ -96,20 +94,15 @@ steps:
   workingDirectory: example-kernel
   displayName: 'Build Example Kernel'
 
-- script: cargo run -- --kernel ../example-kernel/target/x86_64-example-kernel/debug/example-kernel
-  workingDirectory: builder
+- script: cargo xbuild --release
   displayName: 'Build Bootloader'
+  env: { KERNEL: "example-kernel/target/x86_64-example-kernel/debug/example-kernel" }
+
+- script: cargo objcopy -- -I elf64-x86-64 -O binary --binary-architecture=i386:x86-64 target/x86_64-bootloader/release/bootloader target/x86_64-bootloader/release/bootloader.bin
+  displayName: 'Convert Bootloader ELF to Binary'
 
 - bash: |
-    qemu-system-x86_64 -drive format=raw,file=target/x86_64-bootloader/release/bootimage.bin -device isa-debug-exit,iobase=0xf4,iosize=0x04 -display none
+    qemu-system-x86_64 -drive format=raw,file=target/x86_64-bootloader/release/bootloader.bin -device isa-debug-exit,iobase=0xf4,iosize=0x04 -display none
     if [ $? -eq 123 ]; then (exit 0); else (exit 1); fi
   displayName: 'Test Bootloader'
 
-- script: cargo run -- --kernel ../example-kernel/target/x86_64-example-kernel/debug/example-kernel --features vga_320x200
-  workingDirectory: builder
-  displayName: 'Build Bootloader (Feature vga_320x200)'
-
-- bash: |
-    qemu-system-x86_64 -drive format=raw,file=target/x86_64-bootloader/release/bootimage.bin -device isa-debug-exit,iobase=0xf4,iosize=0x04 -display none
-    if [ $? -eq 123 ]; then (exit 0); else (exit 1); fi
-  displayName: 'Test Bootloader (Feature vga_320x200)'
