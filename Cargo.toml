@@ -22,6 +22,9 @@ version = "0.2.4"
 default-features = false
 features = ["unicode"]
 
+[build-dependencies]
+llvm-tools = "0.1"
+
 [features]
 default = []
 vga_320x200 = []
