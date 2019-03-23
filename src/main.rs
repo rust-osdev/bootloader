@@ -7,6 +7,9 @@
 #![no_std]
 #![no_main]
 
+#[cfg(not(target_os = "none"))]
+compile_error!("The bootloader crate must be compiled for the `x86_64-bootloader.json` target");
+
 use bootloader::bootinfo::{BootInfo, FrameRange};
 use core::panic::PanicInfo;
 use core::{mem, slice};
