@@ -74,6 +74,7 @@ fn main() {
         process::exit(1);
     }
 
+    println!("cargo:rerun-if-env-changed=KERNEL");
     println!("cargo:rerun-if-changed={}", kernel.display());
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rustc-link-search=native={}", out_dir.display());
