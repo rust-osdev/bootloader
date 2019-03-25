@@ -20,7 +20,9 @@ fn main() {
             process::exit(1);
         }
     });
+
     let kernel_file_name = kernel.file_name().expect("KERNEL has no valid file name").to_str().expect("kernel file name not valid utf8");
+    let kernel_file_name_replaced = kernel_file_name.replace('-', "_");
     let kernel_out_path = out_dir.join(format!("kernel_bin-{}.o", kernel_file_name));
     let kernel_archive_path = out_dir.join(format!("libkernel_bin-{}.a", kernel_file_name));
 
@@ -44,9 +46,9 @@ fn main() {
     cmd.arg("-O").arg("elf64-x86-64");
     cmd.arg("--binary-architecture=i386:x86-64");
     cmd.arg("--rename-section").arg(".data=.kernel");
-    cmd.arg("--redefine-sym").arg(format!("_binary_{}_start=_kernel_start_addr", kernel_file_name));
-    cmd.arg("--redefine-sym").arg(format!("_binary_{}_end=_kernel_end_addr", kernel_file_name));
-    cmd.arg("--redefine-sym").arg(format!("_binary_{}_size=_kernel_size", kernel_file_name));
+    cmd.arg("--redefine-sym").arg(format!("_binary_{}_start=_kernel_start_addr", kernel_file_name_replaced));
+    cmd.arg("--redefine-sym").arg(format!("_binary_{}_end=_kernel_end_addr", kernel_file_name_replaced));
+    cmd.arg("--redefine-sym").arg(format!("_binary_{}_size=_kernel_size", kernel_file_name_replaced));
     cmd.current_dir(kernel.parent().expect("KERNEL has no valid parent dir"));
     cmd.arg(&kernel_file_name);
     cmd.arg(&kernel_out_path);
