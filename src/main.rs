@@ -1,6 +1,5 @@
 #![feature(lang_items)]
 #![feature(global_asm)]
-#![feature(try_from)]
 #![feature(step_trait)]
 #![feature(asm)]
 #![feature(nll)]
