@@ -70,7 +70,7 @@ steps:
 - script: cargo install cargo-xbuild bootimage --debug
   displayName: 'Install cargo-xbuild and bootimage'
 
-- script: sudo apt install qemu-system-x86
+- script: sudo apt update && sudo apt install qemu-system-x86
   condition: eq( variables['Agent.OS'], 'Linux' )
   displayName: 'Install QEMU (Linux)'
 
