@@ -60,7 +60,7 @@ fn main() {
 
     let ar = llvm_tools.tool(&llvm_tools::exe("llvm-ar")).unwrap_or_else(|| {
         eprintln!("Failed to retrieve llvm-ar component");
-        eprint!("This component is available since nightly-XXXX-XX-XX,");
+        eprint!("This component is available since nightly-2019-03-29,");
         eprintln!("so try updating your toolchain if you're using an older nightly");
         process::exit(1);
     });
