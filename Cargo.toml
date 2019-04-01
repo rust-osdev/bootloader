@@ -9,6 +9,7 @@ description = "An experimental pure-Rust x86 bootloader."
 repository = "https://github.com/rust-osdev/bootloader"
 publish-lockfile = true
 edition = "2018"
+build = "build.rs"
 
 [dependencies]
 xmas-elf = "0.6.2"
@@ -20,6 +21,9 @@ fixedvec = "0.2.3"
 version = "0.2.4"
 default-features = false
 features = ["unicode"]
+
+[build-dependencies]
+llvm-tools = "0.1"
 
 [features]
 default = []

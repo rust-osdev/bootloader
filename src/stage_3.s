@@ -52,7 +52,7 @@ set_up_page_tables:
     mov [_p2], eax
     mov eax, (0x400000 | 1 | 2 | (1 << 7))
     mov ecx, 2
-    mov edx, _kib_kernel_size
+    lea edx, _kernel_size
     add edx, 0x400000 # start address
     add edx, 0x200000 - 1 # align up
     shr edx, 12 + 9 # end huge page number
