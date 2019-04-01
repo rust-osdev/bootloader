@@ -90,13 +90,13 @@ steps:
   failOnStderr: true
   displayName: 'Install QEMU (Windows)'
 
-- script: cargo xbuild --target x86_64-example-kernel.json
-  workingDirectory: example-kernel
-  displayName: 'Build Example Kernel'
+- script: cargo xbuild --target x86_64-test-kernel.json
+  workingDirectory: test-kernel
+  displayName: 'Build Test Kernel'
 
 - script: cargo xbuild --release
   displayName: 'Build Bootloader'
-  env: { KERNEL: "example-kernel/target/x86_64-example-kernel/debug/example-kernel" }
+  env: { KERNEL: "test-kernel/target/x86_64-test-kernel/debug/test-kernel" }
 
 - script: cargo objcopy -- -I elf64-x86-64 -O binary --binary-architecture=i386:x86-64 target/x86_64-bootloader/release/bootloader target/x86_64-bootloader/release/bootloader.bin
   displayName: 'Convert Bootloader ELF to Binary'
