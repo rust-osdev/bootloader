@@ -106,3 +106,6 @@ steps:
     if [ $? -eq 123 ]; then (exit 0); else (exit 1); fi
   displayName: 'Test Bootloader'
 
+- script: cargo xbuild
+  workingDirectory: example-kernel
+  displayName: 'Build Example Kernel'
