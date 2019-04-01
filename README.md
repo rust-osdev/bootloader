@@ -10,28 +10,50 @@ Written for the [second edition](https://github.com/phil-opp/blog_os/issues/360)
 
 TODO
 
-## Build and Run
-You need a nightly [Rust](https://www.rust-lang.org) compiler and [cargo xbuild](https://github.com/rust-osdev/cargo-xbuild).
+## Requirements
 
-Then you can run the `builder` executable with your kernel as argument:
+You need a nightly [Rust](https://www.rust-lang.org) compiler and [cargo xbuild](https://github.com/rust-osdev/cargo-xbuild). You also need the `llvm-tools-preview` component, which can be installed through `rustup component add llvm-tools-preview`.
 
-```
-cd builder
-cargo run -- --kernel path/to/your/kernel/elf/file
-```
+## Build
 
-This will output a file named `bootimage.bin` in the `../target/x86_64-bootloader/release` folder.
+The simplest way to use the bootloader is in combination with the [bootimage](https://github.com/rust-osdev/bootimage) tool. With the tool installed, you can add a normal cargo dependency on the `bootloader` crate to your kernel and then run `bootimage build` to create a bootable disk image. You can also execute `bootimage run` to run your kernel in [QEMU](https://www.qemu.org/) (needs to be installed).
 
-You can run this file using [QEMU](https://www.qemu.org/):
+To compile the bootloader manually, you need to invoke `cargo xbuild` with a `KERNEL` environment variable that points to your kernel executable (in the ELF format):
 
 ```
-qemu-system-x86_64 -drive format=raw,file=target/x86_64-bootloader/release/bootimage.bin
+KERNEL=/path/to/your/kernel/target/debug/your_kernel cargo xbuild
 ```
 
-Or burn it to an USB drive:
+As an example, you can build the bootloader with example kernel from the `example-kernel` directory with the following commands:
 
 ```
-dd if=target/x86_64-blog_os/debug/bootimage-blog_os.bin of=/dev/sdX && sync
+cd example-kernel
+cargo xbuild
+cd ..
+KERNEL=example-kernel/target/x86_64-example-kernel/debug/example-kernel cargo xbuild --release
+```
+
+This results in a bootloader executable at `target/x86_64-bootloader.json/release/bootloader`. This executable is still an ELF file, which can't be run directly.
+
+## Run
+
+To run the compiled bootloader executable, you need to convert it to a binary file. You can use the `llvm-objcopy` tools that ships with the `llvm-tools-preview` rustup component. The easiest way to use this tool is using [`cargo-binutils`](https://github.com/rust-embedded/cargo-binutils), which can be installed through `cargo install cargo-binutils`. Then you can perform the conversion with the following command:
+
+```
+cargo objcopy -- -I elf64-x86-64 -O binary --binary-architecture=i386:x86-64 \
+  target/x86_64-bootloader/release/bootloader target/x86_64-bootloader/release/bootloader.bin
+```
+
+You can run the `bootloader.bin` file using [QEMU](https://www.qemu.org/):
+
+```
+qemu-system-x86_64 -drive format=raw,file=target/x86_64-bootloader/release/bootloader.bin
+```
+
+Or burn it to an USB drive to boot it on real hardware:
+
+```
+dd if=target/x86_64-bootloader/release/bootloader.bin of=/dev/sdX && sync
 ```
 
 Where sdX is the device name of your USB stick. **Be careful** to choose the correct device name, because everything on that device is overwritten.
@@ -40,3 +62,17 @@ Where sdX is the device name of your USB stick. **Be careful** to choose the cor
 The bootloader crate can be configured through some cargo features:
 
 - `vga_320x200`: This feature switches the VGA hardware to mode 0x13, a graphics mode with resolution 320x200 and 256 colors per pixel. The framebuffer is linear and lives at address `0xa0000`.
+- `recursive_page_table`: Maps the level 4 page table recursively and adds the [`recursive_page_table_address`](https://docs.rs/bootloader/0.4.0/bootloader/bootinfo/struct.BootInfo.html#structfield.recursive_page_table_addr) field to the passed `BootInfo`.
+- `map_physical_memory`: Maps the complete physical memory in the virtual address space and passes a [`physical_memory_offset`](https://docs.rs/bootloader/0.4.0/bootloader/bootinfo/struct.BootInfo.html#structfield.physical_memory_offset) field in the `BootInfo`.
+
+## License
+
+Licensed under either of
+
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or
+  http://www.apache.org/licenses/LICENSE-2.0)
+- MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+
+at your option.
+
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
