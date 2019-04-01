@@ -90,7 +90,7 @@ steps:
   failOnStderr: true
   displayName: 'Install QEMU (Windows)'
 
-- script: cargo xbuild --target x86_64-test-kernel.json
+- script: cargo xbuild
   workingDirectory: test-kernel
   displayName: 'Build Test Kernel'
 
