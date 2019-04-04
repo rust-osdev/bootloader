@@ -1,3 +1,5 @@
+- Add a `package.metadata.bootloader.target` key to the Cargo.toml that can be used by tools such as `bootimage`.
+
 # 0.5.0
 
 ## Breaking

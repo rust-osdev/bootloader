@@ -39,5 +39,8 @@ panic = "abort"
 lto = false
 debug = true
 
+[package.metadata.bootloader]
+target = "x86_64-bootloader.json"
+
 [package.metadata.docs.rs]
 features = [ "recursive_page_table", "map_physical_memory" ]
