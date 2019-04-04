@@ -34,7 +34,7 @@ impl Printer {
     }
 
     fn write_char(&mut self, c: char) {
-        use font8x8::{self, UnicodeFonts};
+        use font8x8::UnicodeFonts;
 
         if c == '\n' {
             self.newline();
