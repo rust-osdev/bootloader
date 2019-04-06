@@ -1,3 +1,5 @@
+# 0.5.2
+
 - Remove redundant import that caused a warning
 
 # 0.5.1
