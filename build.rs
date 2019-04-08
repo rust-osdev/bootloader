@@ -15,7 +15,9 @@ fn main() {
         Ok(kernel) => kernel,
         Err(_) => {
             eprintln!(
-                "The KERNEL environment variable must be set for building the bootloader."
+                "The KERNEL environment variable must be set for building the bootloader.\n\n\
+                If you use `bootimage` for building you need at least version 0.7.0. You can \
+                update `bootimage` by running `cargo install bootimage --force`."
             );
             process::exit(1);
         }

@@ -1,3 +1,5 @@
+- Mention minimal required bootimage version in error message when `KERNEL` environment variable is not set.
+
 # 0.5.2
 
 - Remove redundant import that caused a warning
