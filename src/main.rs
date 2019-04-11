@@ -16,8 +16,9 @@ use core::{mem, slice};
 use fixedvec::alloc_stack;
 use usize_conversions::usize_from;
 use x86_64::structures::paging::{Mapper, RecursivePageTable};
-use x86_64::structures::paging::{Page, PageTableFlags, PhysFrame, PhysFrameRange, Size4KiB,
-    Size2MiB};
+use x86_64::structures::paging::{
+    Page, PageTableFlags, PhysFrame, PhysFrameRange, Size2MiB, Size4KiB,
+};
 use x86_64::ux::u9;
 use x86_64::{PhysAddr, VirtAddr};
 
@@ -158,7 +159,8 @@ fn load_elf(
         recursive_index,
         recursive_index,
         recursive_index,
-    ).start_address();
+    )
+    .start_address();
     let page_table = unsafe { &mut *(recursive_page_table_addr.as_mut_ptr()) };
     let mut rec_page_table =
         RecursivePageTable::new(page_table).expect("recursive page table creation failed");
@@ -260,7 +262,11 @@ fn load_elf(
     }
 
     // Construct boot info structure.
-    let mut boot_info = BootInfo::new(memory_map, recursive_page_table_addr.as_u64(), PHYSICAL_MEMORY_OFFSET);
+    let mut boot_info = BootInfo::new(
+        memory_map,
+        recursive_page_table_addr.as_u64(),
+        PHYSICAL_MEMORY_OFFSET,
+    );
     boot_info.memory_map.sort();
 
     // Write boot info to boot info page.
@@ -273,7 +279,9 @@ fn load_elf(
     if cfg!(not(feature = "recursive_page_table")) {
         // unmap recursive entry
         rec_page_table
-            .unmap(Page::<Size4KiB>::containing_address(recursive_page_table_addr))
+            .unmap(Page::<Size4KiB>::containing_address(
+                recursive_page_table_addr,
+            ))
             .expect("error deallocating recursive entry")
             .1
             .flush();

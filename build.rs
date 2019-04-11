@@ -1,4 +1,8 @@
-use std::{env, path::{Path, PathBuf}, process::{self, Command}};
+use std::{
+    env,
+    path::{Path, PathBuf},
+    process::{self, Command},
+};
 
 fn main() {
     let target = env::var("TARGET").expect("TARGET not set");
@@ -16,14 +20,18 @@ fn main() {
         Err(_) => {
             eprintln!(
                 "The KERNEL environment variable must be set for building the bootloader.\n\n\
-                If you use `bootimage` for building you need at least version 0.7.0. You can \
-                update `bootimage` by running `cargo install bootimage --force`."
+                 If you use `bootimage` for building you need at least version 0.7.0. You can \
+                 update `bootimage` by running `cargo install bootimage --force`."
             );
             process::exit(1);
         }
     });
 
-    let kernel_file_name = kernel.file_name().expect("KERNEL has no valid file name").to_str().expect("kernel file name not valid utf8");
+    let kernel_file_name = kernel
+        .file_name()
+        .expect("KERNEL has no valid file name")
+        .to_str()
+        .expect("kernel file name not valid utf8");
     let kernel_file_name_replaced = kernel_file_name.replace('-', "_");
     let kernel_out_path = out_dir.join(format!("kernel_bin-{}.o", kernel_file_name));
     let kernel_archive_path = out_dir.join(format!("libkernel_bin-{}.a", kernel_file_name));
@@ -41,16 +49,27 @@ fn main() {
             process::exit(1);
         }
     };
-    let objcopy = llvm_tools.tool(&llvm_tools::exe("llvm-objcopy")).expect("llvm-objcopy not found in llvm-tools");
+    let objcopy = llvm_tools
+        .tool(&llvm_tools::exe("llvm-objcopy"))
+        .expect("llvm-objcopy not found in llvm-tools");
 
     let mut cmd = Command::new(objcopy);
     cmd.arg("-I").arg("binary");
     cmd.arg("-O").arg("elf64-x86-64");
     cmd.arg("--binary-architecture=i386:x86-64");
     cmd.arg("--rename-section").arg(".data=.kernel");
-    cmd.arg("--redefine-sym").arg(format!("_binary_{}_start=_kernel_start_addr", kernel_file_name_replaced));
-    cmd.arg("--redefine-sym").arg(format!("_binary_{}_end=_kernel_end_addr", kernel_file_name_replaced));
-    cmd.arg("--redefine-sym").arg(format!("_binary_{}_size=_kernel_size", kernel_file_name_replaced));
+    cmd.arg("--redefine-sym").arg(format!(
+        "_binary_{}_start=_kernel_start_addr",
+        kernel_file_name_replaced
+    ));
+    cmd.arg("--redefine-sym").arg(format!(
+        "_binary_{}_end=_kernel_end_addr",
+        kernel_file_name_replaced
+    ));
+    cmd.arg("--redefine-sym").arg(format!(
+        "_binary_{}_size=_kernel_size",
+        kernel_file_name_replaced
+    ));
     cmd.current_dir(kernel.parent().expect("KERNEL has no valid parent dir"));
     cmd.arg(&kernel_file_name);
     cmd.arg(&kernel_out_path);
@@ -60,12 +79,14 @@ fn main() {
         process::exit(1);
     }
 
-    let ar = llvm_tools.tool(&llvm_tools::exe("llvm-ar")).unwrap_or_else(|| {
-        eprintln!("Failed to retrieve llvm-ar component");
-        eprint!("This component is available since nightly-2019-03-29,");
-        eprintln!("so try updating your toolchain if you're using an older nightly");
-        process::exit(1);
-    });
+    let ar = llvm_tools
+        .tool(&llvm_tools::exe("llvm-ar"))
+        .unwrap_or_else(|| {
+            eprintln!("Failed to retrieve llvm-ar component");
+            eprint!("This component is available since nightly-2019-03-29,");
+            eprintln!("so try updating your toolchain if you're using an older nightly");
+            process::exit(1);
+        });
     let mut cmd = Command::new(ar);
     cmd.arg("crs");
     cmd.arg(&kernel_archive_path);
@@ -80,5 +101,8 @@ fn main() {
     println!("cargo:rerun-if-changed={}", kernel.display());
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rustc-link-search=native={}", out_dir.display());
-    println!("cargo:rustc-link-lib=static=kernel_bin-{}", kernel_file_name);
+    println!(
+        "cargo:rustc-link-lib=static=kernel_bin-{}",
+        kernel_file_name
+    );
 }
