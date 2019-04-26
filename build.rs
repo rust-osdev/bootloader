@@ -55,10 +55,27 @@ fn main() {
             process::exit(1);
         }
     };
+
+    // check that kernel executable has code in it
+    let llvm_size = llvm_tools
+        .tool(&llvm_tools::exe("llvm-size"))
+        .expect("llvm-size not found in llvm-tools");
+    let mut cmd = Command::new(llvm_size);
+    cmd.arg(&kernel);
+    let output = cmd.output().expect("failed to run llvm-size");
+    let output_str = String::from_utf8_lossy(&output.stdout);
+    let second_line_opt = output_str.lines().skip(1).next();
+    let second_line = second_line_opt.expect("unexpected llvm-size line output");
+    let text_size_opt = second_line.split_ascii_whitespace().next();
+    let text_size = text_size_opt.expect("unexpected llvm-size output");
+    if text_size == "0" {
+        panic!("Kernel executable has an empty text section. Perhaps the entry point was set incorrectly?\n\n\
+            Kernel executable at `{}`\n", kernel.display());
+    }
+
     let objcopy = llvm_tools
         .tool(&llvm_tools::exe("llvm-objcopy"))
         .expect("llvm-objcopy not found in llvm-tools");
-
     let mut cmd = Command::new(objcopy);
     cmd.arg("-I").arg("binary");
     cmd.arg("-O").arg("elf64-x86-64");

@@ -1,4 +1,6 @@
-- Assert that the passed `KERNEL` executable exists for better error messages
+- Additional assertions for the passed `KERNEL` executable
+    - check that the executable exists (for better error messages)
+    - check that the executable has a non-empty text section (an empty text section occurs when no entry point is set)
 
 # 0.5.3
 
