@@ -22,7 +22,6 @@ pub mod bootinfo;
 #[macro_export]
 macro_rules! entry_point {
     ($path:path) => {
-        #[cfg(not(test))]
         #[export_name = "_start"]
         pub extern "C" fn __impl_start(boot_info: &'static $crate::bootinfo::BootInfo) -> ! {
             // validate the signature of the program entry point
