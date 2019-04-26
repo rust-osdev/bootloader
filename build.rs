@@ -42,6 +42,7 @@ fn main() {
     let kernel_out_path = out_dir.join(format!("kernel_bin-{}.o", kernel_file_name));
     let kernel_archive_path = out_dir.join(format!("libkernel_bin-{}.a", kernel_file_name));
 
+    // get access to llvm tools shipped in the llvm-tools-preview rustup component
     let llvm_tools = match llvm_tools::LlvmTools::new() {
         Ok(tools) => tools,
         Err(llvm_tools::Error::NotFound) => {
@@ -73,6 +74,7 @@ fn main() {
             Kernel executable at `{}`\n", kernel.display());
     }
 
+    // wrap the kernel executable as binary in a new ELF file
     let objcopy = llvm_tools
         .tool(&llvm_tools::exe("llvm-objcopy"))
         .expect("llvm-objcopy not found in llvm-tools");
@@ -102,6 +104,7 @@ fn main() {
         process::exit(1);
     }
 
+    // create an archive for linking
     let ar = llvm_tools
         .tool(&llvm_tools::exe("llvm-ar"))
         .unwrap_or_else(|| {
@@ -120,12 +123,14 @@ fn main() {
         process::exit(1);
     }
 
-    println!("cargo:rerun-if-env-changed=KERNEL");
-    println!("cargo:rerun-if-changed={}", kernel.display());
-    println!("cargo:rerun-if-changed=build.rs");
+    // pass link arguments to rustc
     println!("cargo:rustc-link-search=native={}", out_dir.display());
     println!(
         "cargo:rustc-link-lib=static=kernel_bin-{}",
         kernel_file_name
     );
+
+    println!("cargo:rerun-if-env-changed=KERNEL");
+    println!("cargo:rerun-if-changed={}", kernel.display());
+    println!("cargo:rerun-if-changed=build.rs");
 }
