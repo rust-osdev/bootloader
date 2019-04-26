@@ -27,6 +27,12 @@ fn main() {
         }
     });
 
+    // check that the kernel file exists
+    assert!(
+        kernel.exists(),
+        format!("KERNEL does not exist: {}", kernel.display())
+    );
+
     let kernel_file_name = kernel
         .file_name()
         .expect("KERNEL has no valid file name")
@@ -36,6 +42,7 @@ fn main() {
     let kernel_out_path = out_dir.join(format!("kernel_bin-{}.o", kernel_file_name));
     let kernel_archive_path = out_dir.join(format!("libkernel_bin-{}.a", kernel_file_name));
 
+    // get access to llvm tools shipped in the llvm-tools-preview rustup component
     let llvm_tools = match llvm_tools::LlvmTools::new() {
         Ok(tools) => tools,
         Err(llvm_tools::Error::NotFound) => {
@@ -49,10 +56,28 @@ fn main() {
             process::exit(1);
         }
     };
+
+    // check that kernel executable has code in it
+    let llvm_size = llvm_tools
+        .tool(&llvm_tools::exe("llvm-size"))
+        .expect("llvm-size not found in llvm-tools");
+    let mut cmd = Command::new(llvm_size);
+    cmd.arg(&kernel);
+    let output = cmd.output().expect("failed to run llvm-size");
+    let output_str = String::from_utf8_lossy(&output.stdout);
+    let second_line_opt = output_str.lines().skip(1).next();
+    let second_line = second_line_opt.expect("unexpected llvm-size line output");
+    let text_size_opt = second_line.split_ascii_whitespace().next();
+    let text_size = text_size_opt.expect("unexpected llvm-size output");
+    if text_size == "0" {
+        panic!("Kernel executable has an empty text section. Perhaps the entry point was set incorrectly?\n\n\
+            Kernel executable at `{}`\n", kernel.display());
+    }
+
+    // wrap the kernel executable as binary in a new ELF file
     let objcopy = llvm_tools
         .tool(&llvm_tools::exe("llvm-objcopy"))
         .expect("llvm-objcopy not found in llvm-tools");
-
     let mut cmd = Command::new(objcopy);
     cmd.arg("-I").arg("binary");
     cmd.arg("-O").arg("elf64-x86-64");
@@ -79,6 +104,7 @@ fn main() {
         process::exit(1);
     }
 
+    // create an archive for linking
     let ar = llvm_tools
         .tool(&llvm_tools::exe("llvm-ar"))
         .unwrap_or_else(|| {
@@ -97,12 +123,14 @@ fn main() {
         process::exit(1);
     }
 
-    println!("cargo:rerun-if-env-changed=KERNEL");
-    println!("cargo:rerun-if-changed={}", kernel.display());
-    println!("cargo:rerun-if-changed=build.rs");
+    // pass link arguments to rustc
     println!("cargo:rustc-link-search=native={}", out_dir.display());
     println!(
         "cargo:rustc-link-lib=static=kernel_bin-{}",
         kernel_file_name
     );
+
+    println!("cargo:rerun-if-env-changed=KERNEL");
+    println!("cargo:rerun-if-changed={}", kernel.display());
+    println!("cargo:rerun-if-changed=build.rs");
 }

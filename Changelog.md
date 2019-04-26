@@ -1,3 +1,17 @@
+# 0.6.0
+
+## Breaking
+
+- Don't set the `#[cfg(not(test))]` attribute for the entry point function in the `entry_point` macro
+    - With custom test frameworks, it's possible to use the normal entry point also in test environments
+    - To get the old behavior, you can add the `#[cfg(not(test))]` attribute to the `entry_point` invocation
+
+## Other
+
+- Additional assertions for the passed `KERNEL` executable
+    - check that the executable exists (for better error messages)
+    - check that the executable has a non-empty text section (an empty text section occurs when no entry point is set)
+
 # 0.5.3
 
 - Mention minimal required bootimage version in error message when `KERNEL` environment variable is not set.
