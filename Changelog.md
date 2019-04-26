@@ -1,3 +1,5 @@
+# 0.6.0
+
 ## Breaking
 
 - Don't set the `#[cfg(not(test))]` attribute for the entry point function in the `entry_point` macro
