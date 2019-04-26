@@ -27,6 +27,12 @@ fn main() {
         }
     });
 
+    // check that the kernel file exists
+    assert!(
+        kernel.exists(),
+        format!("KERNEL does not exist: {}", kernel.display())
+    );
+
     let kernel_file_name = kernel
         .file_name()
         .expect("KERNEL has no valid file name")

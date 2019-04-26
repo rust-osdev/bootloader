@@ -1,3 +1,5 @@
+- Assert that the passed `KERNEL` executable exists for better error messages
+
 # 0.5.3
 
 - Mention minimal required bootimage version in error message when `KERNEL` environment variable is not set.
