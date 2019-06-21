@@ -128,11 +128,16 @@ fn main() {
     // create a file with the `PHYSICAL_MEMORY_OFFSET` constant
     let file_path = out_dir.join("physical_memory_offset.rs");
     let mut file = File::create(file_path).expect("failed to create physical_memory_offset.rs");
-    let physical_memory_offset = match option_env!("BOOTLOADER_PHYSICAL_MEMORY_OFFSET") {
-        None => 0o_177777_770_000_000_000_0000u64,
-        Some(s) => s.parse().expect(
-            "The `BOOTLOADER_PHYSICAL_MEMORY_OFFSET` environment variable must be an integer.",
+    let physical_memory_offset = match env::var("BOOTLOADER_PHYSICAL_MEMORY_OFFSET") {
+        Err(env::VarError::NotPresent) => 0o_177777_770_000_000_000_0000u64,
+        Err(env::VarError::NotUnicode(_)) => panic!(
+            "The `BOOTLOADER_PHYSICAL_MEMORY_OFFSET` environment variable must be valid unicode"
         ),
+        Ok(s) => s.parse().expect(&format!(
+            "The `BOOTLOADER_PHYSICAL_MEMORY_OFFSET` environment variable must be an\
+             integer (is `{}`).",
+            s
+        )),
     };
     file.write_all(
         format!(
@@ -151,6 +156,7 @@ fn main() {
     );
 
     println!("cargo:rerun-if-env-changed=KERNEL");
+    println!("cargo:rerun-if-env-changed=BOOTLOADER_PHYSICAL_MEMORY_OFFSET");
     println!("cargo:rerun-if-changed={}", kernel.display());
     println!("cargo:rerun-if-changed=build.rs");
 }
