@@ -1,5 +1,7 @@
 use std::{
     env,
+    fs::File,
+    io::Write,
     path::{Path, PathBuf},
     process::{self, Command},
 };
@@ -122,6 +124,24 @@ fn main() {
         eprintln!("Error: Running ar failed");
         process::exit(1);
     }
+
+    // create a file with the `PHYSICAL_MEMORY_OFFSET` constant
+    let file_path = out_dir.join("physical_memory_offset.rs");
+    let mut file = File::create(file_path).expect("failed to create physical_memory_offset.rs");
+    let physical_memory_offset = match option_env!("BOOTLOADER_PHYSICAL_MEMORY_OFFSET") {
+        None => 0o_177777_770_000_000_000_0000u64,
+        Some(s) => s.parse().expect(
+            "The `BOOTLOADER_PHYSICAL_MEMORY_OFFSET` environment variable must be an integer.",
+        ),
+    };
+    file.write_all(
+        format!(
+            "const PHYSICAL_MEMORY_OFFSET: u64 = {:#x};",
+            physical_memory_offset
+        )
+        .as_bytes(),
+    )
+    .expect("write to physical_memory_offset.rs failed");
 
     // pass link arguments to rustc
     println!("cargo:rustc-link-search=native={}", out_dir.display());

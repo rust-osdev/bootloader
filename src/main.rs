@@ -22,9 +22,9 @@ use x86_64::structures::paging::{
 use x86_64::ux::u9;
 use x86_64::{PhysAddr, VirtAddr};
 
-/// The offset into the virtual address space where the physical memory is mapped if
-/// the `map_physical_memory` is activated.
-const PHYSICAL_MEMORY_OFFSET: u64 = 0o_177777_770_000_000_000_0000;
+// The offset into the virtual address space where the physical memory is mapped if
+// the `map_physical_memory` is activated. Set by the build script.
+include!(concat!(env!("OUT_DIR"), "/physical_memory_offset.rs"));
 
 global_asm!(include_str!("stage_1.s"));
 global_asm!(include_str!("stage_2.s"));
