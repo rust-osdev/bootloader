@@ -133,9 +133,14 @@ fn main() {
         Err(env::VarError::NotUnicode(_)) => panic!(
             "The `BOOTLOADER_PHYSICAL_MEMORY_OFFSET` environment variable must be valid unicode"
         ),
-        Ok(s) => s.parse().expect(&format!(
-            "The `BOOTLOADER_PHYSICAL_MEMORY_OFFSET` environment variable must be an\
-             integer (is `{}`).",
+        Ok(s) => if s.starts_with("0x") {
+            u64::from_str_radix(&s[2..], 16)
+        } else {
+            u64::from_str_radix(&s, 10)
+        }
+        .expect(&format!(
+            "The `BOOTLOADER_PHYSICAL_MEMORY_OFFSET` environment variable must be an integer\
+             (is `{}`).",
             s
         )),
     };
