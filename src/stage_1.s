@@ -35,7 +35,6 @@ enable_a20:
     out 0x92, al
 enable_a20_after:
 
-
 enter_protected_mode:
     # clear interrupts
     cli
