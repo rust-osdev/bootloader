@@ -28,23 +28,17 @@ fn main() {
             process::exit(1);
         }
     });
+    let kernel_file_name = kernel
+        .file_name()
+        .expect("KERNEL has no valid file name")
+        .to_str()
+        .expect("kernel file name not valid utf8");
 
     // check that the kernel file exists
     assert!(
         kernel.exists(),
         format!("KERNEL does not exist: {}", kernel.display())
     );
-
-    let kernel_file_name = kernel
-        .file_name()
-        .expect("KERNEL has no valid file name")
-        .to_str()
-        .expect("kernel file name not valid utf8");
-    let kernel_stripped_file_name = format!("kernel_stripped-{}", kernel_file_name);
-    let kernel_stripped_file_name_replaced = kernel_stripped_file_name.replace('-', "_");
-    let kernel_stripped_out_path = out_dir.join(&kernel_stripped_file_name);
-    let kernel_out_path = out_dir.join(format!("kernel_bin-{}.o", kernel_file_name));
-    let kernel_archive_path = out_dir.join(format!("libkernel_bin-{}.a", kernel_file_name));
 
     // get access to llvm tools shipped in the llvm-tools-preview rustup component
     let llvm_tools = match llvm_tools::LlvmTools::new() {
@@ -79,20 +73,27 @@ fn main() {
     }
 
     // strip debug symbols from kernel for faster loading
+    let stripped_kernel_file_name = format!("kernel_stripped-{}", kernel_file_name);
+    let stripped_kernel = out_dir.join(&stripped_kernel_file_name);
     let objcopy = llvm_tools
         .tool(&llvm_tools::exe("llvm-objcopy"))
         .expect("llvm-objcopy not found in llvm-tools");
     let mut cmd = Command::new(&objcopy);
     cmd.arg("--strip-debug");
     cmd.arg(&kernel);
-    cmd.arg(&kernel_stripped_out_path);
-    let exit_status = cmd.status().expect("failed to run objcopy to strip debug symbols");
+    cmd.arg(&stripped_kernel);
+    let exit_status = cmd
+        .status()
+        .expect("failed to run objcopy to strip debug symbols");
     if !exit_status.success() {
         eprintln!("Error: Stripping debug symbols failed");
         process::exit(1);
     }
 
     // wrap the kernel executable as binary in a new ELF file
+    let stripped_kernel_file_name_replaced = stripped_kernel_file_name.replace('-', "_");
+    let kernel_bin = out_dir.join(format!("kernel_bin-{}.o", kernel_file_name));
+    let kernel_archive = out_dir.join(format!("libkernel_bin-{}.a", kernel_file_name));
     let mut cmd = Command::new(&objcopy);
     cmd.arg("-I").arg("binary");
     cmd.arg("-O").arg("elf64-x86-64");
@@ -100,19 +101,19 @@ fn main() {
     cmd.arg("--rename-section").arg(".data=.kernel");
     cmd.arg("--redefine-sym").arg(format!(
         "_binary_{}_start=_kernel_start_addr",
-        kernel_stripped_file_name_replaced
+        stripped_kernel_file_name_replaced
     ));
     cmd.arg("--redefine-sym").arg(format!(
         "_binary_{}_end=_kernel_end_addr",
-        kernel_stripped_file_name_replaced
+        stripped_kernel_file_name_replaced
     ));
     cmd.arg("--redefine-sym").arg(format!(
         "_binary_{}_size=_kernel_size",
-        kernel_stripped_file_name_replaced
+        stripped_kernel_file_name_replaced
     ));
     cmd.current_dir(&out_dir);
-    cmd.arg(&kernel_stripped_file_name);
-    cmd.arg(&kernel_out_path);
+    cmd.arg(&stripped_kernel_file_name);
+    cmd.arg(&kernel_bin);
     let exit_status = cmd.status().expect("failed to run objcopy");
     if !exit_status.success() {
         eprintln!("Error: Running objcopy failed");
@@ -130,8 +131,8 @@ fn main() {
         });
     let mut cmd = Command::new(ar);
     cmd.arg("crs");
-    cmd.arg(&kernel_archive_path);
-    cmd.arg(&kernel_out_path);
+    cmd.arg(&kernel_archive);
+    cmd.arg(&kernel_bin);
     let exit_status = cmd.status().expect("failed to run ar");
     if !exit_status.success() {
         eprintln!("Error: Running ar failed");
