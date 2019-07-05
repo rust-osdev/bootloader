@@ -2,7 +2,7 @@
 .intel_syntax noprefix
 .code16
 
-# This code is responsible for enabling VESA graphics while in 
+# This code is responsible for enabling VESA graphics while in
 # real mode.
 config_video_mode:
     # Try VESA
@@ -36,7 +36,20 @@ vesa_out:
 vga_println:
     ret
 
+.code32
+
 vga_map_frame_buffer:
+    mov eax, 0xFD000000
+    or eax, (1 | 2 | (1 << 7))
+    mov ecx, 500
+vga_map_frame_buffer_loop:
+    mov [_p2 + ecx * 8], eax
+
+    add eax, 4096 * 512
+    add ecx, 1
+    cmp eax, 0xFD000000 + 800 * 600
+    jl vga_map_frame_buffer_loop
+
     ret
 
 VESAInfo:

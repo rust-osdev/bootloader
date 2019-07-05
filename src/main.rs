@@ -93,6 +93,7 @@ pub unsafe extern "C" fn stage_4() -> ! {
     let bootloader_start = &__bootloader_start as *const _ as u64;
     let bootloader_end = &__bootloader_end as *const _ as u64;
 
+
     load_elf(
         IdentityMappedAddr(PhysAddr::new(kernel_start)),
         kernel_size,
@@ -291,6 +292,8 @@ fn load_elf(
     }
 
     let entry_point = VirtAddr::new(entry_point);
+
+    panic!("Test");
 
     unsafe { context_switch(boot_info_addr, entry_point, stack_end) };
 }
