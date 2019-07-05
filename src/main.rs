@@ -78,9 +78,13 @@ extern "C" {
 
 #[no_mangle]
 pub unsafe extern "C" fn stage_4() -> ! {
-    // Set stack segment
+    // Set stack and data segments to zero
     asm!("mov bx, 0x0
-          mov ss, bx" ::: "bx" : "intel");
+          mov ss, bx
+          mov ds, bx
+          mov es, bx
+          mov fs, bx
+          mov gs, bx" ::: "bx" : "intel");
 
     let kernel_start = 0x400000;
     let kernel_size = &_kernel_size as *const _ as u64;
