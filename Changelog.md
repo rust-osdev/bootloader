@@ -1,3 +1,5 @@
+# 0.6.2
+
 - Remove stabilized publish-lockfile feature ([#62](https://github.com/rust-osdev/bootloader/pull/62))
 
 # 0.6.1
