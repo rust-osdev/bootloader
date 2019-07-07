@@ -1,3 +1,5 @@
+- Remove stabilized publish-lockfile feature ([#62](https://github.com/rust-osdev/bootloader/pull/62))
+
 # 0.6.1
 
 - Make the physical memory offset configurable through a `BOOTLOADER_PHYSICAL_MEMORY_OFFSET` environment variable ([#58](https://github.com/rust-osdev/bootloader/pull/58)).
