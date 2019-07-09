@@ -12,7 +12,7 @@ build = "build.rs"
 xmas-elf = "0.6.2"
 x86_64 = "0.7.2"
 usize_conversions = "0.2.0"
-fixedvec = "0.2.3"
+fixedvec = { git = "https://github.com/rust-embedded/fixedvec-rs", rev = "cfb5c2f9378a0f248e1705def8011322aadc5d40" }
 
 [dependencies.font8x8]
 version = "0.2.4"
