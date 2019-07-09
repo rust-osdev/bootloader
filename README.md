@@ -1,6 +1,6 @@
 # bootloader
 
-[![Build Status](https://travis-ci.org/rust-osdev/bootloader.svg?branch=master)](https://travis-ci.org/rust-osdev/bootloader) [![Join the chat at https://gitter.im/rust-osdev/bootloader](https://badges.gitter.im/rust-osdev/bootloader.svg)](https://gitter.im/rust-osdev/bootloader?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Build Status](https://dev.azure.com/rust-osdev/bootloader/_apis/build/status/rust-osdev.bootloader?branchName=master)](https://dev.azure.com/rust-osdev/bootloader/_build/latest?definitionId=1&branchName=master) [![Join the chat at https://gitter.im/rust-osdev/bootloader](https://badges.gitter.im/rust-osdev/bootloader.svg)](https://gitter.im/rust-osdev/bootloader?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 An experimental x86 bootloader written in Rust and inline assembly.
 
