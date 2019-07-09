@@ -16,7 +16,8 @@ use core::{mem, slice};
 use fixedvec::alloc_stack;
 use usize_conversions::usize_from;
 use x86_64::structures::paging::{
-    Page, PageTableFlags, Size2MiB, Size4KiB, PhysFrame, frame::PhysFrameRange, Mapper, RecursivePageTable
+    frame::PhysFrameRange, Mapper, Page, PageTableFlags, PhysFrame, RecursivePageTable, Size2MiB,
+    Size4KiB,
 };
 use x86_64::ux::u9;
 use x86_64::{PhysAddr, VirtAddr};
@@ -234,7 +235,8 @@ fn load_elf(
                 &mut rec_page_table,
                 &mut frame_allocator,
             )
-        }.expect("Mapping of bootinfo page failed")
+        }
+        .expect("Mapping of bootinfo page failed")
         .flush();
         page
     };
@@ -257,7 +259,8 @@ fn load_elf(
                     &mut rec_page_table,
                     &mut frame_allocator,
                 )
-            }.expect("Mapping of bootinfo page failed")
+            }
+            .expect("Mapping of bootinfo page failed")
             .flush();
         }
     }

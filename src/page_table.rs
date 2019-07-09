@@ -1,10 +1,10 @@
 use crate::frame_allocator::FrameAllocator;
 use bootloader::bootinfo::MemoryRegionType;
 use fixedvec::FixedVec;
+use x86_64::structures::paging::mapper::{MapToError, MapperFlush, UnmapError};
 use x86_64::structures::paging::{
-    Mapper, Page, PageSize, PageTableFlags, PhysFrame, Size4KiB, self, RecursivePageTable,
+    self, Mapper, Page, PageSize, PageTableFlags, PhysFrame, RecursivePageTable, Size4KiB,
 };
-use x86_64::structures::paging::mapper::{UnmapError, MapToError, MapperFlush};
 use x86_64::{align_up, PhysAddr, VirtAddr};
 use xmas_elf::program::{self, ProgramHeader64};
 
@@ -68,7 +68,8 @@ pub(crate) fn map_segment(
             for frame in PhysFrame::range_inclusive(start_frame, end_frame) {
                 let offset = frame - start_frame;
                 let page = start_page + offset;
-                unsafe { map_page(page, frame, page_table_flags, page_table, frame_allocator)? }.flush();
+                unsafe { map_page(page, frame, page_table_flags, page_table, frame_allocator)? }
+                    .flush();
             }
 
             if mem_size > file_size {
@@ -93,7 +94,8 @@ pub(crate) fn map_segment(
                             page_table,
                             frame_allocator,
                         )?
-                    }.flush();
+                    }
+                    .flush();
 
                     type PageArray = [u64; Size4KiB::SIZE as usize / 8];
 
@@ -123,7 +125,8 @@ pub(crate) fn map_segment(
                             page_table,
                             frame_allocator,
                         )?
-                    }.flush();
+                    }
+                    .flush();
                 }
 
                 // Map additional frames.
@@ -136,7 +139,10 @@ pub(crate) fn map_segment(
                     let frame = frame_allocator
                         .allocate_frame(MemoryRegionType::Kernel)
                         .ok_or(MapToError::FrameAllocationFailed)?;
-                    unsafe { map_page(page, frame, page_table_flags, page_table, frame_allocator)? }.flush();
+                    unsafe {
+                        map_page(page, frame, page_table_flags, page_table, frame_allocator)?
+                    }
+                    .flush();
                 }
 
                 // zero
