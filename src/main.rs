@@ -15,9 +15,8 @@ use core::panic::PanicInfo;
 use core::{mem, slice};
 use fixedvec::alloc_stack;
 use usize_conversions::usize_from;
-use x86_64::structures::paging::{Mapper, RecursivePageTable};
 use x86_64::structures::paging::{
-    Page, PageTableFlags, PhysFrame, PhysFrameRange, Size2MiB, Size4KiB,
+    Page, PageTableFlags, Size2MiB, Size4KiB, PhysFrame, frame::PhysFrameRange, Mapper, RecursivePageTable
 };
 use x86_64::ux::u9;
 use x86_64::{PhysAddr, VirtAddr};
@@ -227,14 +226,15 @@ fn load_elf(
             .allocate_frame(MemoryRegionType::BootInfo)
             .expect("frame allocation failed");
         let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
-        page_table::map_page(
-            page,
-            frame,
-            flags,
-            &mut rec_page_table,
-            &mut frame_allocator,
-        )
-        .expect("Mapping of bootinfo page failed")
+        unsafe {
+            page_table::map_page(
+                page,
+                frame,
+                flags,
+                &mut rec_page_table,
+                &mut frame_allocator,
+            )
+        }.expect("Mapping of bootinfo page failed")
         .flush();
         page
     };
@@ -249,14 +249,15 @@ fn load_elf(
         for frame in PhysFrame::range_inclusive(start_frame, end_frame) {
             let page = Page::containing_address(virt_for_phys(frame.start_address()));
             let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
-            page_table::map_page(
-                page,
-                frame,
-                flags,
-                &mut rec_page_table,
-                &mut frame_allocator,
-            )
-            .expect("Mapping of bootinfo page failed")
+            unsafe {
+                page_table::map_page(
+                    page,
+                    frame,
+                    flags,
+                    &mut rec_page_table,
+                    &mut frame_allocator,
+                )
+            }.expect("Mapping of bootinfo page failed")
             .flush();
         }
     }
