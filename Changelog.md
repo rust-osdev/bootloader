@@ -1,3 +1,5 @@
+- Update CI badge, use latest version of x86_64 crate and rustfmt ([#63](https://github.com/rust-osdev/bootloader/pull/63))
+
 # 0.6.2
 
 - Remove stabilized publish-lockfile feature ([#62](https://github.com/rust-osdev/bootloader/pull/62))
