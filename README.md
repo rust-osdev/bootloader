@@ -66,6 +66,12 @@ The bootloader crate can be configured through some cargo features:
 - `map_physical_memory`: Maps the complete physical memory in the virtual address space and passes a [`physical_memory_offset`](https://docs.rs/bootloader/0.4.0/bootloader/bootinfo/struct.BootInfo.html#structfield.physical_memory_offset) field in the `BootInfo`.
   - The virtual address where the physical memory should be mapped is configurable by setting the `BOOTLOADER_PHYSICAL_MEMORY_OFFSET` environment variable (supports decimal and hex numbers (prefixed with `0x`)).
 
+## Advanced Documentation
+See these guides for advanced usage of this crate:
+
+- [Chainloading](https://github.com/rust-osdev/bootloader/blob/master/doc/chainloading.md)
+- Higher Half Kernel - TODO
+
 ## License
 
 Licensed under either of
