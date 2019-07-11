@@ -69,7 +69,7 @@ The bootloader crate can be configured through some cargo features:
 ## Advanced Documentation
 See these guides for advanced usage of this crate:
 
-- [Chainloading](https://github.com/rust-osdev/bootloader/blob/master/doc/chainloading.md)
+- [Chainloading](doc/chainloading.md)
 - Higher Half Kernel - TODO
 
 ## License

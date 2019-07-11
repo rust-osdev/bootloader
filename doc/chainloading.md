@@ -5,7 +5,7 @@ Chainloading is a technique that allows one bootloader to call another bootloade
 Create a file under `iso/boot/grub/grub.cfg` in the root directory of your OS's source tree. In it, put:
 
 ```
-menuentry "BlogOS" {
+menuentry "myOS" {
 	chainloader (hd1)+1
 }
 ```
@@ -17,7 +17,7 @@ Next, create the ISO with:
 grub-mkrescue -o grub.iso iso
 ```
 
-Testing with QEMU:
+Testing with QEMU (replacing `my_os` with the name of your OS's target):
 ```
-qemu-system-x86_64 -hda grub.iso -hdb target/x86_64-blog_os/debug/bootimage-blog_os.bin
+qemu-system-x86_64 -hda grub.iso -hdb target/x86_64-my_os/debug/bootimage-my_os.bin
 ```
