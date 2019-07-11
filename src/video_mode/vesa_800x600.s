@@ -25,6 +25,7 @@ init_vesa:
     mov cx, 0x114
     mov di, VESAInfo
     int 0x10
+    mov VESAfb, [es:di+0x28]
 
     mov ax, 0x4f02
     mov bx, 0x4114
@@ -51,6 +52,9 @@ vga_map_frame_buffer_loop:
     jl vga_map_frame_buffer_loop
 
     ret
+
+VESAfb:
+    .word 0
 
 VESAInfo:
     .space 256, 0
