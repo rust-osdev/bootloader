@@ -6,7 +6,7 @@ const SCREEN_WIDTH: usize = 320;
 const SCREEN_HEIGHT: usize = 200;
 
 // must not be 0 so that we don't have a .bss section
-pub static X_POS: AtomicUsize = AtomicUsize::new(1); 
+pub static X_POS: AtomicUsize = AtomicUsize::new(1);
 pub static Y_POS: AtomicUsize = AtomicUsize::new(1);
 
 pub struct Printer;
