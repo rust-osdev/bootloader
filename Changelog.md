@@ -1,6 +1,11 @@
-- Update CI badge, use latest version of x86_64 crate and rustfmt ([#63](https://github.com/rust-osdev/bootloader/pull/63))
+# 0.6.4
+
 - Use volatile accesses in VGA code and make font dependency optional ([#67](https://github.com/rust-osdev/bootloader/pull/67))
   - Making the dependency optional should improve compile times when the VGA text mode is used.
+
+# 0.6.3
+
+- Update CI badge, use latest version of x86_64 crate and rustfmt ([#63](https://github.com/rust-osdev/bootloader/pull/63))
 
 # 0.6.2
 
