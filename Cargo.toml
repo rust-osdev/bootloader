@@ -18,13 +18,14 @@ fixedvec = "0.2.3"
 version = "0.2.4"
 default-features = false
 features = ["unicode"]
+optional = true
 
 [build-dependencies]
 llvm-tools = "0.1"
 
 [features]
 default = []
-vga_320x200 = []
+vga_320x200 = ["font8x8"]
 recursive_page_table = []
 map_physical_memory = []
 

@@ -1,28 +1,26 @@
 use core::fmt::{Result, Write};
-use core::slice;
 use core::sync::atomic::{AtomicUsize, Ordering};
 
 const VGA_BUFFER: *mut u8 = 0xa0000 as *mut _;
 const SCREEN_WIDTH: usize = 320;
 const SCREEN_HEIGHT: usize = 200;
 
-pub static X_POS: AtomicUsize = AtomicUsize::new(1); // must not be 0 so that we don't have a .bss section
-pub static Y_POS: AtomicUsize = AtomicUsize::new(1); // must not be 0 so that we don't have a .bss section
+// must not be 0 so that we don't have a .bss section
+pub static X_POS: AtomicUsize = AtomicUsize::new(1);
+pub static Y_POS: AtomicUsize = AtomicUsize::new(1);
 
 pub struct Printer;
 
 impl Printer {
     pub fn clear_screen(&mut self) {
-        let vga_buffer = Self::vga_buffer();
-        for byte in vga_buffer {
-            *byte = 0x00;
+        for i in 0..(SCREEN_WIDTH * SCREEN_HEIGHT) {
+            unsafe {
+                VGA_BUFFER.offset(i as isize).write_volatile(0);
+            }
         }
+
         X_POS.store(0, Ordering::SeqCst);
         Y_POS.store(0, Ordering::SeqCst);
-    }
-
-    fn vga_buffer() -> &'static mut [u8] {
-        unsafe { slice::from_raw_parts_mut(VGA_BUFFER, SCREEN_WIDTH * SCREEN_HEIGHT) }
     }
 
     fn newline(&mut self) {
@@ -41,8 +39,6 @@ impl Printer {
             return;
         }
 
-        let vga_buffer = Self::vga_buffer();
-
         let x_pos = X_POS.fetch_add(8, Ordering::SeqCst);
         let y_pos = Y_POS.load(Ordering::SeqCst);
 
@@ -57,7 +53,10 @@ impl Printer {
                             continue;
                         }
                         let color = 0xf;
-                        vga_buffer[(y_pos + y) * SCREEN_WIDTH + x_pos + x] = color;
+                        let idx = (y_pos + y) * SCREEN_WIDTH + x_pos + x;
+                        unsafe {
+                            VGA_BUFFER.offset(idx as isize).write_volatile(color);
+                        }
                     }
                 }
             }
