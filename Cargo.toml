@@ -8,6 +8,10 @@ repository = "https://github.com/rust-osdev/bootloader"
 edition = "2018"
 build = "build.rs"
 
+[[bin]]
+name = "bootloader"
+required-features = ["binary"]
+
 [dependencies]
 xmas-elf = { version = "0.6.2", optional = true }
 x86_64 = { version = "0.7.2", optional = true }
