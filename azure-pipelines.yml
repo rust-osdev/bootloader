@@ -94,7 +94,7 @@ steps:
   workingDirectory: test-kernel
   displayName: 'Build Test Kernel'
 
-- script: cargo xbuild --release
+- script: cargo xbuild --bin bootloader --features binary --release
   displayName: 'Build Bootloader'
   env: { KERNEL: "test-kernel/target/x86_64-test-kernel/debug/test-kernel" }
 
