@@ -1,3 +1,7 @@
+- **Breaking**: Only include dependencies when `binary` feature is enabled
+    - For manual builds, the `binary` feature must be enabled when building
+    - For builds using `bootimage`, at least version 0.7.6 of `bootimage` is required now.
+
 # 0.6.4
 
 - Use volatile accesses in VGA code and make font dependency optional ([#67](https://github.com/rust-osdev/bootloader/pull/67))
