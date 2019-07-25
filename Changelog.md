@@ -1,3 +1,9 @@
+# 0.7.1
+
+- Run cargo update (improves compile times because of trimmed down upstream dependencies)
+
+# 0.7.0
+
 - **Breaking**: Only include dependencies when `binary` feature is enabled
     - For manual builds, the `binary` feature must be enabled when building
     - For builds using `bootimage`, at least version 0.7.6 of `bootimage` is required now.
