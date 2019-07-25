@@ -1,19 +1,23 @@
-use std::{
-    env,
-    fs::File,
-    io::Write,
-    path::{Path, PathBuf},
-    process::{self, Command},
-};
+#[cfg(not(feature = "binary"))]
+fn main() {}
 
+#[cfg(feature = "binary")]
 fn main() {
+    use std::{
+        env,
+        fs::File,
+        io::Write,
+        path::{Path, PathBuf},
+        process::{self, Command},
+    };
+
     let target = env::var("TARGET").expect("TARGET not set");
     if Path::new(&target)
         .file_stem()
         .expect("target has no file stem")
         != "x86_64-bootloader"
     {
-        return;
+        panic!("The bootloader must be compiled for the `x86_64-bootloader.json` target.");
     }
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));

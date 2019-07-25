@@ -30,10 +30,10 @@ As an example, you can build the bootloader with example kernel from the `exampl
 cd example-kernel
 cargo xbuild
 cd ..
-KERNEL=example-kernel/target/x86_64-example-kernel/debug/example-kernel cargo xbuild --release
+KERNEL=example-kernel/target/x86_64-example-kernel/debug/example-kernel cargo xbuild --release --features binary
 ```
 
-This results in a bootloader executable at `target/x86_64-bootloader.json/release/bootloader`. This executable is still an ELF file, which can't be run directly.
+The `binary` feature is required to enable the dependencies required for compiling the bootloader executable. The command results in a bootloader executable at `target/x86_64-bootloader.json/release/bootloader`. This executable is still an ELF file, which can't be run directly.
 
 ## Run
 
