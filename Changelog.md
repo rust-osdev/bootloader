@@ -4,7 +4,7 @@
 
 # 0.7.0
 
-- **Breaking**: Only include dependencies when `binary` feature is enabled
+- **Breaking**: Only include dependencies when `binary` feature is enabled ([#68](https://github.com/rust-osdev/bootloader/pull/68))
     - For manual builds, the `binary` feature must be enabled when building
     - For builds using `bootimage`, at least version 0.7.6 of `bootimage` is required now.
 
