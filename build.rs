@@ -2,6 +2,39 @@
 fn main() {}
 
 #[cfg(feature = "binary")]
+fn address_from_env(env: &'static str) -> Option<u64> {
+    use std::env;
+    match env::var(env) {
+        Err(env::VarError::NotPresent) => None,
+        Err(env::VarError::NotUnicode(_)) => {
+            panic!("The `{}` environment variable must be valid unicode", env,)
+        }
+        Ok(s) => {
+            let addr = if s.starts_with("0x") {
+                u64::from_str_radix(&s[2..], 16)
+            } else {
+                u64::from_str_radix(&s, 10)
+            };
+
+            let addr = addr.expect(&format!(
+                "The `{}` environment variable must be an integer\
+                 (is `{}`).",
+                env, s
+            ));
+
+            if addr % 0x1000 != 0 {
+                panic!(
+                    "The `{}` environment variable must be aligned to 0x1000 (is `{:#x}`).",
+                    env, addr
+                );
+            }
+
+            Some(addr)
+        }
+    }
+}
+
+#[cfg(feature = "binary")]
 fn main() {
     use std::{
         env,
@@ -146,30 +179,28 @@ fn main() {
     // create a file with the `PHYSICAL_MEMORY_OFFSET` constant
     let file_path = out_dir.join("physical_memory_offset.rs");
     let mut file = File::create(file_path).expect("failed to create physical_memory_offset.rs");
-    let physical_memory_offset = match env::var("BOOTLOADER_PHYSICAL_MEMORY_OFFSET") {
-        Err(env::VarError::NotPresent) => 0o_177777_770_000_000_000_0000u64,
-        Err(env::VarError::NotUnicode(_)) => panic!(
-            "The `BOOTLOADER_PHYSICAL_MEMORY_OFFSET` environment variable must be valid unicode"
-        ),
-        Ok(s) => if s.starts_with("0x") {
-            u64::from_str_radix(&s[2..], 16)
-        } else {
-            u64::from_str_radix(&s, 10)
-        }
-        .expect(&format!(
-            "The `BOOTLOADER_PHYSICAL_MEMORY_OFFSET` environment variable must be an integer\
-             (is `{}`).",
-            s
-        )),
-    };
+    let physical_memory_offset = address_from_env("BOOTLOADER_PHYSICAL_MEMORY_OFFSET");
     file.write_all(
         format!(
-            "const PHYSICAL_MEMORY_OFFSET: u64 = {:#x};",
+            "const PHYSICAL_MEMORY_OFFSET: Option<u64> = {:?};",
             physical_memory_offset
         )
         .as_bytes(),
     )
     .expect("write to physical_memory_offset.rs failed");
+
+    // create a file with the `KERNEL_STACK_ADDRESS` constant
+    let file_path = out_dir.join("kernel_stack_address.rs");
+    let mut file = File::create(file_path).expect("failed to create kernel_stack_address.rs");
+    let kernel_stack_address = address_from_env("BOOTLOADER_KERNEL_STACK_ADDRESS");
+    file.write_all(
+        format!(
+            "const KERNEL_STACK_ADDRESS: Option<u64> = {:?};",
+            kernel_stack_address,
+        )
+        .as_bytes(),
+    )
+    .expect("write to kernel_stack_address.rs failed");
 
     // pass link arguments to rustc
     println!("cargo:rustc-link-search=native={}", out_dir.display());
@@ -180,6 +211,7 @@ fn main() {
 
     println!("cargo:rerun-if-env-changed=KERNEL");
     println!("cargo:rerun-if-env-changed=BOOTLOADER_PHYSICAL_MEMORY_OFFSET");
+    println!("cargo:rerun-if-env-changed=BOOTLOADER_KERNEL_STACK_ADDRESS");
     println!("cargo:rerun-if-changed={}", kernel.display());
     println!("cargo:rerun-if-changed=build.rs");
 }
