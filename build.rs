@@ -1,8 +1,16 @@
 #[cfg(not(feature = "binary"))]
-fn main() {}
+#[allow(unreachable_code)]
+fn main() {
+    #[cfg(target_arch = "x86")]
+    panic!("This crate currently does not support 32-bit protected mode. \
+    See https://github.com/rust-osdev/bootloader/issues/70 for more information.");
+
+    #[cfg(not(target_arch = "x86_64"))]
+    panic!("This crate only supports the x86_64 architecture.");
+}
 
 #[cfg(feature = "binary")]
-fn address_from_env(env: &'static str) -> Option<u64> {
+fn num_from_env(env: &'static str, aligned: bool) -> Option<u64> {
     use std::env;
     match env::var(env) {
         Err(env::VarError::NotPresent) => None,
@@ -10,26 +18,26 @@ fn address_from_env(env: &'static str) -> Option<u64> {
             panic!("The `{}` environment variable must be valid unicode", env,)
         }
         Ok(s) => {
-            let addr = if s.starts_with("0x") {
+            let num = if s.starts_with("0x") {
                 u64::from_str_radix(&s[2..], 16)
             } else {
                 u64::from_str_radix(&s, 10)
             };
 
-            let addr = addr.expect(&format!(
+            let num = num.expect(&format!(
                 "The `{}` environment variable must be an integer\
                  (is `{}`).",
                 env, s
             ));
 
-            if addr % 0x1000 != 0 {
+            if aligned && num % 0x1000 != 0 {
                 panic!(
                     "The `{}` environment variable must be aligned to 0x1000 (is `{:#x}`).",
-                    env, addr
+                    env, num
                 );
             }
 
-            Some(addr)
+            Some(num)
         }
     }
 }
@@ -176,31 +184,26 @@ fn main() {
         process::exit(1);
     }
 
-    // create a file with the `PHYSICAL_MEMORY_OFFSET` constant
-    let file_path = out_dir.join("physical_memory_offset.rs");
-    let mut file = File::create(file_path).expect("failed to create physical_memory_offset.rs");
-    let physical_memory_offset = address_from_env("BOOTLOADER_PHYSICAL_MEMORY_OFFSET");
+    // Configure constants for the bootloader
+    // We leave some variables as Option<T> rather than hardcoding their defaults so that they
+    // can be calculated dynamically by the bootloader.
+    let file_path = out_dir.join("bootloader_config.rs");
+    let mut file = File::create(file_path).expect("failed to create bootloader_config.rs");
+    let physical_memory_offset = num_from_env("BOOTLOADER_PHYSICAL_MEMORY_OFFSET", true);
+    let kernel_stack_address = num_from_env("BOOTLOADER_KERNEL_STACK_ADDRESS", true);
+    let kernel_stack_size = num_from_env("BOOTLOADER_KERNEL_STACK_SIZE", false);
     file.write_all(
         format!(
-            "const PHYSICAL_MEMORY_OFFSET: Option<u64> = {:?};",
-            physical_memory_offset
-        )
-        .as_bytes(),
-    )
-    .expect("write to physical_memory_offset.rs failed");
-
-    // create a file with the `KERNEL_STACK_ADDRESS` constant
-    let file_path = out_dir.join("kernel_stack_address.rs");
-    let mut file = File::create(file_path).expect("failed to create kernel_stack_address.rs");
-    let kernel_stack_address = address_from_env("BOOTLOADER_KERNEL_STACK_ADDRESS");
-    file.write_all(
-        format!(
-            "const KERNEL_STACK_ADDRESS: Option<u64> = {:?};",
+            "const PHYSICAL_MEMORY_OFFSET: Option<u64> = {:?};
+            const KERNEL_STACK_ADDRESS: Option<u64> = {:?};
+            const KERNEL_STACK_SIZE: u64 = {};",
+            physical_memory_offset,
             kernel_stack_address,
+            kernel_stack_size.unwrap_or(512), // size is in number of pages
         )
         .as_bytes(),
     )
-    .expect("write to kernel_stack_address.rs failed");
+    .expect("write to bootloader_config.rs failed");
 
     // pass link arguments to rustc
     println!("cargo:rustc-link-search=native={}", out_dir.display());
@@ -212,6 +215,7 @@ fn main() {
     println!("cargo:rerun-if-env-changed=KERNEL");
     println!("cargo:rerun-if-env-changed=BOOTLOADER_PHYSICAL_MEMORY_OFFSET");
     println!("cargo:rerun-if-env-changed=BOOTLOADER_KERNEL_STACK_ADDRESS");
+    println!("cargo:rerun-if-env-changed=BOOTLOADER_KERNEL_STACK_SIZE");
     println!("cargo:rerun-if-changed={}", kernel.display());
     println!("cargo:rerun-if-changed=build.rs");
 }
