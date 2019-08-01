@@ -21,7 +21,7 @@ impl UsedLevel4Entries {
             let end_page: Page =
                 Page::containing_address(VirtAddr::new(segment.virtual_addr + segment.mem_size));
 
-            for p4_index in u64::from(start_page.p4_index())..u64::from(end_page.p4_index()) {
+            for p4_index in u64::from(start_page.p4_index())..=u64::from(end_page.p4_index()) {
                 used.entry_state[p4_index as usize] = true;
             }
         }

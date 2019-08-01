@@ -1,5 +1,4 @@
 use crate::frame_allocator::FrameAllocator;
-use crate::level4_entries::UsedLevel4Entries;
 use bootloader::bootinfo::MemoryRegionType;
 use fixedvec::FixedVec;
 use x86_64::structures::paging::mapper::{MapToError, MapperFlush, UnmapError};
@@ -22,13 +21,13 @@ pub(crate) fn map_kernel(
 
     // Create a stack
     let stack_size: u64 = 512; // in pages
+    let stack_start = stack_start + 1; // Leave the first page unmapped as a 'guard page'
     let stack_end = stack_start + stack_size;
 
     let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
     let region_type = MemoryRegionType::KernelStack;
 
-    // Leave the first page unmapped as a 'guard page'
-    for page in Page::range(stack_start + 1, stack_end) {
+    for page in Page::range(stack_start, stack_end) {
         let frame = frame_allocator
             .allocate_frame(region_type)
             .ok_or(MapToError::FrameAllocationFailed)?;
