@@ -36,9 +36,6 @@ set_up_page_tables:
     rep stosd
 
     # p4
-    lea eax, [_p4]
-    or eax, (1 | 2)
-    mov [_p4 + 511 * 8], eax # recursive mapping
     lea eax, [_p3]
     or eax, (1 | 2)
     mov [_p4], eax
@@ -63,10 +60,12 @@ set_up_page_tables:
     cmp ecx, edx
     jb map_p2_table
     # p1
-    lea eax, __bootloader_start
+    # start mapping from __page_table_start, as we need to be able to access
+    # the p4 table from rust. stop mapping at __bootloader_end
+    lea eax, __page_table_start
     and eax, 0xfffff000
     or eax, (1 | 2)
-    lea ecx, __bootloader_start
+    lea ecx, __page_table_start
     shr ecx, 12 # start page number
     lea edx, __bootloader_end
     add edx, 4096 - 1 # align up

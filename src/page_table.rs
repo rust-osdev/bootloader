@@ -1,4 +1,5 @@
 use crate::frame_allocator::FrameAllocator;
+use crate::level4_entries::UsedLevel4Entries;
 use bootloader::bootinfo::MemoryRegionType;
 use fixedvec::FixedVec;
 use x86_64::structures::paging::mapper::{MapToError, MapperFlush, UnmapError};
@@ -10,6 +11,7 @@ use xmas_elf::program::{self, ProgramHeader64};
 
 pub(crate) fn map_kernel(
     kernel_start: PhysAddr,
+    stack_start: Page,
     segments: &FixedVec<ProgramHeader64>,
     page_table: &mut RecursivePageTable,
     frame_allocator: &mut FrameAllocator,
@@ -18,16 +20,15 @@ pub(crate) fn map_kernel(
         map_segment(segment, kernel_start, page_table, frame_allocator)?;
     }
 
-    // create a stack
-    // TODO create a stack range dynamically (based on where the kernel is loaded)
-    let stack_start = Page::containing_address(VirtAddr::new(0x57AC_0000_0000));
+    // Create a stack
     let stack_size: u64 = 512; // in pages
     let stack_end = stack_start + stack_size;
 
     let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
     let region_type = MemoryRegionType::KernelStack;
 
-    for page in Page::range(stack_start, stack_end) {
+    // Leave the first page unmapped as a 'guard page'
+    for page in Page::range(stack_start + 1, stack_end) {
         let frame = frame_allocator
             .allocate_frame(region_type)
             .ok_or(MapToError::FrameAllocationFailed)?;
