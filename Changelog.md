@@ -1,3 +1,5 @@
+- Dynamically map kernel stack, boot info, physical memory and recursive table ([#71](https://github.com/rust-osdev/bootloader/pull/71))
+
 # 0.7.1
 
 - Run cargo update (improves compile times because of trimmed down upstream dependencies)
