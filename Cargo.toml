@@ -26,10 +26,11 @@ optional = true
 
 [build-dependencies]
 llvm-tools = { version = "0.1", optional = true }
+toml = { version = "0.5.1", optional = true }
 
 [features]
 default = []
-binary = ["xmas-elf", "x86_64", "usize_conversions", "fixedvec", "llvm-tools"]
+binary = ["xmas-elf", "x86_64", "usize_conversions", "fixedvec", "llvm-tools", "toml"]
 vga_320x200 = ["font8x8"]
 recursive_page_table = []
 map_physical_memory = []
