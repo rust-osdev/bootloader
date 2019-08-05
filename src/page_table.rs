@@ -11,6 +11,7 @@ use xmas_elf::program::{self, ProgramHeader64};
 pub(crate) fn map_kernel(
     kernel_start: PhysAddr,
     stack_start: Page,
+    stack_size: u64,
     segments: &FixedVec<ProgramHeader64>,
     page_table: &mut RecursivePageTable,
     frame_allocator: &mut FrameAllocator,
@@ -20,9 +21,8 @@ pub(crate) fn map_kernel(
     }
 
     // Create a stack
-    let stack_size: u64 = 512; // in pages
     let stack_start = stack_start + 1; // Leave the first page unmapped as a 'guard page'
-    let stack_end = stack_start + stack_size;
+    let stack_end = stack_start + stack_size; // stack_size is in pages
 
     let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
     let region_type = MemoryRegionType::KernelStack;

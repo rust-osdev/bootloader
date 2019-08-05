@@ -24,12 +24,14 @@ use x86_64::structures::paging::{
 use x86_64::ux::u9;
 use x86_64::{PhysAddr, VirtAddr};
 
-// The offset into the virtual address space where the physical memory is mapped if
-// the `map_physical_memory` is activated. Set by the build script.
-include!(concat!(env!("OUT_DIR"), "/physical_memory_offset.rs"));
-
-// The virtual address of the kernel stack. Set by the build script.
-include!(concat!(env!("OUT_DIR"), "/kernel_stack_address.rs"));
+// The bootloader_config.rs file contains some configuration constants set by the build script:
+// PHYSICAL_MEMORY_OFFSET: The offset into the virtual address space where the physical memory
+// is mapped if the `map_physical_memory` feature is activated.
+//
+// KERNEL_STACK_ADDRESS: The virtual address of the kernel stack.
+//
+// KERNEL_STACK_SIZE: The number of pages in the kernel stack.
+include!(concat!(env!("OUT_DIR"), "/bootloader_config.rs"));
 
 global_asm!(include_str!("stage_1.s"));
 global_asm!(include_str!("stage_2.s"));
@@ -271,6 +273,7 @@ fn load_elf(
     let stack_end = page_table::map_kernel(
         kernel_start.phys(),
         kernel_stack_address,
+        KERNEL_STACK_SIZE,
         &segments,
         &mut rec_page_table,
         &mut frame_allocator,
