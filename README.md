@@ -10,18 +10,43 @@ Written for the [second edition](https://github.com/phil-opp/blog_os/issues/360)
 
 TODO
 
+## Configuration
+
+The bootloader exposes a few variables which can be configured through the `Cargo.toml` of your kernel:
+
+```toml
+[package.metadata.bootloader]
+# The address at which the kernel stack is placed. If not provided, the bootloader
+# dynamically searches for a location.
+kernel-stack-address = "0xFFFFFF8000000000"
+
+# The size of the kernel stack, given in number of 4KiB pages. Defaults to 512.
+kernel-stack-size = 128
+
+# The virtual address offset from which physical memory is mapped, as described in
+# https://os.phil-opp.com/paging-implementation/#map-the-complete-physical-memory
+# Only applies if the `map_physical_memory` feature of the crate is enabled.
+# If not provided, the bootloader dynamically searches for a location.
+physical-memory-offset = "0xFFFF800000000000"
+```
+
+Note that the addresses **must** be given as strings (in either hex or decimal format), as [TOML](https://github.com/toml-lang/toml) does not support unsigned 64-bit integers.
+
 ## Requirements
 
 You need a nightly [Rust](https://www.rust-lang.org) compiler and [cargo xbuild](https://github.com/rust-osdev/cargo-xbuild). You also need the `llvm-tools-preview` component, which can be installed through `rustup component add llvm-tools-preview`.
 
 ## Build
 
-The simplest way to use the bootloader is in combination with the [bootimage](https://github.com/rust-osdev/bootimage) tool. This crate **requires at least bootimage 0.7.6**. With the tool installed, you can add a normal cargo dependency on the `bootloader` crate to your kernel and then run `bootimage build` to create a bootable disk image. You can also execute `bootimage run` to run your kernel in [QEMU](https://www.qemu.org/) (needs to be installed).
+The simplest way to use the bootloader is in combination with the [bootimage](https://github.com/rust-osdev/bootimage) tool. This crate **requires at least bootimage PLACEHOLDER**. With the tool installed, you can add a normal cargo dependency on the `bootloader` crate to your kernel and then run `bootimage build` to create a bootable disk image. You can also execute `bootimage run` to run your kernel in [QEMU](https://www.qemu.org/) (needs to be installed).
 
-To compile the bootloader manually, you need to invoke `cargo xbuild` with a `KERNEL` environment variable that points to your kernel executable (in the ELF format):
+To compile the bootloader manually, you need to invoke `cargo xbuild` with two environment variables:
+* `KERNEL`: points to your kernel executable (in the ELF format)
+* `KERNEL_MANIFEST`: points to the `Cargo.toml` describing your kernel
 
+For example: 
 ```
-KERNEL=/path/to/your/kernel/target/debug/your_kernel cargo xbuild
+KERNEL=/path/to/your/kernel/target/debug/your_kernel KERNEL_MANIFEST=/path/to/your/kernel/Cargo.toml cargo xbuild
 ```
 
 As an example, you can build the bootloader with example kernel from the `example-kernel` directory with the following commands:
@@ -30,7 +55,7 @@ As an example, you can build the bootloader with example kernel from the `exampl
 cd example-kernel
 cargo xbuild
 cd ..
-KERNEL=example-kernel/target/x86_64-example-kernel/debug/example-kernel cargo xbuild --release --features binary
+KERNEL=example-kernel/target/x86_64-example-kernel/debug/example-kernel KERNEL_MANIFEST=example-kernel/Cargo.toml cargo xbuild --release --features binary
 ```
 
 The `binary` feature is required to enable the dependencies required for compiling the bootloader executable. The command results in a bootloader executable at `target/x86_64-bootloader.json/release/bootloader`. This executable is still an ELF file, which can't be run directly.
@@ -64,7 +89,7 @@ The bootloader crate can be configured through some cargo features:
 - `vga_320x200`: This feature switches the VGA hardware to mode 0x13, a graphics mode with resolution 320x200 and 256 colors per pixel. The framebuffer is linear and lives at address `0xa0000`.
 - `recursive_page_table`: Maps the level 4 page table recursively and adds the [`recursive_page_table_address`](https://docs.rs/bootloader/0.4.0/bootloader/bootinfo/struct.BootInfo.html#structfield.recursive_page_table_addr) field to the passed `BootInfo`.
 - `map_physical_memory`: Maps the complete physical memory in the virtual address space and passes a [`physical_memory_offset`](https://docs.rs/bootloader/0.4.0/bootloader/bootinfo/struct.BootInfo.html#structfield.physical_memory_offset) field in the `BootInfo`.
-  - The virtual address where the physical memory should be mapped is configurable by setting the `BOOTLOADER_PHYSICAL_MEMORY_OFFSET` environment variable (supports decimal and hex numbers (prefixed with `0x`)).
+  - The virtual address where the physical memory should be mapped is configurable by setting the `physical-memory-offset` field in the kernel's `Cargo.toml`, as explained in [Configuration](#Configuration).
 
 ## Advanced Documentation
 See these guides for advanced usage of this crate:
