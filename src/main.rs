@@ -25,7 +25,7 @@ use x86_64::ux::u9;
 use x86_64::{PhysAddr, VirtAddr};
 
 // The bootloader_config.rs file contains some configuration constants set by the build script:
-// PHYSICAL_MEMORY_OFFSET: The offset into the virtual address space where the physical memory 
+// PHYSICAL_MEMORY_OFFSET: The offset into the virtual address space where the physical memory
 // is mapped if the `map_physical_memory` feature is activated.
 //
 // KERNEL_STACK_ADDRESS: The virtual address of the kernel stack.

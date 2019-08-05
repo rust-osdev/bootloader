@@ -1,12 +1,13 @@
 #[cfg(not(feature = "binary"))]
-#[allow(unreachable_code)]
 fn main() {
     #[cfg(target_arch = "x86")]
-    panic!("This crate currently does not support 32-bit protected mode. \
-    See https://github.com/rust-osdev/bootloader/issues/70 for more information.");
+    compile_error!(
+        "This crate currently does not support 32-bit protected mode. \
+         See https://github.com/rust-osdev/bootloader/issues/70 for more information."
+    );
 
-    #[cfg(not(target_arch = "x86_64"))]
-    panic!("This crate only supports the x86_64 architecture.");
+    #[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
+    compile_error!("This crate only supports the x86_64 architecture.");
 }
 
 #[cfg(feature = "binary")]
