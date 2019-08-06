@@ -10,6 +10,7 @@ fn main() {
     compile_error!("This crate only supports the x86_64 architecture.");
 }
 
+#[cfg(feature = "binary")]
 #[derive(Default)]
 struct BootloaderConfig {
     physical_memory_offset: Option<u64>,
@@ -58,19 +59,16 @@ fn parse_to_config(cfg: &mut BootloaderConfig, table: &toml::value::Table) {
             ("kernel-stack-address", Value::String(s)) => {
                 cfg.kernel_stack_address = Some(parse_aligned_addr(key.as_str(), &s));
             }
+            #[cfg(not(feature = "map_physical_memory"))]
+            ("physical-memory-offset", Value::String(_)) => {
+                panic!(
+                    "`physical-memory-offset` is only supported when the `map_physical_memory` \
+                     feature of the crate is enabled"
+                );
+            }
+            #[cfg(feature = "map_physical_memory")]
             ("physical-memory-offset", Value::String(s)) => {
-                #[cfg(feature = "map_physical_memory")]
-                {
-                    cfg.physical_memory_offset = Some(parse_aligned_addr(key.as_str(), &s));
-                }
-
-                #[cfg(not(feature = "map_physical_memory"))]
-                {
-                    panic!(
-                        "`physical-memory-offset` is only supported when the `map_physical_memory` \
-                         feature of the crate is enabled"
-                    );
-                }
+                cfg.physical_memory_offset = Some(parse_aligned_addr(key.as_str(), &s));
             }
             ("kernel-stack-size", Value::Integer(i)) => {
                 if i <= 0 {
