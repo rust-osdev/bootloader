@@ -11,34 +11,79 @@ fn main() {
 }
 
 #[cfg(feature = "binary")]
-fn num_from_env(env: &'static str, aligned: bool) -> Option<u64> {
-    use std::env;
-    match env::var(env) {
-        Err(env::VarError::NotPresent) => None,
-        Err(env::VarError::NotUnicode(_)) => {
-            panic!("The `{}` environment variable must be valid unicode", env,)
-        }
-        Ok(s) => {
-            let num = if s.starts_with("0x") {
-                u64::from_str_radix(&s[2..], 16)
-            } else {
-                u64::from_str_radix(&s, 10)
-            };
+#[derive(Default)]
+struct BootloaderConfig {
+    physical_memory_offset: Option<u64>,
+    kernel_stack_address: Option<u64>,
+    kernel_stack_size: Option<u64>,
+}
 
-            let num = num.expect(&format!(
-                "The `{}` environment variable must be an integer\
-                 (is `{}`).",
-                env, s
-            ));
+#[cfg(feature = "binary")]
+fn parse_aligned_addr(key: &str, value: &str) -> u64 {
+    let num = if value.starts_with("0x") {
+        u64::from_str_radix(&value[2..], 16)
+    } else {
+        u64::from_str_radix(&value, 10)
+    };
 
-            if aligned && num % 0x1000 != 0 {
+    let num = num.expect(&format!(
+        "`{}` in the kernel manifest must be an integer (is `{}`)",
+        key, value
+    ));
+
+    if num % 0x1000 != 0 {
+        panic!(
+            "`{}` in the kernel manifest must be aligned to 4KiB (is `{}`)",
+            key, value
+        );
+    } else {
+        num
+    }
+}
+
+#[cfg(feature = "binary")]
+fn parse_to_config(cfg: &mut BootloaderConfig, table: &toml::value::Table) {
+    use toml::Value;
+
+    for (key, value) in table {
+        match (key.as_str(), value.clone()) {
+            ("kernel-stack-address", Value::Integer(i))
+            | ("physical-memory-offset", Value::Integer(i)) => {
                 panic!(
-                    "The `{}` environment variable must be aligned to 0x1000 (is `{:#x}`).",
-                    env, num
+                    "`{0}` in the kernel manifest must be given as a string, \
+                     as toml does not support unsigned 64-bit integers (try `{0} = \"{1}\"`)",
+                    key.as_str(),
+                    i
                 );
             }
-
-            Some(num)
+            ("kernel-stack-address", Value::String(s)) => {
+                cfg.kernel_stack_address = Some(parse_aligned_addr(key.as_str(), &s));
+            }
+            #[cfg(not(feature = "map_physical_memory"))]
+            ("physical-memory-offset", Value::String(_)) => {
+                panic!(
+                    "`physical-memory-offset` is only supported when the `map_physical_memory` \
+                     feature of the crate is enabled"
+                );
+            }
+            #[cfg(feature = "map_physical_memory")]
+            ("physical-memory-offset", Value::String(s)) => {
+                cfg.physical_memory_offset = Some(parse_aligned_addr(key.as_str(), &s));
+            }
+            ("kernel-stack-size", Value::Integer(i)) => {
+                if i <= 0 {
+                    panic!("`kernel-stack-size` in kernel manifest must be positive");
+                } else {
+                    cfg.kernel_stack_size = Some(i as u64);
+                }
+            }
+            (s, _) => {
+                panic!(
+                    "unknown key '{}' in kernel manifest \
+                     - you may need to update the bootloader crate",
+                    s
+                );
+            }
         }
     }
 }
@@ -47,11 +92,12 @@ fn num_from_env(env: &'static str, aligned: bool) -> Option<u64> {
 fn main() {
     use std::{
         env,
-        fs::File,
+        fs::{self, File},
         io::Write,
         path::{Path, PathBuf},
         process::{self, Command},
     };
+    use toml::Value;
 
     let target = env::var("TARGET").expect("TARGET not set");
     if Path::new(&target)
@@ -185,22 +231,55 @@ fn main() {
         process::exit(1);
     }
 
+    // Parse the kernel's Cargo.toml which is given to us by bootimage
+    let mut bootloader_config = BootloaderConfig::default();
+
+    match env::var("KERNEL_MANIFEST") {
+        Err(env::VarError::NotPresent) => {
+            panic!("The KERNEL_MANIFEST environment variable must be set for building the bootloader.\n\n\
+                 If you use `bootimage` for building you need at least version 0.7.7. You can \
+                 update `bootimage` by running `cargo install bootimage --force`.");
+        }
+        Err(env::VarError::NotUnicode(_)) => {
+            panic!("The KERNEL_MANIFEST environment variable contains invalid unicode")
+        }
+        Ok(path) => {
+            println!("cargo:rerun-if-changed={}", path);
+
+            let contents = fs::read_to_string(&path).expect(&format!(
+                "failed to read kernel manifest file (path: {})",
+                path
+            ));
+
+            let manifest = contents
+                .parse::<Value>()
+                .expect("failed to parse kernel's Cargo.toml");
+
+            let table = manifest
+                .get("package")
+                .and_then(|table| table.get("metadata"))
+                .and_then(|table| table.get("bootloader"))
+                .and_then(|table| table.as_table());
+
+            if let Some(table) = table {
+                parse_to_config(&mut bootloader_config, table);
+            }
+        }
+    }
+
     // Configure constants for the bootloader
     // We leave some variables as Option<T> rather than hardcoding their defaults so that they
     // can be calculated dynamically by the bootloader.
     let file_path = out_dir.join("bootloader_config.rs");
     let mut file = File::create(file_path).expect("failed to create bootloader_config.rs");
-    let physical_memory_offset = num_from_env("BOOTLOADER_PHYSICAL_MEMORY_OFFSET", true);
-    let kernel_stack_address = num_from_env("BOOTLOADER_KERNEL_STACK_ADDRESS", true);
-    let kernel_stack_size = num_from_env("BOOTLOADER_KERNEL_STACK_SIZE", false);
     file.write_all(
         format!(
             "const PHYSICAL_MEMORY_OFFSET: Option<u64> = {:?};
             const KERNEL_STACK_ADDRESS: Option<u64> = {:?};
             const KERNEL_STACK_SIZE: u64 = {};",
-            physical_memory_offset,
-            kernel_stack_address,
-            kernel_stack_size.unwrap_or(512), // size is in number of pages
+            bootloader_config.physical_memory_offset,
+            bootloader_config.kernel_stack_address,
+            bootloader_config.kernel_stack_size.unwrap_or(512), // size is in number of pages
         )
         .as_bytes(),
     )
@@ -214,9 +293,7 @@ fn main() {
     );
 
     println!("cargo:rerun-if-env-changed=KERNEL");
-    println!("cargo:rerun-if-env-changed=BOOTLOADER_PHYSICAL_MEMORY_OFFSET");
-    println!("cargo:rerun-if-env-changed=BOOTLOADER_KERNEL_STACK_ADDRESS");
-    println!("cargo:rerun-if-env-changed=BOOTLOADER_KERNEL_STACK_SIZE");
+    println!("cargo:rerun-if-env-changed=KERNEL_MANIFEST");
     println!("cargo:rerun-if-changed={}", kernel.display());
     println!("cargo:rerun-if-changed=build.rs");
 }
