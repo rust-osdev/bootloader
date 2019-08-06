@@ -96,7 +96,9 @@ steps:
 
 - script: cargo xbuild --bin bootloader --features binary --release
   displayName: 'Build Bootloader'
-  env: { KERNEL: "test-kernel/target/x86_64-test-kernel/debug/test-kernel" }
+  env:
+    KERNEL: "test-kernel/target/x86_64-test-kernel/debug/test-kernel"
+    KERNEL_MANIFEST: "test-kernel/Cargo.toml"
 
 - script: cargo objcopy -- -I elf64-x86-64 -O binary --binary-architecture=i386:x86-64 target/x86_64-bootloader/release/bootloader target/x86_64-bootloader/release/bootloader.bin
   displayName: 'Convert Bootloader ELF to Binary'

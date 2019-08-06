@@ -38,7 +38,7 @@ You need a nightly [Rust](https://www.rust-lang.org) compiler and [cargo xbuild]
 
 ## Build
 
-The simplest way to use the bootloader is in combination with the [bootimage](https://github.com/rust-osdev/bootimage) tool. This crate **requires at least bootimage PLACEHOLDER**. With the tool installed, you can add a normal cargo dependency on the `bootloader` crate to your kernel and then run `bootimage build` to create a bootable disk image. You can also execute `bootimage run` to run your kernel in [QEMU](https://www.qemu.org/) (needs to be installed).
+The simplest way to use the bootloader is in combination with the [bootimage](https://github.com/rust-osdev/bootimage) tool. This crate **requires at least bootimage 0.7.7**. With the tool installed, you can add a normal cargo dependency on the `bootloader` crate to your kernel and then run `bootimage build` to create a bootable disk image. You can also execute `bootimage run` to run your kernel in [QEMU](https://www.qemu.org/) (needs to be installed).
 
 To compile the bootloader manually, you need to invoke `cargo xbuild` with two environment variables:
 * `KERNEL`: points to your kernel executable (in the ELF format)

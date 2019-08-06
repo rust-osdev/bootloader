@@ -239,7 +239,7 @@ fn main() {
     match env::var("KERNEL_MANIFEST") {
         Err(env::VarError::NotPresent) => {
             panic!("The KERNEL_MANIFEST environment variable must be set for building the bootloader.\n\n\
-                 If you use `bootimage` for building you need at least version PLACEHOLDER. You can \
+                 If you use `bootimage` for building you need at least version 0.7.7. You can \
                  update `bootimage` by running `cargo install bootimage --force`.");
         }
         Err(env::VarError::NotUnicode(_)) => {
