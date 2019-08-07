@@ -1,3 +1,5 @@
+# 0.8.0
+
 - **Breaking**: Parse bootloader configuration from kernel's Cargo.toml ([#73](https://github.com/rust-osdev/bootloader/pull/73))
     - At least version 0.7.7 of `bootimage` is required now.
 - Configurable kernel stack size, better non-x86_64 errors ([#72](https://github.com/rust-osdev/bootloader/pull/72))
