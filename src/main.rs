@@ -36,7 +36,9 @@ include!(concat!(env!("OUT_DIR"), "/bootloader_config.rs"));
 global_asm!(include_str!("stage_1.s"));
 global_asm!(include_str!("stage_2.s"));
 global_asm!(include_str!("e820.s"));
+global_asm!(include_str!("sse.s"));
 global_asm!(include_str!("stage_3.s"));
+global_asm!(include_str!("avx.s"));
 
 #[cfg(feature = "vga_320x200")]
 global_asm!(include_str!("video_mode/vga_320x200.s"));
@@ -87,6 +89,9 @@ extern "C" {
 
 #[no_mangle]
 pub unsafe extern "C" fn stage_4() -> ! {
+if is_x86_feature_detected!("avx") {
+enable_avx();
+}
     // Set stack segment
     asm!("mov bx, 0x0
           mov ss, bx" ::: "bx" : "intel");
