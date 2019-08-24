@@ -23,6 +23,7 @@ use x86_64::structures::paging::{
 };
 use x86_64::ux::u9;
 use x86_64::{PhysAddr, VirtAddr};
+use x86_64::registers::Cr0;
 
 // The bootloader_config.rs file contains some configuration constants set by the build script:
 // PHYSICAL_MEMORY_OFFSET: The offset into the virtual address space where the physical memory
@@ -89,6 +90,22 @@ extern "C" {
 
 #[no_mangle]
 pub unsafe extern "C" fn stage_4() -> ! {
+#[cfg(feature = "sse")]
+if is_x86_feature_detected!("sse") && is_x86_feature_detected!("sse2") {
+let flags = ((Cr0::read_raw() & 0xFFFB) | 0x2);
+Cr0::write_raw(flags);
+// For now, we must use inline ASM here
+let mut cr4: u64;
+unsafe {
+asm!("mov %cr4, $0" : "=r" (cr4));
+}
+cr4 |= 3 << 9;
+unsafe {
+asm!("mov $0, %cr4" :: "r" (cr4) : "memory");
+}
+}
+
+#[cfg(feature = "avx")]
 if is_x86_feature_detected!("avx") {
 enable_avx();
 }
