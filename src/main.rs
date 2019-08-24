@@ -17,13 +17,13 @@ use core::{mem, slice};
 use fixedvec::alloc_stack;
 use usize_conversions::usize_from;
 use x86_64::instructions::tlb;
+use x86_64::registers::Cr0;
 use x86_64::structures::paging::{
     frame::PhysFrameRange, page_table::PageTableEntry, Mapper, Page, PageTable, PageTableFlags,
     PhysFrame, RecursivePageTable, Size2MiB, Size4KiB,
 };
 use x86_64::ux::u9;
 use x86_64::{PhysAddr, VirtAddr};
-use x86_64::registers::Cr0;
 
 // The bootloader_config.rs file contains some configuration constants set by the build script:
 // PHYSICAL_MEMORY_OFFSET: The offset into the virtual address space where the physical memory
@@ -37,8 +37,8 @@ include!(concat!(env!("OUT_DIR"), "/bootloader_config.rs"));
 global_asm!(include_str!("stage_1.s"));
 global_asm!(include_str!("stage_2.s"));
 global_asm!(include_str!("e820.s"));
-global_asm!(include_str!("sse.s"));
 global_asm!(include_str!("stage_3.s"));
+#[cfg(feature = "avx")]
 global_asm!(include_str!("avx.s"));
 
 #[cfg(feature = "vga_320x200")]
@@ -90,25 +90,30 @@ extern "C" {
 
 #[no_mangle]
 pub unsafe extern "C" fn stage_4() -> ! {
-#[cfg(feature = "sse")]
-if is_x86_feature_detected!("sse") && is_x86_feature_detected!("sse2") {
-let flags = ((Cr0::read_raw() & 0xFFFB) | 0x2);
-Cr0::write_raw(flags);
-// For now, we must use inline ASM here
-let mut cr4: u64;
-unsafe {
-asm!("mov %cr4, $0" : "=r" (cr4));
-}
-cr4 |= 3 << 9;
-unsafe {
-asm!("mov $0, %cr4" :: "r" (cr4) : "memory");
-}
-}
+    #[cfg(feature = "sse")]
+    {
+        if is_x86_feature_detected!("sse") && is_x86_feature_detected!("sse2") {
+            let flags = ((Cr0::read_raw() & 0xFFFB) | 0x2);
+            Cr0::write_raw(flags);
+            // For now, we must use inline ASM here
+            let mut cr4: u64;
+            unsafe {
+                asm!("mov %cr4, $0" : "=r" (cr4));
+            }
+            cr4 |= 3 << 9;
+            unsafe {
+                asm!("mov $0, %cr4" :: "r" (cr4) : "memory");
+            }
+        }
+    }
 
-#[cfg(feature = "avx")]
-if is_x86_feature_detected!("avx") {
-enable_avx();
-}
+    #[cfg(feature = "avx")]
+    {
+        if is_x86_feature_detected!("avx") {
+            enable_avx();
+        }
+    }
+
     // Set stack segment
     asm!("mov bx, 0x0
           mov ss, bx" ::: "bx" : "intel");
