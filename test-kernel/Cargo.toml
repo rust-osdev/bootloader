@@ -6,3 +6,4 @@ edition = "2018"
 
 [dependencies]
 x86_64 = "0.3.4"
+bootloader = {path = "..", features=["sse"]}
