@@ -35,7 +35,6 @@ vga_320x200 = ["font8x8"]
 recursive_page_table = []
 map_physical_memory = []
 sse = []
-avx = ["sse"]
 
 [profile.dev]
 panic = "abort"

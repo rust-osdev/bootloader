@@ -39,8 +39,6 @@ global_asm!(include_str!("stage_1.s"));
 global_asm!(include_str!("stage_2.s"));
 global_asm!(include_str!("e820.s"));
 global_asm!(include_str!("stage_3.s"));
-#[cfg(feature = "avx")]
-global_asm!(include_str!("avx.s"));
 
 #[cfg(feature = "vga_320x200")]
 global_asm!(include_str!("video_mode/vga_320x200.s"));
@@ -93,7 +91,6 @@ extern "C" {
 pub unsafe extern "C" fn stage_4() -> ! {
     #[cfg(feature = "sse")]
     {
-        if is_x86_feature_detected!("sse") && is_x86_feature_detected!("sse2") {
             let flags = ((Cr0::read_raw() & 0xFFFB) | 0x2);
             Cr0::write_raw(flags);
             // For now, we must use inline ASM here
@@ -105,14 +102,6 @@ pub unsafe extern "C" fn stage_4() -> ! {
             unsafe {
                 asm!("mov $0, %cr4" :: "r" (cr4) : "memory");
             }
-        }
-    }
-
-    #[cfg(feature = "avx")]
-    {
-        if is_x86_feature_detected!("avx") {
-            enable_avx();
-        }
     }
 
     // Set stack segment
