@@ -24,6 +24,7 @@ use x86_64::structures::paging::{
 };
 use x86_64::ux::u9;
 use x86_64::{PhysAddr, VirtAddr};
+use x86_64::registers::control::Cr0;
 
 // The bootloader_config.rs file contains some configuration constants set by the build script:
 // PHYSICAL_MEMORY_OFFSET: The offset into the virtual address space where the physical memory
