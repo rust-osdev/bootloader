@@ -11,7 +11,7 @@ pub extern "C" fn _start() -> ! {
     // named `_start` by default
 
     let vga_buffer = 0xb8000 as *mut u8;
-    
+
     // print `HELLO` to the screen (see
     // https://os.phil-opp.com/minimal-rust-kernel/#printing-to-screen)
     for (i, &byte) in HELLO.iter().enumerate() {

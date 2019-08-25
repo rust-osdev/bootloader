@@ -17,8 +17,6 @@ use core::{mem, slice};
 use fixedvec::alloc_stack;
 use usize_conversions::usize_from;
 use x86_64::instructions::tlb;
-use x86_64::registers::control::Cr0;
-use x86_64::registers::Cr0;
 use x86_64::structures::paging::{
     frame::PhysFrameRange, page_table::PageTableEntry, Mapper, Page, PageTable, PageTableFlags,
     PhysFrame, RecursivePageTable, Size2MiB, Size4KiB,
@@ -91,13 +89,16 @@ extern "C" {
 pub unsafe extern "C" fn stage_4() -> ! {
     #[cfg(feature = "sse")]
     {
-        let flags = ((Cr0::read_raw() & 0xFFFB) | 0x2);
+        use x86_64::registers::control::Cr0;
+        // We now clear coprocessor emulation CR0.EM and set coprocessor monitoring  CR0.MP
+        let flags = (Cr0::read_raw() & 0xFFFB | 0x2);
         Cr0::write_raw(flags);
         // For now, we must use inline ASM here
         let mut cr4: u64;
         unsafe {
             asm!("mov %cr4, $0" : "=r" (cr4));
         }
+        // set CR4.OSFXSR and CR4.OSXMMEXCPT at the same time
         cr4 |= 3 << 9;
         unsafe {
             asm!("mov $0, %cr4" :: "r" (cr4) : "memory");
