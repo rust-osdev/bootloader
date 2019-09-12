@@ -90,19 +90,24 @@ pub unsafe extern "C" fn stage_4() -> ! {
     #[cfg(feature = "sse")]
     {
         use x86_64::registers::control::Cr0;
-        // We now clear coprocessor emulation CR0.EM and set coprocessor monitoring  CR0.MP
-        let flags = (Cr0::read_raw() & 0xFFFB | 0x2);
-        Cr0::write_raw(flags);
-        // For now, we must use inline ASM here
-        let mut cr4: u64;
-        unsafe {
-            asm!("mov %cr4, $0" : "=r" (cr4));
-        }
-        // set CR4.OSFXSR and CR4.OSXMMEXCPT at the same time
-        cr4 |= 3 << 9;
-        unsafe {
-            asm!("mov $0, %cr4" :: "r" (cr4) : "memory");
-        }
+            let mut flags = Cr0::read_raw();
+flags.set_bit(2, false);
+flags.set_bit(1, true);
+flags.set_bit(9, true);
+flags.set_bit(10, true);
+            unsafe {
+Cr0::write_raw(flags);
+}
+            // For now, we must use inline ASM here
+            let mut cr4: u64;
+            unsafe {
+                asm!("mov %cr4, $0" : "=r" (cr4));
+            }
+cr4.set_bit(9, true);
+cr4.set_bit(10, true);
+            unsafe {
+                asm!("mov $0, %cr4" :: "r" (cr4) : "memory");
+            }
     }
 
     // Set stack segment
