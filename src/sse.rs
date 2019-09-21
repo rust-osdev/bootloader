@@ -1,5 +1,4 @@
 /// Enables Streaming SIMD Extensions (SSE) support for loaded kernels.
-#[cfg(feature = "sse")]
 pub fn enable_sse() {
     use bit_field::BitField;
     use x86_64::registers::control::Cr0;
