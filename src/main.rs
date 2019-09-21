@@ -144,10 +144,6 @@ fn bootloader_main(
     // Extract required information from the ELF file.
     let mut preallocated_space = alloc_stack!([ProgramHeader64; 32]);
     let mut segments = FixedVec::new(&mut preallocated_space);
-    #[cfg(feature = "sse")]
-    {
-        sse::enable_sse();
-    }
     let entry_point;
     {
         let kernel_start_ptr = usize_from(kernel_start.as_u64()) as *const u8;
@@ -350,8 +346,10 @@ fn bootloader_main(
         mem::drop(rec_page_table);
     }
 
-    let entry_point = VirtAddr::new(entry_point);
+    #[cfg(feature = "sse")]
+    sse::enable_sse();
 
+    let entry_point = VirtAddr::new(entry_point);
     unsafe { context_switch(boot_info_addr, entry_point, stack_end) };
 }
 
