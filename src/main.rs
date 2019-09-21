@@ -103,7 +103,7 @@ pub unsafe extern "C" fn stage_4() -> ! {
     let bootloader_end = &__bootloader_end as *const _ as u64;
     let p4_physical = &_p4 as *const _ as u64;
 
-    load_elf(
+    bootloader_main(
         IdentityMappedAddr(PhysAddr::new(kernel_start)),
         kernel_size,
         VirtAddr::new(memory_map_addr),
@@ -116,7 +116,7 @@ pub unsafe extern "C" fn stage_4() -> ! {
     )
 }
 
-fn load_elf(
+fn bootloader_main(
     kernel_start: IdentityMappedAddr,
     kernel_size: u64,
     memory_map_addr: VirtAddr,
