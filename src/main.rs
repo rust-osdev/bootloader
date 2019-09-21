@@ -54,6 +54,8 @@ mod frame_allocator;
 mod level4_entries;
 mod page_table;
 mod printer;
+#[cfg(feature = "sse")]
+mod sse;
 
 pub struct IdentityMappedAddr(PhysAddr);
 
@@ -142,6 +144,10 @@ fn load_elf(
     // Extract required information from the ELF file.
     let mut preallocated_space = alloc_stack!([ProgramHeader64; 32]);
     let mut segments = FixedVec::new(&mut preallocated_space);
+    #[cfg(feature = "sse")]
+    {
+        sse::enable_sse();
+    }
     let entry_point;
     {
         let kernel_start_ptr = usize_from(kernel_start.as_u64()) as *const u8;

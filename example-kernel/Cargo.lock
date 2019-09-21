@@ -19,9 +19,14 @@ version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "bootloader"
+version = "0.8.0"
+
+[[package]]
 name = "example-kernel"
 version = "0.1.0"
 dependencies = [
+ "bootloader 0.8.0",
  "x86_64 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
