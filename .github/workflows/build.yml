@@ -1,0 +1,128 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - '*'
+      - '!staging.tmp'
+    tags:
+      - '*'
+  pull_request:
+
+jobs:
+  test:
+    name: "Test"
+
+    strategy:
+      matrix:
+        platform: [
+          ubuntu-latest,
+          macos-latest,
+          windows-latest
+        ]
+
+    runs-on: ${{ matrix.platform }}
+    timeout-minutes: 15
+
+    steps:
+    - name: "Checkout Repository"
+      uses: actions/checkout@v1
+
+    - name: Install Rustup
+      run: |
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
+        echo ::add-path::$HOME/.cargo/bin
+      if: runner.os == 'macOS'
+
+    - name: "Print Rust Version"
+      run: |
+        rustc -Vv
+        cargo -Vv
+
+    - name: "Install Rustup Components"
+      run: rustup component add rust-src llvm-tools-preview
+    - name: "Install cargo-xbuild"
+      run: cargo install cargo-xbuild --debug
+    - name: "Install cargo-binutils"
+      run: cargo install cargo-binutils --debug
+
+    - run: cargo xbuild
+      working-directory: test-kernel
+      name: 'Build Test Kernel'
+
+    - name: 'Build Bootloader'
+      run: cargo xbuild --bin bootloader --features binary --release
+      env:
+        KERNEL: "test-kernel/target/x86_64-test-kernel/debug/test-kernel"
+        KERNEL_MANIFEST: "test-kernel/Cargo.toml"
+
+    - name: 'Convert Bootloader ELF to Binary'
+      run: cargo objcopy -- -I elf64-x86-64 -O binary --binary-architecture=i386:x86-64 target/x86_64-bootloader/release/bootloader target/x86_64-bootloader/release/bootloader.bin
+
+     # install QEMU
+    - name: Install QEMU (Linux)
+      run: sudo apt update && sudo apt install qemu-system-x86
+      if: runner.os == 'Linux'
+    - name: Install QEMU (macOS)
+      run: brew install qemu
+      if: runner.os == 'macOS'
+      env:
+        HOMEBREW_NO_AUTO_UPDATE: 1
+        HOMEBREW_NO_BOTTLE_SOURCE_FALLBACK: 1
+        HOMEBREW_NO_INSTALL_CLEANUP: 1
+    - name: Install Scoop (Windows)
+      run: |
+        Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.scoop.sh')
+        echo ::add-path::$HOME\scoop\shims
+      if: runner.os == 'Windows'
+      shell: pwsh
+    - name: Install QEMU (Windows)
+      run: scoop install qemu
+      if: runner.os == 'Windows'
+      shell: pwsh
+    - name: "Print QEMU Version"
+      run: qemu-system-x86_64 --version
+
+    - name: 'Run Test Kernel with Bootloader'
+      run: |
+        qemu-system-x86_64 -drive format=raw,file=target/x86_64-bootloader/release/bootloader.bin -device isa-debug-exit,iobase=0xf4,iosize=0x04 -display none
+        if [ $? -eq 123 ]; then (exit 0); else (exit 1); fi
+      shell: bash
+
+
+  build_example_kernel:
+    name: "Build Example Kernel"
+    strategy:
+      matrix:
+        platform: [
+          ubuntu-latest,
+          macos-latest,
+          windows-latest
+        ]
+    runs-on: ${{ matrix.platform }}
+    timeout-minutes: 5
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install Rustup
+      run: |
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
+        echo ::add-path::$HOME/.cargo/bin
+      if: runner.os == 'macOS'
+    - name: "Install Rustup Components"
+      run: rustup component add rust-src llvm-tools-preview
+    - name: "Install cargo-xbuild"
+      run: cargo install cargo-xbuild --debug
+    - name: 'Build Example Kernel'
+      run: cargo xbuild
+      working-directory: example-kernel
+
+
+  check_formatting:
+    name: "Check Formatting"
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+    - uses: actions/checkout@v1
+    - run: rustup component add rustfmt
+    - run: cargo fmt -- --check
