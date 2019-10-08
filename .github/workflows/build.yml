@@ -87,7 +87,7 @@ jobs:
       run: |
         qemu-system-x86_64 -drive format=raw,file=target/x86_64-bootloader/release/bootloader.bin -device isa-debug-exit,iobase=0xf4,iosize=0x04 -display none
         if [ $? -eq 123 ]; then (exit 0); else (exit 1); fi
-      shell: bash
+      shell: 'bash {0}'
 
 
   build_example_kernel:
