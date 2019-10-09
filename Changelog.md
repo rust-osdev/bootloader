@@ -1,3 +1,5 @@
+# 0.8.2
+
 - Change the way the kernel entry point is called to honor alignement ABI ([#81](https://github.com/rust-osdev/bootloader/pull/81))
 
 # 0.8.1
