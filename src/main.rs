@@ -365,7 +365,7 @@ fn enable_write_protect_bit() {
 
 #[panic_handler]
 #[no_mangle]
-pub extern "C" fn panic(info: &PanicInfo) -> ! {
+pub fn panic(info: &PanicInfo) -> ! {
     use core::fmt::Write;
     write!(printer::Printer, "{}", info).unwrap();
     loop {}
