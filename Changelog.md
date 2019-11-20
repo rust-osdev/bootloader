@@ -1,3 +1,5 @@
+- Remove unnecessary `extern C` on panic handler to fix not-ffi-safe warning ([#85](https://github.com/rust-osdev/bootloader/pull/85))
+
 # 0.8.2
 
 - Change the way the kernel entry point is called to honor alignement ABI ([#81](https://github.com/rust-osdev/bootloader/pull/81))
