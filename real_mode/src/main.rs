@@ -9,7 +9,6 @@ global_asm!(include_str!("boot.s"));
 #[no_mangle]
 pub extern "C" fn rust_main() {
     println(b"Hello from Rust!");
-    panic!()
 }
 
 fn println(s: &[u8]) {
