@@ -1,4 +1,4 @@
-.section .boot-first-stage, "awx"
+.section .boot, "awx"
 .global _start
 .intel_syntax noprefix
 .code16

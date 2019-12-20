@@ -6,14 +6,25 @@ SECTIONS {
     . = 0x7c00;
     _stack_end = .;
 
-    .bootloader :
+    _bootloader_start = .;
+    .boot :
     {
-        *(.boot-first-stage)
+        *(.boot)
+    }
+    .text :
+    {
         *(.text .text.*)
+    }
+    .data :
+    {
         *(.rodata .rodata.*)
         *(.data .data.*)
         *(.got)
-        . = 0x7c00 + 510;
+    }
+
+    . = 0x7c00 + 510;
+    .magic_number :
+    {
         SHORT(0xaa55)       /* magic number for bootable disk */
     }
     _bootloader_end = .;
