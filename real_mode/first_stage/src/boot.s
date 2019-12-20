@@ -74,8 +74,19 @@ check_int13h_extensions:
     jc no_int13h_extensions
 
 rust:
-    push dx     # pass disk number as argument
-    call rust_main
+    # push arguments
+arg_0:
+    push dx     # disk number
+    lea eax, _bootloader_start
+arg_1:
+    push eax
+    lea eax, _second_stage_end
+arg_2:
+    push eax
+    lea eax, _second_stage_start
+arg_3:
+    push eax
+    call first_stage
 
 spin:
     hlt

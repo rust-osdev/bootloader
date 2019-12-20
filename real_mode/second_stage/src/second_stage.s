@@ -3,6 +3,6 @@
 .intel_syntax noprefix
 .code16
 
-second_stage:
+second_stage_asm:
     mov eax, 12345
     ret

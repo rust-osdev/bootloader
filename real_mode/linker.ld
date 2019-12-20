@@ -11,15 +11,15 @@ SECTIONS {
     {
         *(.boot)
     }
-    .text :
+    .first_stage_text :
     {
-        *(.text .text.*)
+        *first_stage*(.text .text.*)
     }
-    .data :
+    .first_stage_data :
     {
-        *(.rodata .rodata.*)
-        *(.data .data.*)
-        *(.got)
+        *first_stage*(.rodata .rodata.*)
+        *first_stage*(.data .data.*)
+        *first_stage*(.got .got.*)
     }
 
     . = 0x7c00 + 510;
@@ -29,7 +29,31 @@ SECTIONS {
     }
 
     _second_stage_start = .;
-    .second_stage :
+
+    .second_stage_text :
+    {
+        *second_stage*(.text .text.*)
+    }
+    .second_stage_data :
+    {
+        *second_stage*(.rodata .rodata.*)
+        *second_stage*(.data .data.*)
+        *second_stage*(.got .got.*)
+    }
+
+    .text :
+    {
+        *(.text .text.*)
+    }
+
+    .data :
+    {
+        *(.rodata .rodata.*)
+        *(.data .data.*)
+        *(.got .got.*)
+    }
+
+    .asm :
     {
         *(.second_stage)
     }
