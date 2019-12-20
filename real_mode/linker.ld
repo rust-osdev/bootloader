@@ -27,5 +27,12 @@ SECTIONS {
     {
         SHORT(0xaa55)       /* magic number for bootable disk */
     }
-    _bootloader_end = .;
+
+    _second_stage_start = .;
+    .second_stage :
+    {
+        *(.second_stage)
+    }
+    . = ALIGN(512);
+    _second_stage_end = .;
 }
