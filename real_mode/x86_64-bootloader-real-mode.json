@@ -15,11 +15,11 @@
 	"max-atomic-width": 64,
 	"position-independent-executables": false,
 	"disable-redzone": true,
-	"relro-level": "full",
 	"target-c-int-width": "32",
 	"target-pointer-width": "32",
 	"target-endian": "little",
 	"panic-strategy": "abort",
 	"os": "none",
-	"vendor": "unknown"
+	"vendor": "unknown",
+	"relocation_model": "static"
 }
