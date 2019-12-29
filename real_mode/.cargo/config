@@ -1,2 +1,2 @@
 [build]
-target = "x86_64-bootloader.json"
+target = "x86-32bit.json"
