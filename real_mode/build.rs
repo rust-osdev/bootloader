@@ -1,45 +1,44 @@
 use std::process::Command;
 use std::env;
-use std::fs::{self, File};
 use std::path::Path;
+use llvm_tools::{LlvmTools, exe};
 
 fn main() {
     let out_dir = env::var("OUT_DIR").unwrap();
+    let llvm_tools = LlvmTools::new().expect("LLVM tools not found");
+    let objcopy = llvm_tools.tool(&exe("llvm-objcopy")).expect("llvm-objcopy not found");
 
-    // first stage
+    build_subproject(Path::new("first_stage"), &["_start", "print_char"], &out_dir, &objcopy);
+    build_subproject(Path::new("second_stage"), &["second_stage"], &out_dir, &objcopy);
+}
+
+fn build_subproject(dir: &Path, global_symbols: &[&str], out_dir: &str, objcopy: &Path) {
+    let dir_name = dir.file_name().unwrap().to_str().unwrap();
+    let manifest_path = dir.join("Cargo.toml");
+    let out_path = Path::new(&out_dir);
+    assert!(global_symbols.len() > 0, "must have at least one global symbol");
+
+    // build
     let mut cmd = Command::new("cargo");
     cmd.arg("xbuild").arg("--release");
-    cmd.arg("--manifest-path=first_stage/Cargo.toml");
+    cmd.arg(format!("--manifest-path={}", manifest_path.display()));
     cmd.arg("-Z").arg("unstable-options");
     cmd.arg("--out-dir").arg(&out_dir);
-    let status = cmd.status().unwrap();
-    assert!(status.success());
-    
-    // second stage
-    let mut cmd = Command::new("cargo");
-    cmd.arg("xbuild").arg("--release");
-    cmd.arg("--manifest-path=second_stage/Cargo.toml");
-    cmd.arg("-Z").arg("unstable-options");
-    cmd.arg("--out-dir").arg(&out_dir);
+    cmd.arg("--target-dir").arg("target");
+    cmd.env("XBUILD_SYSROOT_PATH", format!("target/{}-sysroot", dir_name));
     let status = cmd.status().unwrap();
     assert!(status.success());
 
-    let concat_script = Path::new(&out_dir).join("concat.mri");
-    fs::write(&concat_script, "
-        create libreal_mode.a
-        addlib libfirst_stage.a
-        addlib libsecond_stage.a
-        save
-        end
-    ").unwrap();
-
-    // concat archives
-    let mut cmd = Command::new("ar");
-    cmd.arg("-M").stdin(File::open(concat_script).unwrap());
-    cmd.current_dir(&out_dir);
+    // localize symbols
+    let mut cmd = Command::new(objcopy);
+    for symbol in global_symbols {
+        cmd.arg("-G").arg(symbol);
+    }
+    cmd.arg(out_path.join(format!("lib{}.a", dir_name)));
     let status = cmd.status().unwrap();
     assert!(status.success());
-    
+
+    // emit linker flags
     println!("cargo:rustc-link-search=native={}", out_dir);
-    println!("cargo:rustc-link-lib=static=real_mode");
+    println!("cargo:rustc-link-lib=static={}", dir_name);
 }

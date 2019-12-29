@@ -9,7 +9,7 @@ SECTIONS {
     _bootloader_start = .;
     .boot :
     {
-        *(.boot)
+        *first_stage*(.boot)
     }
     .first_stage_text :
     {
