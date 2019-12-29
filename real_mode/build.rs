@@ -9,7 +9,7 @@ fn main() {
     let objcopy = llvm_tools.tool(&exe("llvm-objcopy")).expect("llvm-objcopy not found");
 
     build_subproject(Path::new("first_stage"), &["_start", "print_char"], &out_dir, &objcopy);
-    build_subproject(Path::new("second_stage"), &["second_stage"], &out_dir, &objcopy);
+    build_subproject(Path::new("real_mode"), &["second_stage"], &out_dir, &objcopy);
 }
 
 fn build_subproject(dir: &Path, global_symbols: &[&str], out_dir: &str, objcopy: &Path) {
@@ -21,11 +21,14 @@ fn build_subproject(dir: &Path, global_symbols: &[&str], out_dir: &str, objcopy:
     // build
     let mut cmd = Command::new("cargo");
     cmd.arg("xbuild").arg("--release");
+    cmd.arg("--verbose");
     cmd.arg(format!("--manifest-path={}", manifest_path.display()));
+    cmd.arg(format!("--target={}", dir.join("x86_64-target.json").display()));
     cmd.arg("-Z").arg("unstable-options");
     cmd.arg("--out-dir").arg(&out_dir);
-    cmd.arg("--target-dir").arg("target");
-    cmd.env("XBUILD_SYSROOT_PATH", format!("target/{}-sysroot", dir_name));
+    cmd.arg("--target-dir").arg(out_path.join("target").join(dir_name));
+    cmd.env_remove("RUSTFLAGS");
+    cmd.env("XBUILD_SYSROOT_PATH", out_path.join("target").join(dir_name).join("sysroot"));
     let status = cmd.status().unwrap();
     assert!(status.success());
 
@@ -34,6 +37,13 @@ fn build_subproject(dir: &Path, global_symbols: &[&str], out_dir: &str, objcopy:
     for symbol in global_symbols {
         cmd.arg("-G").arg(symbol);
     }
+    cmd.arg(out_path.join(format!("lib{}.a", dir_name)));
+    let status = cmd.status().unwrap();
+    assert!(status.success());
+    
+    // convert to ELF64
+    let mut cmd = Command::new(objcopy);
+    cmd.arg("-I").arg("elf32-i386").arg("-O").arg("elf64-x86-64");
     cmd.arg(out_path.join(format!("lib{}.a", dir_name)));
     let status = cmd.status().unwrap();
     assert!(status.success());

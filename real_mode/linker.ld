@@ -30,15 +30,15 @@ SECTIONS {
 
     _second_stage_start = .;
 
-    .second_stage_text :
+    .real_mode_text :
     {
-        *second_stage*(.text .text.*)
+        *real_mode*(.text .text.*)
     }
-    .second_stage_data :
+    .real_mode_data :
     {
-        *second_stage*(.rodata .rodata.*)
-        *second_stage*(.data .data.*)
-        *second_stage*(.got .got.*)
+        *real_mode*(.rodata .rodata.*)
+        *real_mode*(.data .data.*)
+        *real_mode*(.got .got.*)
     }
 
     .text :
