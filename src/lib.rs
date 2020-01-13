@@ -12,6 +12,15 @@ pub use crate::bootinfo::BootInfo;
 
 pub mod bootinfo;
 
+#[cfg(target_arch = "x86")]
+compile_error!(
+    "This crate currently does not support 32-bit protected mode. \
+         See https://github.com/rust-osdev/bootloader/issues/70 for more information."
+);
+
+#[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
+compile_error!("This crate only supports the x86_64 architecture.");
+
 /// Defines the entry point function.
 ///
 /// The function must have the signature `fn(&'static BootInfo) -> !`.
