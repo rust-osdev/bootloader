@@ -15,6 +15,7 @@ pub struct MemoryMap {
 }
 
 #[doc(hidden)]
+#[allow(clippy::new_without_default)]
 impl MemoryMap {
     pub fn new() -> Self {
         MemoryMap {
