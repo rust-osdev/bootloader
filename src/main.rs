@@ -19,9 +19,8 @@ use usize_conversions::usize_from;
 use x86_64::instructions::tlb;
 use x86_64::structures::paging::{
     frame::PhysFrameRange, page_table::PageTableEntry, Mapper, Page, PageTable, PageTableFlags,
-    PhysFrame, RecursivePageTable, Size2MiB, Size4KiB,
+    PageTableIndex, PhysFrame, RecursivePageTable, Size2MiB, Size4KiB, UnusedPhysFrame,
 };
-use x86_64::ux::u9;
 use x86_64::{PhysAddr, VirtAddr};
 
 // The bootloader_config.rs file contains some configuration constants set by the build script:
@@ -170,7 +169,7 @@ fn bootloader_main(
     enable_nxe_bit();
 
     // Create a recursive page table entry
-    let recursive_index = u9::new(level4_entries.get_free_entry().try_into().unwrap());
+    let recursive_index = PageTableIndex::new(level4_entries.get_free_entry().try_into().unwrap());
     let mut entry = PageTableEntry::new();
     entry.set_addr(
         p4_physical,
@@ -243,9 +242,9 @@ fn bootloader_main(
     let boot_info_page = {
         let page: Page = Page::from_page_table_indices(
             level4_entries.get_free_entry(),
-            u9::new(0),
-            u9::new(0),
-            u9::new(0),
+            PageTableIndex::new(0),
+            PageTableIndex::new(0),
+            PageTableIndex::new(0),
         );
         let frame = frame_allocator
             .allocate_frame(MemoryRegionType::BootInfo)
@@ -287,9 +286,12 @@ fn bootloader_main(
             // If offset not manually provided, find a free p4 entry and map memory here.
             // One level 4 entry spans 2^48/512 bytes (over 500gib) so this should suffice.
             assert!(max_phys_addr < (1 << 48) / 512);
-            Page::from_page_table_indices_1gib(level4_entries.get_free_entry(), u9::new(0))
-                .start_address()
-                .as_u64()
+            Page::from_page_table_indices_1gib(
+                level4_entries.get_free_entry(),
+                PageTableIndex::new(0),
+            )
+            .start_address()
+            .as_u64()
         });
 
         let virt_for_phys =
@@ -304,7 +306,7 @@ fn bootloader_main(
             unsafe {
                 page_table::map_page(
                     page,
-                    frame,
+                    UnusedPhysFrame::new(frame),
                     flags,
                     &mut rec_page_table,
                     &mut frame_allocator,

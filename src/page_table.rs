@@ -4,6 +4,7 @@ use fixedvec::FixedVec;
 use x86_64::structures::paging::mapper::{MapToError, MapperFlush, UnmapError};
 use x86_64::structures::paging::{
     self, Mapper, Page, PageSize, PageTableFlags, PhysFrame, RecursivePageTable, Size4KiB,
+    UnusedPhysFrame,
 };
 use x86_64::{align_up, PhysAddr, VirtAddr};
 use xmas_elf::program::{self, ProgramHeader64};
@@ -68,8 +69,16 @@ pub(crate) fn map_segment(
             for frame in PhysFrame::range_inclusive(start_frame, end_frame) {
                 let offset = frame - start_frame;
                 let page = start_page + offset;
-                unsafe { map_page(page, frame, page_table_flags, page_table, frame_allocator)? }
-                    .flush();
+                unsafe {
+                    map_page(
+                        page,
+                        UnusedPhysFrame::new(frame),
+                        page_table_flags,
+                        page_table,
+                        frame_allocator,
+                    )?
+                }
+                .flush();
             }
 
             if mem_size > file_size {
@@ -89,7 +98,7 @@ pub(crate) fn map_segment(
                     unsafe {
                         map_page(
                             temp_page.clone(),
-                            new_frame.clone(),
+                            UnusedPhysFrame::new(new_frame.clone()),
                             page_table_flags,
                             page_table,
                             frame_allocator,
@@ -159,7 +168,7 @@ pub(crate) fn map_segment(
 
 pub(crate) unsafe fn map_page<'a, S>(
     page: Page<S>,
-    phys_frame: PhysFrame<S>,
+    phys_frame: UnusedPhysFrame<S>,
     flags: PageTableFlags,
     page_table: &mut RecursivePageTable<'a>,
     frame_allocator: &mut FrameAllocator,
@@ -171,7 +180,7 @@ where
     struct PageTableAllocator<'a, 'b: 'a>(&'a mut FrameAllocator<'b>);
 
     unsafe impl<'a, 'b> paging::FrameAllocator<Size4KiB> for PageTableAllocator<'a, 'b> {
-        fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KiB>> {
+        fn allocate_frame(&mut self) -> Option<UnusedPhysFrame<Size4KiB>> {
             self.0.allocate_frame(MemoryRegionType::PageTable)
         }
     }
