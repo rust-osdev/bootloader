@@ -14,7 +14,7 @@ required-features = ["binary"]
 
 [dependencies]
 xmas-elf = { version = "0.6.2", optional = true }
-x86_64 = { version = "0.7.2", optional = true }
+x86_64 = { version = "0.8.3", optional = true }
 usize_conversions = { version = "0.2.0", optional = true }
 fixedvec = { version = "0.2.4", optional = true }
 bit_field = { version = "0.10.0", optional = true }
