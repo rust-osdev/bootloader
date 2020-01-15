@@ -1,3 +1,5 @@
+- Update x86_64 dependency ([#92](https://github.com/rust-osdev/bootloader/pull/92))
+
 # 0.8.4
 
 - Move architecture checks from build script into lib.rs ([#91](https://github.com/rust-osdev/bootloader/pull/91))
