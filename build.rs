@@ -174,7 +174,9 @@ fn main() {
     }
 
     // wrap the kernel executable as binary in a new ELF file
-    let stripped_kernel_file_name_replaced = stripped_kernel_file_name.replace('-', "_");
+    let stripped_kernel_file_name_replaced = stripped_kernel_file_name
+        .replace('-', "_")
+        .replace('.', "_");
     let kernel_bin = out_dir.join(format!("kernel_bin-{}.o", kernel_file_name));
     let kernel_archive = out_dir.join(format!("libkernel_bin-{}.a", kernel_file_name));
     let mut cmd = Command::new(&objcopy);
