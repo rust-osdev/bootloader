@@ -1,3 +1,5 @@
+# 0.8.6
+
 - Objcopy replaces `.` chars with `_` chars ([#94](https://github.com/rust-osdev/bootloader/pull/94))
 
 # 0.8.5
