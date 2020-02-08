@@ -1,3 +1,5 @@
+- Objcopy replaces `.` chars with `_` chars ([#94](https://github.com/rust-osdev/bootloader/pull/94))
+
 # 0.8.5
 
 - Update x86_64 dependency ([#92](https://github.com/rust-osdev/bootloader/pull/92))
