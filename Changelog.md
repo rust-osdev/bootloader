@@ -1,3 +1,5 @@
+- Fix docs.rs build (see commit 01671dbe449b85b3c0ea73c5796cc8f9661585ee)
+
 # 0.8.6
 
 - Objcopy replaces `.` chars with `_` chars ([#94](https://github.com/rust-osdev/bootloader/pull/94))
