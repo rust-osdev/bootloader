@@ -36,6 +36,7 @@ global_asm!(include_str!("stage_1.s"));
 global_asm!(include_str!("stage_2.s"));
 global_asm!(include_str!("e820.s"));
 global_asm!(include_str!("stage_3.s"));
+global_asm!(include_str!("smp_trampoline.s"));
 
 #[cfg(feature = "vga_320x200")]
 global_asm!(include_str!("video_mode/vga_320x200.s"));
@@ -84,6 +85,7 @@ extern "C" {
     static __bootloader_end: usize;
     static __bootloader_start: usize;
     static _p4: usize;
+    fn _smp_trampoline() -> !;
 }
 
 #[no_mangle]
@@ -324,6 +326,7 @@ fn bootloader_main(
     // Construct boot info structure.
     let mut boot_info = BootInfo::new(
         memory_map,
+        _smp_trampoline,
         recursive_page_table_addr.as_u64(),
         physical_memory_offset,
     );

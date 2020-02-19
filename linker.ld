@@ -25,13 +25,17 @@ SECTIONS {
     . = 0x7c00;
     _stack_end = .;
 
-    .bootloader :
+    .bootloader_first_stage :
     {
         /* first stage */
         *(.boot-first-stage)
+    }
 
+    .bootloader :
+    {
         /* rest of bootloader */
         _rest_of_bootloader_start_addr = .;
+        *(.smp_trampoline)
         *(.boot)
         *(.context_switch)
         *(.text .text.*)

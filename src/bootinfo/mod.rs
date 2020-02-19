@@ -29,6 +29,7 @@ pub struct BootInfo {
     /// the memory map before passing it to the kernel. Regions marked as usable can be freely
     /// used by the kernel.
     pub memory_map: MemoryMap,
+    pub smp_trampoline: unsafe extern "C" fn() -> !,
     /// The virtual address of the recursively mapped level 4 page table.
     #[cfg(feature = "recursive_page_table")]
     pub recursive_page_table_addr: u64,
@@ -51,11 +52,13 @@ impl BootInfo {
     #[doc(hidden)]
     pub fn new(
         memory_map: MemoryMap,
+        smp_trampoline: unsafe extern "C" fn() -> !,
         recursive_page_table_addr: u64,
         physical_memory_offset: u64,
     ) -> Self {
         BootInfo {
             memory_map,
+            smp_trampoline,
             #[cfg(feature = "recursive_page_table")]
             recursive_page_table_addr,
             #[cfg(feature = "map_physical_memory")]
