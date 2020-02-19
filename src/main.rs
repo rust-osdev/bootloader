@@ -271,7 +271,7 @@ fn bootloader_main(
     };
 
     // Map kernel segments.
-    let stack_end = page_table::map_kernel(
+    let kernel_memory_info = page_table::map_kernel(
         kernel_start.phys(),
         kernel_stack_address,
         KERNEL_STACK_SIZE,
@@ -324,6 +324,7 @@ fn bootloader_main(
     // Construct boot info structure.
     let mut boot_info = BootInfo::new(
         memory_map,
+        kernel_memory_info.tls_segment,
         recursive_page_table_addr.as_u64(),
         physical_memory_offset,
     );
@@ -352,7 +353,7 @@ fn bootloader_main(
     sse::enable_sse();
 
     let entry_point = VirtAddr::new(entry_point);
-    unsafe { context_switch(boot_info_addr, entry_point, stack_end) };
+    unsafe { context_switch(boot_info_addr, entry_point, kernel_memory_info.stack_end) };
 }
 
 fn enable_nxe_bit() {
