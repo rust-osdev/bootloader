@@ -1,3 +1,5 @@
+# 0.8.0
+
 - Add basic support for ELF thread local storage segments ([#96](https://github.com/rust-osdev/bootloader/pull/96))
 
 # 0.8.7
