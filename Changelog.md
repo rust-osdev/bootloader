@@ -1,3 +1,5 @@
+- Add basic support for ELF thread local storage segments ([#96](https://github.com/rust-osdev/bootloader/pull/96))
+
 # 0.8.7
 
 - Fix docs.rs build (see commit 01671dbe449b85b3c0ea73c5796cc8f9661585ee)
