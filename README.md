@@ -28,6 +28,10 @@ kernel-stack-size = 128
 # Only applies if the `map_physical_memory` feature of the crate is enabled.
 # If not provided, the bootloader dynamically searches for a location.
 physical-memory-offset = "0xFFFF800000000000"
+
+# The address at which the bootinfo struct will be placed. if not provided,
+# the bootloader will dynamically search for a location.
+boot-info-address = "0xFFFFFFFF80000000"
 ```
 
 Note that the addresses **must** be given as strings (in either hex or decimal format), as [TOML](https://github.com/toml-lang/toml) does not support unsigned 64-bit integers.

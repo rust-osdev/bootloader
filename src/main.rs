@@ -240,12 +240,15 @@ fn bootloader_main(
 
     // Map a page for the boot info structure
     let boot_info_page = {
-        let page: Page = Page::from_page_table_indices(
-            level4_entries.get_free_entry(),
-            PageTableIndex::new(0),
-            PageTableIndex::new(0),
-            PageTableIndex::new(0),
-        );
+        let page: Page = match BOOT_INFO_ADDRESS {
+            Some(addr) => Page::containing_address(VirtAddr::new(addr)),
+            None => Page::from_page_table_indices(
+                level4_entries.get_free_entry(),
+                PageTableIndex::new(0),
+                PageTableIndex::new(0),
+                PageTableIndex::new(0),
+            ),
+        };
         let frame = frame_allocator
             .allocate_frame(MemoryRegionType::BootInfo)
             .expect("frame allocation failed");

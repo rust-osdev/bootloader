@@ -7,6 +7,7 @@ struct BootloaderConfig {
     physical_memory_offset: Option<u64>,
     kernel_stack_address: Option<u64>,
     kernel_stack_size: Option<u64>,
+    boot_info_address: Option<u64>,
 }
 
 #[cfg(feature = "binary")]
@@ -39,7 +40,8 @@ fn parse_to_config(cfg: &mut BootloaderConfig, table: &toml::value::Table) {
     for (key, value) in table {
         match (key.as_str(), value.clone()) {
             ("kernel-stack-address", Value::Integer(i))
-            | ("physical-memory-offset", Value::Integer(i)) => {
+            | ("physical-memory-offset", Value::Integer(i))
+            | ("boot-info-address", Value::Integer(i)) => {
                 panic!(
                     "`{0}` in the kernel manifest must be given as a string, \
                      as toml does not support unsigned 64-bit integers (try `{0} = \"{1}\"`)",
@@ -49,6 +51,9 @@ fn parse_to_config(cfg: &mut BootloaderConfig, table: &toml::value::Table) {
             }
             ("kernel-stack-address", Value::String(s)) => {
                 cfg.kernel_stack_address = Some(parse_aligned_addr(key.as_str(), &s));
+            }
+            ("boot-info-address", Value::String(s)) => {
+                cfg.boot_info_address = Some(parse_aligned_addr(key.as_str(), &s));
             }
             #[cfg(not(feature = "map_physical_memory"))]
             ("physical-memory-offset", Value::String(_)) => {
@@ -269,10 +274,12 @@ fn main() {
         format!(
             "const PHYSICAL_MEMORY_OFFSET: Option<u64> = {:?};
             const KERNEL_STACK_ADDRESS: Option<u64> = {:?};
-            const KERNEL_STACK_SIZE: u64 = {};",
+            const KERNEL_STACK_SIZE: u64 = {};
+            const BOOT_INFO_ADDRESS: Option<u64> = {:?};",
             bootloader_config.physical_memory_offset,
             bootloader_config.kernel_stack_address,
             bootloader_config.kernel_stack_size.unwrap_or(512), // size is in number of pages
+            bootloader_config.boot_info_address,
         )
         .as_bytes(),
     )
