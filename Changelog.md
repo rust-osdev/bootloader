@@ -1,3 +1,5 @@
+# 0.8.9
+
 - Implement boot-info-address ([#101](https://github.com/rust-osdev/bootloader/pull/101))
 
 # 0.8.8
