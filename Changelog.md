@@ -1,3 +1,5 @@
+Implement boot-info-address ([#101](https://github.com/rust-osdev/bootloader/pull/101))
+
 # 0.8.0
 
 - Add basic support for ELF thread local storage segments ([#96](https://github.com/rust-osdev/bootloader/pull/96))
