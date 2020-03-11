@@ -41,13 +41,18 @@ impl From<FrameBuffer> for u32 {
     }
 }
 
+/// Represents a plane for reading and writing vga data.
 #[allow(dead_code)]
 #[derive(Debug, Copy, Clone)]
 #[repr(u8)]
 pub enum Plane {
+    /// Represents `Plane 0 (0x0)`.
     Plane0 = 0x0,
+    /// Represents `Plane 1 (0x1)`.
     Plane1 = 0x1,
+    /// Represents `Plane 2 (0x2)`.
     Plane2 = 0x2,
+    /// Represents `Plane 3 (0x3)`.
     Plane3 = 0x3,
 }
 
@@ -70,6 +75,8 @@ pub enum VideoMode {
     Mode640x480x16,
 }
 
+/// Represents a vga graphics card with it's common registers,
+/// as well as the most recent video mode.
 pub struct Vga {
     general_registers: GeneralRegisters,
     sequencer_registers: SequencerRegisters,
@@ -91,6 +98,7 @@ impl Vga {
         }
     }
 
+    /// Sets the vga graphics card to the given `VideoMode`.
     pub fn set_video_mode(&mut self, video_mode: VideoMode) {
         match video_mode {
             VideoMode::Mode40x25 => self.set_video_mode_40x25(),
@@ -100,6 +108,8 @@ impl Vga {
         }
     }
 
+    /// Gets the `FrameBuffer` address as specified by the
+    /// `Miscellaneous Output Register`.
     pub fn get_frame_buffer(&mut self) -> FrameBuffer {
         let miscellaneous_graphics = self
             .graphics_controller_registers
@@ -108,6 +118,8 @@ impl Vga {
         FrameBuffer::from(memory_map_mode)
     }
 
+    /// Returns the most recent video mode, or `None` if no
+    /// video mode has been set yet.
     pub fn get_most_recent_video_mode(&self) -> Option<VideoMode> {
         self.most_recent_video_mode
     }
@@ -209,6 +221,7 @@ impl Vga {
         )
     }
 
+    /// Turns on the given `Plane` in the vga graphics card.
     pub fn set_plane(&mut self, plane: Plane) {
         let mut plane = u8::from(plane);
 

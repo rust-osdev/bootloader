@@ -1,4 +1,5 @@
 /// Represents a 16 bit color used for vga display.
+#[derive(Debug, Clone, Copy)]
 #[repr(u8)]
 pub enum Color16Bit {
     /// Represents the color `Black (0x0)`.

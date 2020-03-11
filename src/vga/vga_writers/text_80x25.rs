@@ -1,8 +1,9 @@
 use super::ScreenCharacter;
 use crate::vga::{
     vga_colors::{Color16Bit, TextModeColor},
-    VideoMode, VGA,
+    Vga, VideoMode, VGA,
 };
+use spinning_top::SpinlockGuard;
 
 const WIDTH: usize = 80;
 const HEIGHT: usize = 25;
@@ -36,7 +37,7 @@ impl Text80x25 {
     /// a background color of `Color16Bit::Black` and a foreground
     /// color of `Color16Bit::Yellow`.
     pub fn clear_screen(&self) {
-        let frame_buffer = self.get_frame_buffer();
+        let (_vga, frame_buffer) = self.get_frame_buffer();
         for i in 0..SCREEN_SIZE {
             unsafe {
                 frame_buffer
@@ -52,7 +53,7 @@ impl Text80x25 {
     pub fn write_character(&self, x: usize, y: usize, character: u8, color: TextModeColor) {
         assert!(x < WIDTH, "x >= {}", WIDTH);
         assert!(y < HEIGHT, "y >= {}", HEIGHT);
-        let frame_buffer = self.get_frame_buffer();
+        let (_vga, frame_buffer) = self.get_frame_buffer();
         let offset = (WIDTH * y + x) as isize;
         unsafe {
             frame_buffer
@@ -66,8 +67,12 @@ impl Text80x25 {
         VGA.lock().set_video_mode(VideoMode::Mode80x25);
     }
 
-    /// Returns the start of the `FrameBuffer` as `*mut ScreenCharacter`.
-    fn get_frame_buffer(&self) -> *mut ScreenCharacter {
-        u32::from(VGA.lock().get_frame_buffer()) as *mut ScreenCharacter
+    /// Returns the start of the `FrameBuffer` as `*mut ScreenCharacter`
+    /// as well as a lock to the vga driver. This ensures the vga
+    /// driver stays locked while the frame buffer is in use.
+    fn get_frame_buffer(&self) -> (SpinlockGuard<Vga>, *mut ScreenCharacter) {
+        let mut vga = VGA.lock();
+        let frame_buffer = vga.get_frame_buffer();
+        (vga, u32::from(frame_buffer) as *mut ScreenCharacter)
     }
 }
