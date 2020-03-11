@@ -11,6 +11,7 @@
 pub use crate::bootinfo::BootInfo;
 
 pub mod bootinfo;
+pub mod vga;
 
 #[cfg(target_arch = "x86")]
 compile_error!(

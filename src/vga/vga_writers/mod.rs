@@ -1,0 +1,3 @@
+mod text_80x25;
+
+pub use text_80x25::Text80x25;
