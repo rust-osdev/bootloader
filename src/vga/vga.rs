@@ -13,6 +13,7 @@ use super::{
 use conquer_once::spin::Lazy;
 use spinning_top::Spinlock;
 
+/// Provides mutable access to the static `Vga`.
 pub static VGA: Lazy<Spinlock<Vga>> = Lazy::new(|| Spinlock::new(Vga::new()));
 
 #[derive(Debug, Copy, Clone)]
@@ -56,11 +57,16 @@ impl From<Plane> for u8 {
     }
 }
 
-#[derive(Debug)]
+/// Represents a specified vga video mode.
+#[derive(Debug, Clone, Copy)]
 pub enum VideoMode {
+    /// Represents text mode 40x25.
     Mode40x25,
+    /// Represents text mode 40x50.
     Mode40x50,
+    /// Represents text mode 80x25.
     Mode80x25,
+    /// Represents graphics mode 640x480x16.
     Mode640x480x16,
 }
 
@@ -70,6 +76,7 @@ pub struct Vga {
     graphics_controller_registers: GraphicsControllerRegisters,
     attribute_controller_registers: AttributeControllerRegisters,
     crtc_controller_registers: CrtcControllerRegisters,
+    most_recent_video_mode: Option<VideoMode>,
 }
 
 impl Vga {
@@ -80,6 +87,7 @@ impl Vga {
             graphics_controller_registers: GraphicsControllerRegisters::new(),
             attribute_controller_registers: AttributeControllerRegisters::new(),
             crtc_controller_registers: CrtcControllerRegisters::new(),
+            most_recent_video_mode: None,
         }
     }
 
@@ -98,6 +106,10 @@ impl Vga {
             .read(GraphicsControllerIndex::Miscellaneous);
         let memory_map_mode = (miscellaneous_graphics >> 0x2) & 0x3;
         FrameBuffer::from(memory_map_mode)
+    }
+
+    pub fn get_most_recent_video_mode(&self) -> Option<VideoMode> {
+        self.most_recent_video_mode
     }
 
     /// `I/O Address Select` Bit 0 `(value & 0x1)` of MSR selects 3Bxh or 3Dxh as the I/O address for the CRT Controller
@@ -253,23 +265,27 @@ impl Vga {
     fn set_video_mode_40x25(&mut self) {
         self.set_registers(&MODE_40X25_CONFIGURATION);
         self.load_font(&TEXT_8X16_FONT);
+        self.most_recent_video_mode = Some(VideoMode::Mode40x25);
     }
 
     /// Sets the video card to Mode 40x50.
     fn set_video_mode_40x50(&mut self) {
         self.set_registers(&MODE_40X50_CONFIGURATION);
         self.load_font(&TEXT_8X8_FONT);
+        self.most_recent_video_mode = Some(VideoMode::Mode40x50);
     }
 
     /// Sets the video card to Mode 80x25.
     fn set_video_mode_80x25(&mut self) {
         self.set_registers(&MODE_80X25_CONFIGURATION);
         self.load_font(&TEXT_8X16_FONT);
+        self.most_recent_video_mode = Some(VideoMode::Mode80x25);
     }
 
-    /// Sets the video card to Mode 320x200x4
+    /// Sets the video card to Mode 640x480x16.
     fn set_video_mode_640x480x16(&mut self) {
         self.set_registers(&MODE_640X480X16_CONFIGURATION);
+        self.most_recent_video_mode = Some(VideoMode::Mode640x480x16);
     }
 
     /// Unlocks the CRTC registers by setting bit 7 to 0 `(value & 0x7F)`.
