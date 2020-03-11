@@ -4,7 +4,7 @@ use crate::vga::{
     VideoMode, VGA,
 };
 
-const WIDTH: usize = 80;
+const WIDTH: usize = 40;
 const HEIGHT: usize = 25;
 const SCREEN_SIZE: usize = WIDTH * HEIGHT;
 
@@ -20,16 +20,16 @@ static BLANK_CHARACTER: ScreenCharacter = ScreenCharacter {
 /// Basic usage:
 ///
 /// ```
-/// let text_mode = Text80x25::new();
+/// let text_mode = Text40x25::new();
 /// text_mode.set_mode();
 /// text_mode.clear_screen();
 /// ```
-pub struct Text80x25;
+pub struct Text40x25;
 
-impl Text80x25 {
-    /// Creates a new `Text80x25`.
-    pub fn new() -> Text80x25 {
-        Text80x25 {}
+impl Text40x25 {
+    /// Creates a new `Text40x25`.
+    pub fn new() -> Text40x25 {
+        Text40x25 {}
     }
 
     /// Clears the screen by setting all cells to `b' '` with
@@ -48,7 +48,7 @@ impl Text80x25 {
 
     /// Prints the given `character` and `color` at `(x, y)`.
     ///
-    /// Panics if `x >= 80` or `y >= 25`.
+    /// Panics if `x >= 40` or `y >= 25`.
     pub fn write_character(&self, x: usize, y: usize, character: u8, color: TextModeColor) {
         assert!(x < WIDTH, "x >= {}", WIDTH);
         assert!(y < HEIGHT, "y >= {}", HEIGHT);
@@ -61,9 +61,9 @@ impl Text80x25 {
         }
     }
 
-    /// Sets the graphics device to `VideoMode::Mode80x25`.
+    /// Sets the graphics device to `VideoMode::Mode40x25`.
     pub fn set_mode(&self) {
-        VGA.lock().set_video_mode(VideoMode::Mode80x25);
+        VGA.lock().set_video_mode(VideoMode::Mode40x25);
     }
 
     /// Returns the start of the `FrameBuffer` as `*mut ScreenCharacter`.

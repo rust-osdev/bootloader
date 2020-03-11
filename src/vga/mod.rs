@@ -9,4 +9,4 @@ mod vga_writers;
 
 pub use vga::{VideoMode, VGA};
 pub use vga_colors::{Color16Bit, TextModeColor};
-pub use vga_writers::Text80x25;
+pub use vga_writers::{Text40x25, Text40x50, Text80x25};
