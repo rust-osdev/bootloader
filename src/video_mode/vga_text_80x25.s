@@ -11,11 +11,17 @@ config_video_mode:
 .code32
 
 vga_map_frame_buffer:
-    mov eax, 0xb8000
+    mov eax, 0xa0000
     or eax, (1 | 2)
-    mov ecx, 0xb8000
+vga_map_frame_buffer_loop:
+    mov ecx, eax
     shr ecx, 12
     mov [_p1 + ecx * 8], eax
+
+    add eax, 4096
+    cmp eax, 0xbffff
+    jl vga_map_frame_buffer_loop
+
     ret
 
 # print a string and a newline
