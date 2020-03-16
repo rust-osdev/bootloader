@@ -1,3 +1,5 @@
+- **Breaking**: Identity-map complete vga region (0xa0000 to 0xc0000) ([#104](https://github.com/rust-osdev/bootloader/pull/104))
+
 # 0.8.9
 
 - Implement boot-info-address ([#101](https://github.com/rust-osdev/bootloader/pull/101))
