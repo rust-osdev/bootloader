@@ -19,7 +19,7 @@ vga_map_frame_buffer_loop:
     mov [_p1 + ecx * 8], eax
 
     add eax, 4096
-    cmp eax, 0xa0000 + 320 * 200
+    cmp eax, 0xc0000
     jl vga_map_frame_buffer_loop
 
     ret
