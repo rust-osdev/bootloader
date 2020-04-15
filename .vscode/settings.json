@@ -1,0 +1,4 @@
+{
+    "rust-analyzer.checkOnSave.command": "xcheck",
+    "rust-analyzer.checkOnSave.allTargets": false
+}
