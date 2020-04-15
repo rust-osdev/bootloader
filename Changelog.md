@@ -1,3 +1,5 @@
+# 0.9.1
+
 - SSE feature: remove inline assembly + don't set reserved bits ([#105](https://github.com/rust-osdev/bootloader/pull/105))
 
 # 0.9.0
