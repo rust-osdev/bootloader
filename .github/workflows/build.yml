@@ -44,7 +44,7 @@ jobs:
     - name: "Install cargo-xbuild"
       run: cargo install cargo-xbuild --debug
     - name: "Install cargo-binutils"
-      run: cargo install cargo-binutils --debug
+      run: cargo install cargo-binutils --version 0.1.7 --debug
 
     - run: cargo xbuild
       working-directory: test-kernel
