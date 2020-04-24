@@ -1,2 +1,5 @@
 [build]
 target = "x86-32bit.json"
+
+[alias]
+xbuild = "build -Zbuild-std=core"
