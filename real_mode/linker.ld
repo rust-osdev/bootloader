@@ -53,6 +53,12 @@ SECTIONS {
         *(.got .got.*)
     }
 
+    .eh_frame :
+    {
+        _EH_FRAME = .;
+        *(.eh_frame)
+    }
+
     .asm :
     {
         *(.second_stage)
