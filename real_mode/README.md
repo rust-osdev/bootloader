@@ -21,7 +21,7 @@ If the code does not fit into 512 bytes, the linker will throw the following err
 The output of `cargo xbuild` is an ELF binary, which can't be loaded directly by the BIOS. To boot our project, we must therefore convert it into a flat binary first. This works with the following `objcopy` command:
 
 ```
-objcopy -I elf32-i386 -O binary target/x86_64-bootloader-real-mode/release/real_mode image.bin
+objcopy -I elf32-i386 -O binary target/x86-32bit/release/bootloader image.bin
 ```
 
 This creates a file named `image.bin` in the root folder of the project, which is a bootable disk image.
