@@ -1,3 +1,5 @@
+# 0.9.2
+
 - **Nightly Breakage:** Use `llvm_asm!` instead of deprecated `asm!` ([#108](https://github.com/rust-osdev/bootloader/pull/108))
 
 # 0.9.1
