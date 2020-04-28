@@ -1,4 +1,5 @@
 use core::marker::PhantomData;
+use bit_field::BitField;
 
 use bit_field::BitField;
 

@@ -3,7 +3,9 @@ members = [
   "src/shared",
   "src/v86",
   "src/bootsector",
-  "src/stage_2"
+  "src/stage_2",
+  "example-kernel",
+  "test-kernel",
 ]
 
 [profile.release]
