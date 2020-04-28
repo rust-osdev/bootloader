@@ -44,6 +44,8 @@ pub fn second_stage() {
 
     println(b"A20");
 
+    loop {}
+
     unsafe {
         llvm_asm!("mov eax, cr0
                    or al, 1
@@ -70,7 +72,7 @@ extern "C" fn protected_mode() {
         }
     }
 
-    loop {}
+    loop {} 
 }
 
 fn enable_a20() {
