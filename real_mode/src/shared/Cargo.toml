@@ -1,0 +1,7 @@
+[package]
+name = "shared"
+version = "0.1.0"
+authors = ["Ryland Morgan <ryland.hugo@gmail.com>"]
+edition = "2018"
+
+[dependencies]

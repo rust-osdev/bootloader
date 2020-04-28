@@ -1,0 +1,11 @@
+[package]
+name = "bootsector"
+version = "0.1.0"
+authors = ["Ryland Morgan <ryland.hugo@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+shared = { path = "../shared" }
+stage_2 = { path = "../stage_2" }
