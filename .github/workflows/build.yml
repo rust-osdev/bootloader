@@ -51,43 +51,40 @@ jobs:
       name: 'Build Test Kernel'
 
     - name: 'Build Bootloader'
-      run: cargo xbuild --bin bootloader --features binary --release
-      env:
-        KERNEL: "test-kernel/target/x86_64-test-kernel/debug/test-kernel"
-        KERNEL_MANIFEST: "test-kernel/Cargo.toml"
+      run: cargo xbuild --release
 
     - name: 'Convert Bootloader ELF to Binary'
-      run: cargo objcopy -- -I elf64-x86-64 -O binary --binary-architecture=i386:x86-64 target/x86_64-bootloader/release/bootloader target/x86_64-bootloader/release/bootloader.bin
+      run: cargo objcopy -- -I elf64-i386 -O binary --binary-architecture=i386:x86-64 target/x86_64-real_mode/release/bootsector target/x86_64-real_mode/release/bootsector.bin
 
-     # install QEMU
-    - name: Install QEMU (Linux)
-      run: sudo apt update && sudo apt install qemu-system-x86
-      if: runner.os == 'Linux'
-    - name: Install QEMU (macOS)
-      run: brew install qemu
-      if: runner.os == 'macOS'
-      env:
-        HOMEBREW_NO_AUTO_UPDATE: 1
-        HOMEBREW_NO_BOTTLE_SOURCE_FALLBACK: 1
-        HOMEBREW_NO_INSTALL_CLEANUP: 1
-    - name: Install Scoop (Windows)
-      run: |
-        Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.scoop.sh')
-        echo ::add-path::$HOME\scoop\shims
-      if: runner.os == 'Windows'
-      shell: pwsh
-    - name: Install QEMU (Windows)
-      run: scoop install qemu
-      if: runner.os == 'Windows'
-      shell: pwsh
-    - name: "Print QEMU Version"
-      run: qemu-system-x86_64 --version
+    #  # install QEMU
+    # - name: Install QEMU (Linux)
+    #   run: sudo apt update && sudo apt install qemu-system-x86
+    #   if: runner.os == 'Linux'
+    # - name: Install QEMU (macOS)
+    #   run: brew install qemu
+    #   if: runner.os == 'macOS'
+    #   env:
+    #     HOMEBREW_NO_AUTO_UPDATE: 1
+    #     HOMEBREW_NO_BOTTLE_SOURCE_FALLBACK: 1
+    #     HOMEBREW_NO_INSTALL_CLEANUP: 1
+    # - name: Install Scoop (Windows)
+    #   run: |
+    #     Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.scoop.sh')
+    #     echo ::add-path::$HOME\scoop\shims
+    #   if: runner.os == 'Windows'
+    #   shell: pwsh
+    # - name: Install QEMU (Windows)
+    #   run: scoop install qemu
+    #   if: runner.os == 'Windows'
+    #   shell: pwsh
+    # - name: "Print QEMU Version"
+    #   run: qemu-system-x86_64 --version
 
-    - name: 'Run Test Kernel with Bootloader'
-      run: |
-        qemu-system-x86_64 -drive format=raw,file=target/x86_64-bootloader/release/bootloader.bin -device isa-debug-exit,iobase=0xf4,iosize=0x04 -display none
-        if [ $? -eq 123 ]; then (exit 0); else (exit 1); fi
-      shell: 'bash {0}'
+    # - name: 'Run Test Kernel with Bootloader'
+    #   run: |
+    #     qemu-system-x86_64 -drive format=raw,file=target/x86_64-bootloader/release/bootloader.bin -device isa-debug-exit,iobase=0xf4,iosize=0x04 -display none
+    #     if [ $? -eq 123 ]; then (exit 0); else (exit 1); fi
+    #   shell: 'bash {0}'
 
 
   build_example_kernel:
