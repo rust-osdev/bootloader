@@ -2,49 +2,46 @@ ENTRY(_start)
 
 SECTIONS {
     . = 0x500;
-    /* buffer for loading the kernel */
-    _kernel_buffer = .;
-    . += 512;
-    /* page tables */
-    . = ALIGN(0x1000);
-    __page_table_start = .;
-    _p4 = .;
-    . += 0x1000;
-    _p3 = .;
-    . += 0x1000;
-    _p2 = .;
-    . += 0x1000;
-    _p1 = .;
-    . += 0x1000;
-    __page_table_end = .;
-    __bootloader_start = .;
-    _memory_map = .;
-    . += 0x1000;
-
     _stack_start = .;
     . = 0x7c00;
     _stack_end = .;
 
-    .bootloader :
+    .bootsector :
     {
-        /* first stage */
-        *(.boot-first-stage)
+        _bootloader_start = .;
 
-        /* rest of bootloader */
-        _rest_of_bootloader_start_addr = .;
-        *(.boot)
-        *(.context_switch)
-        *(.text .text.*)
-        *(.rodata .rodata.*)
-        *(.data .data.*)
-        *(.got)
-        . = ALIGN(512);
-        _rest_of_bootloader_end_addr = .;
-        __bootloader_end = .;
+        *(.bootstrap)
+        *bootsector*
+
+        *shared*
     }
 
-    .kernel :
+    /* We write the magic number in the linker script to cause a link-time error if the bootloader overflows the 512 byte limit */
+    . = 0x7c00 + 510;
+    .magic :
     {
-        KEEP(*(.kernel))
+        SHORT(0xaa55)
+    }
+
+    _rest_of_bootloader_start = .;
+
+    .stage_2 :
+    {
+
+        _second_stage_start = .;
+
+        *stage_2*
+
+        _second_stage_end = .;
+    }
+
+    . = ALIGN(512);
+
+    _rest_of_bootloader_end = .;
+    _bootloader_end = .;
+    
+    /DISCARD/ :
+    {
+        *(.eh_frame)
     }
 }

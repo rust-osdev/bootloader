@@ -1,2 +1,3 @@
 [build]
-target = "x86_64-bootloader.json"
+target = "x86_64-real_mode.json"
+rustflags = ["-C", "link-arg=-Tlinker.ld"]
