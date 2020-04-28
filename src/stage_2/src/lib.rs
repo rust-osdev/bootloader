@@ -38,13 +38,15 @@ pub fn second_stage() {
 
     println(b"GDT Loaded!");
 
+    loop {};
+
     println(b"Switching to 32-bit");
 
     enable_a20();
 
     println(b"A20");
 
-    loop {}
+    loop {};
 
     unsafe {
         llvm_asm!("mov eax, cr0

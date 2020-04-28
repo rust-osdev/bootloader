@@ -1,8 +1,6 @@
 use core::marker::PhantomData;
 use bit_field::BitField;
 
-use bit_field::BitField;
-
 /// An Interrupt Descriptor Table with 32 entries.
 #[derive(Clone)]
 #[repr(C, align(16))]
