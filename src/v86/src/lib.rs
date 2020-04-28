@@ -1,10 +1,15 @@
+#![feature(abi_x86_interrupt)]
+#![feature(const_fn)]
+#![feature(llvm_asm)]
 #![no_std]
+
+pub mod idt;
 pub mod monitor;
 
 pub struct V86 {}
 
 impl V86 {
-    fn gpf_handler(frame: InterruptStackFrame) {
+    fn gpf_handler(frame: idt::InterruptStackFrame) {
         let instruction_pointer = ((frame.cs << 4) + frame.eip) as *const _ as u16;
         let instructions = slice::from_raw_parts_mut(instruction_pointer, 2);
 
