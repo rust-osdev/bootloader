@@ -5,13 +5,24 @@ pub struct V86 {}
 
 impl V86 {
     fn gpf_handler(frame: InterruptStackFrame) {
-        let instruction_pointer = ((frame.cs << 4) + frame.eip) as u16;
-        let ivt = 0u16;
-        let stack = ((frame.ss << 4) + frame.esp) as u16;
-        let stack32 = stack as u32;
+        let instruction_pointer = ((frame.cs << 4) + frame.eip) as *const _ as u16;
+        let instructions = slice::from_raw_parts_mut(instruction_pointer, 2);
 
-        match instruction_pointer[0] {
-            0xcd => match instruction_pointer[1] {
+        let ivt_pointer = 0 as *const _ as u16;
+        let ivt = slice::from_raw_parts_mut(ivt_pointer, 1024);
+
+        let stack_pointer = ((frame.ss << 4) + frame.esp) as u16;
+        let stack = slice::from_raw_parts_mut(stack_pointer, 16);
+
+        match instructions[0] {
+            0xcd => match instructions[1] {
+                0xff => {
+                    match frame.eax {
+                        0x0 => {}, // Terminate V86
+                        0x1 => {}, // Copy from 1MB buffer
+                        _ => panic!("Invalid V86 Monitor Function")
+                    }
+                },
                 _ => {
                     stack -= 3;
                     frame.esp = ((frame.esp) & 0xffff) - 6) & 0xffff;
