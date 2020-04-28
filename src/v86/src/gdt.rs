@@ -48,7 +48,9 @@ impl GlobalDescriptorTable {
             limit: (self.table.len() * size_of::<u64>() - 1) as u16,
         };
 
-        llvm_asm!("lgdt ($0)" :: "r" (&ptr) : "memory");
+        unsafe {
+            llvm_asm!("lgdt ($0)" :: "r" (&ptr) : "memory");
+        }
     }
 
     #[inline]
@@ -87,6 +89,9 @@ bitflags! {
 
         /// The DPL for this descriptor is Ring 3
         const DPL_RING_3        = 3 << 45;
+
+        /// If set, limit is in 4k pages
+        const GRANULARITY       = 1 << 55;
     }
 }
 
@@ -98,7 +103,7 @@ impl Descriptor {
 
         let flags =
             Flags::USER_SEGMENT | Flags::PRESENT | Flags::EXECUTABLE | Flags::READABLE_WRITABLE;
-        Descriptor(flags.bits())
+        Descriptor(flags.bits()).with_flat_limit()
     }
 
     /// Creates a segment descriptor for a protected mode kernel data segment.
@@ -107,7 +112,7 @@ impl Descriptor {
         use self::DescriptorFlags as Flags;
 
         let flags = Flags::USER_SEGMENT | Flags::PRESENT | Flags::READABLE_WRITABLE;
-        Descriptor(flags.bits())
+        Descriptor(flags.bits()).with_flat_limit()
     }
 
     /// Creates a segment descriptor for a protected mode ring 3 data segment.
@@ -117,7 +122,7 @@ impl Descriptor {
 
         let flags =
             Flags::USER_SEGMENT | Flags::PRESENT | Flags::READABLE_WRITABLE | Flags::DPL_RING_3;
-        Descriptor(flags.bits())
+        Descriptor(flags.bits()).with_flat_limit()
     }
 
     /// Creates a segment descriptor for a protected mode ring 3 code segment.
@@ -130,7 +135,7 @@ impl Descriptor {
             | Flags::EXECUTABLE
             | Flags::DPL_RING_3
             | Flags::READABLE_WRITABLE;
-        Descriptor(flags.bits())
+        Descriptor(flags.bits()).with_flat_limit()
     }
 
     /// Creates a TSS system descriptor for the given TSS.
@@ -151,6 +156,17 @@ impl Descriptor {
         val.set_bits(40..44, 0b1001);
 
         Descriptor(val)
+    }
+
+    fn with_flat_limit(mut self) -> Self {
+        // limit_low
+        self.0.set_bits(0..16, 0xffff);
+        // limit high
+        self.0.set_bits(48..52, 0xff);
+        // granularity
+        self.0 |= DescriptorFlags::GRANULARITY.bits();
+
+        self
     }
 }
 
@@ -224,7 +240,7 @@ pub struct Stack {
 }
 
 impl Stack {
-    fn zero() -> Self {
+    const fn zero() -> Self {
         Stack { esp: 0, ss: 0 }
     }
 }
