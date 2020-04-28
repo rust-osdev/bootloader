@@ -3,6 +3,7 @@
 #![feature(llvm_asm)]
 #![no_std]
 
+pub mod gdt;
 pub mod idt;
 
 const EFLAG_IF: u16 = 0x00000200;
