@@ -1,5 +1,7 @@
 use core::marker::PhantomData;
 
+use bit_field::BitField;
+
 /// An Interrupt Descriptor Table with 32 entries.
 #[derive(Clone)]
 #[repr(C, align(16))]
@@ -208,7 +210,7 @@ pub type DivergingHandlerFuncWithErrCode =
 #[derive(Clone)]
 #[repr(C)]
 pub struct InterruptStackFrame {
-    eip: u32,
-    cs: u32,
-    eflags: u32,
+    pub eip: u32,
+    pub cs: u32,
+    pub eflags: u32,
 }

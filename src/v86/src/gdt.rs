@@ -29,7 +29,7 @@ impl GlobalDescriptorTable {
     /// Loads the GDT in the CPU using the `lgdt` instruction. This does **not** alter any of the
     /// segment registers; you **must** (re)load them yourself.
     #[inline]
-    pub fn load(&'static self) {
+    pub unsafe fn load(&'static self) {
         use core::mem::size_of;
 
         /// A struct describing a pointer to a descriptor table (GDT / IDT).
@@ -219,12 +219,12 @@ impl TaskStateSegment {
 #[derive(Debug, Clone, Copy)]
 #[repr(C, packed)]
 pub struct Stack {
-    esp: u32,
-    ss: u32,
+    pub esp: u32,
+    pub ss: u32,
 }
 
 impl Stack {
-    fn zero() -> Self {
+    const fn zero() -> Self {
         Stack { esp: 0, ss: 0 }
     }
 }

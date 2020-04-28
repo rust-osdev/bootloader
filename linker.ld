@@ -12,8 +12,6 @@ SECTIONS {
 
         *(.bootstrap)
         *bootsector*
-
-        *shared*
     }
 
     /* We write the magic number in the linker script to cause a link-time error if the bootloader overflows the 512 byte limit */
@@ -23,22 +21,25 @@ SECTIONS {
         SHORT(0xaa55)
     }
 
-    _rest_of_bootloader_start = .;
-
-    .stage_2 :
+    .rest_of_bootloader :
     {
+        _rest_of_bootloader_start = .;
 
-        _second_stage_start = .;
+        *(.text .text.*)
+        *(.data .data.*)
+        *(.rodata .rodata.*)
+        *(.bss .bss.*)
 
-        *stage_2*
-
-        _second_stage_end = .;
+        . = ALIGN(512);
+    
+        _rest_of_bootloader_end = .;
     }
 
-    . = ALIGN(512);
-
-    _rest_of_bootloader_end = .;
     _bootloader_end = .;
+
+    _protected_mode_stack_start = .;
+    . += 0x1000;
+    _protected_mode_stack_end = .;
     
     /DISCARD/ :
     {

@@ -1,4 +1,4 @@
-#![feature(asm, global_asm)]
+#![feature(llvm_asm, global_asm)]
 
 #![no_std]
 #![no_main]
@@ -6,11 +6,12 @@
 #![allow(dead_code)]
 
 mod errors;
+mod console;
 
 use core::panic::PanicInfo;
 use stage_2::second_stage;
 
-use shared::console::println;
+use self::console::println;
 use shared::{dap, utils, linker_symbol};
 
 global_asm!(include_str!("bootstrap.s"));
@@ -46,7 +47,7 @@ pub fn panic(_info: &PanicInfo) -> ! {
 
 pub fn check_int13h_extensions(disk_number: u16) {
 	unsafe {
-		asm!("
+		llvm_asm!("
 			int 0x13
     		jc no_int13h_extensions
         " :: "{ah}"(0x41), "{bx}"(0x55aa), "{dl}"(disk_number) :: "intel", "volatile");

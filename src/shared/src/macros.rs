@@ -1,9 +1,9 @@
 #[macro_export]
 macro_rules! linker_symbol {
-	($symbol_name:ident) => {{
-		let symbol_value: u32;
+	($symbol_name:ident) => {unsafe {
+	    let symbol_value: u32;
 
-		asm!(concat!("lea eax, ", stringify!($symbol_name))
+		llvm_asm!(concat!("lea eax, ", stringify!($symbol_name))
 			: "={eax}"(symbol_value)
 			::: "intel", "volatile");
 

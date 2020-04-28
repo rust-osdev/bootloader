@@ -1,6 +1,6 @@
 #[inline(always)]
 pub fn hlt() {
     unsafe {
-        asm!("hlt" :::: "intel","volatile");
+        llvm_asm!("hlt" :::: "intel","volatile");
     }
 }
