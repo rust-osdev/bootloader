@@ -48,7 +48,9 @@ impl GlobalDescriptorTable {
             limit: (self.table.len() * size_of::<u64>() - 1) as u16,
         };
 
-        llvm_asm!("lgdt ($0)" :: "r" (&ptr) : "memory");
+        unsafe {
+            llvm_asm!("lgdt ($0)" :: "r" (&ptr) : "memory");
+        }
     }
 
     #[inline]
@@ -156,13 +158,13 @@ impl Descriptor {
         Descriptor(val)
     }
 
-    fn with_flat_limit(self) -> Self {
+    fn with_flat_limit(mut self) -> Self {
         // limit_low
         self.0.set_bits(0..16, 0xffff);
         // limit high
         self.0.set_bits(48..52, 0xff);
         // granularity
-        self.0 |= DescriptorFlags::GRANULARITY;
+        self.0 |= DescriptorFlags::GRANULARITY.bits();
 
         self
     }
@@ -238,7 +240,7 @@ pub struct Stack {
 }
 
 impl Stack {
-    fn zero() -> Self {
+    const fn zero() -> Self {
         Stack { esp: 0, ss: 0 }
     }
 }
