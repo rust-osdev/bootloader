@@ -1,23 +1,23 @@
 #![feature(llvm_asm, global_asm)]
-
 #![no_std]
-#![no_main]
 
 #![allow(dead_code)]
 
 mod errors;
 mod console;
 
-use stage_2::second_stage;
-
-use self::console::println;
+use self::console::real_mode_println;
 use shared::{dap, utils, linker_symbol};
+use core::panic::PanicInfo;
 
+extern "C" {
+    fn second_stage();
+}
 global_asm!(include_str!("bootstrap.s"));
 
 #[no_mangle]
-unsafe extern "C" fn rust_start(disk_number: u16) -> ! {
-    println(b"Stage 1");
+extern "C" fn rust_start(disk_number: u16) -> ! {
+    real_mode_println(b"Stage 1");
 
     check_int13h_extensions(disk_number);
 
@@ -27,20 +27,29 @@ unsafe extern "C" fn rust_start(disk_number: u16) -> ! {
         linker_symbol!(_rest_of_bootloader_end) - linker_symbol!(_rest_of_bootloader_start)
     );
 
-    dap.perform_load(disk_number);
+    unsafe { dap.perform_load(disk_number) };
 
-    second_stage();
+    unsafe { second_stage() };
 
     loop {
     	utils::hlt();
     }
 }
 
-pub fn check_int13h_extensions(disk_number: u16) {
+fn check_int13h_extensions(disk_number: u16) {
 	unsafe {
 		llvm_asm!("
 			int 0x13
     		jc no_int13h_extensions
         " :: "{ah}"(0x41), "{bx}"(0x55aa), "{dl}"(disk_number) :: "intel", "volatile");
 	}
+}
+
+#[panic_handler]
+fn panic(_info: &PanicInfo) -> ! {
+	real_mode_println(b"[Panic]");
+
+    loop {
+        utils::hlt()
+    }
 }

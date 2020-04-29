@@ -1,5 +1,5 @@
-#[inline(never)]
-pub fn println(s: &[u8]) {
+#[no_mangle]
+pub fn real_mode_println(s: &[u8]) {
     print(s);
     print_char(b'\n');
 }
