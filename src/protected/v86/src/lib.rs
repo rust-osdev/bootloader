@@ -1,14 +1,9 @@
-#![feature(abi_x86_interrupt)]
-#![feature(const_fn)]
-#![feature(llvm_asm)]
 #![no_std]
+
 // FIXME
 #![allow(dead_code, unused_imports)]
 
 use core::slice;
-
-pub mod gdt;
-pub mod idt;
 
 const EFLAG_IF: u32 = 0x00000200;
 const EFLAG_VM: u32 = 0x00020000;

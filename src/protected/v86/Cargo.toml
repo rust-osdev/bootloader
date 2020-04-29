@@ -5,5 +5,3 @@ authors = ["Ryland Morgan <ryland.hugo@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-bitflags = "1.2.1"
-bit_field = "0.10.0"

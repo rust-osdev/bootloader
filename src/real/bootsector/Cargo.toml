@@ -11,4 +11,4 @@ name = "bootsector"
 crate-type = ["staticlib"]
 
 [dependencies]
-shared = { path = "../shared" }
+shared = { path = "../../shared" }

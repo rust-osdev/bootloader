@@ -11,17 +11,28 @@ fn main() {
         .expect("llvm-objcopy not found");
 
     build_subproject(
-        Path::new("../bootsector"),
+        Path::new("src/real/bootsector"),
         &[
             "_start",
             "real_mode_println",
             "no_int13h_extensions",
             "dap_load_failed",
         ],
-        "x86_64-real_mode.json",
+        "real/x86_64-real_mode.json",
         &out_dir,
         &objcopy,
     );
+
+    build_subproject(
+        Path::new("src/real/stage2"),
+        &[
+            "second_stage",
+        ],
+        "real/x86_64-real_mode.json",
+        &out_dir,
+        &objcopy,
+    );
+
 }
 
 fn build_subproject(
@@ -42,11 +53,13 @@ fn build_subproject(
     // build
     let mut cmd = Command::new("cargo");
     cmd.arg("xbuild").arg("--release");
+    
     cmd.arg("--verbose");
+
     cmd.arg(format!("--manifest-path={}", manifest_path.display()));
     cmd.arg(format!(
         "--target={}",
-        dir.join("../..").join(target).display()
+        dir.join("..").join("..").join(target).display()
     ));
     cmd.arg("-Z").arg("unstable-options");
     cmd.arg("--out-dir").arg(&out_dir);
@@ -58,7 +71,7 @@ fn build_subproject(
         out_path.join("target").join(dir_name).join("sysroot"),
     );
     let status = cmd.status().unwrap();
-    assert!(status.success());
+    assert!(status.success(), "Subcrate build failed!");
 
     // localize symbols
     let mut cmd = Command::new(objcopy);

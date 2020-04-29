@@ -1,2 +1,2 @@
-[alias]
-xbuild = "build -Zbuild-std=core"
+[build]
+target = "src/real/x86_64-real_mode.json"
