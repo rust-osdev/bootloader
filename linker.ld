@@ -32,6 +32,7 @@ SECTIONS {
         *(.data .data.*)
         *(.rodata .rodata.*)
         *(.bss .bss.*)
+        *(.got .got.plt)
 
         . = ALIGN(512);
     
