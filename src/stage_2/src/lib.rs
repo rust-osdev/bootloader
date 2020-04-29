@@ -1,11 +1,16 @@
 #![no_std]
 #![feature(llvm_asm)]
 
-use shared::console::println;
+// FIXME
+#![allow(dead_code, unused_variables)]
+
+use shared::println;
 use shared::linker_symbol;
 use v86::gdt::{GlobalDescriptorTable, Descriptor, TaskStateSegment};
 
 use lazy_static::lazy_static;
+
+mod panic;
 
 lazy_static! {
     static ref TSS: TaskStateSegment = {
@@ -30,21 +35,23 @@ lazy_static! {
 
 #[no_mangle]
 pub fn second_stage() {
-    println(b"Stage 2");
+    println!("Stage 2");
 
-    println(b"Loading GDT");
+    loop {}
+}
+
+fn enter_protected_mode() {
+    println!("Loading GDT");
 
     unsafe { GDT.load(); }
 
-    println(b"GDT Loaded!");
+    println!("GDT Loaded!");
 
-    loop {};
-
-    println(b"Switching to 32-bit");
+    println!("Switching to 32-bit");
 
     enable_a20();
 
-    println(b"A20");
+    println!("A20");
 
     loop {};
 
@@ -61,18 +68,9 @@ pub fn second_stage() {
     }
 }
 
-static HELLO: &[u8] = b"Protected Mode!";
-
 #[no_mangle]
 extern "C" fn protected_mode() {
-    let vga_buffer = 0xb8000 as *mut u8;
-
-    for (i, &byte) in HELLO.iter().enumerate() {
-        unsafe {
-            *vga_buffer.offset(i as isize * 2) = byte;
-            *vga_buffer.offset(i as isize * 2 + 1) = 0xb;
-        }
-    }
+    println!("Protected Mode!");
 
     loop {} 
 }

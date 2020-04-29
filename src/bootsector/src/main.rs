@@ -8,7 +8,6 @@
 mod errors;
 mod console;
 
-use core::panic::PanicInfo;
 use stage_2::second_stage;
 
 use self::console::println;
@@ -34,14 +33,6 @@ unsafe extern "C" fn rust_start(disk_number: u16) -> ! {
 
     loop {
     	utils::hlt();
-    }
-}
-
-#[panic_handler]
-pub fn panic(_info: &PanicInfo) -> ! {
-    println(b"[!] Rust Panic");
-    loop {
-    	utils::hlt()
     }
 }
 

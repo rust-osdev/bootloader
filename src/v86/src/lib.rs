@@ -3,6 +3,9 @@
 #![feature(llvm_asm)]
 #![no_std]
 
+// FIXME
+#![allow(dead_code, unused_imports)]
+
 use core::slice;
 
 pub mod gdt;

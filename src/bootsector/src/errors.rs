@@ -1,5 +1,5 @@
 use shared::utils;
-use shared::console::println;
+use super::console::println;
 
 #[no_mangle]
 pub extern "C" fn dap_load_failed() -> ! {
