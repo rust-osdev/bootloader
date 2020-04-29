@@ -15,7 +15,9 @@ pub extern "C" fn _start() -> ! {
     // named `_start` by default
 
     // exit QEMU (see https://os.phil-opp.com/integration-tests/#shutting-down-qemu)
-    unsafe { exit_qemu(); }
+    unsafe {
+        exit_qemu();
+    }
 
     loop {}
 }
