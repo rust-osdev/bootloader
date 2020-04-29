@@ -25,6 +25,9 @@ SECTIONS {
     {
         _rest_of_bootloader_start = .;
 
+        *stage_2*
+        *core*
+
         *(.text .text.*)
         *(.data .data.*)
         *(.rodata .rodata.*)
@@ -34,6 +37,9 @@ SECTIONS {
     
         _rest_of_bootloader_end = .;
     }
+
+    /* Cause link time error if bootloader overflows 1MB limit */
+    . = 0x100000;
 
     _bootloader_end = .;
 
