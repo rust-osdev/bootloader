@@ -5,12 +5,12 @@ pub fn real_mode_println(s: &[u8]) {
 }
 
 pub fn print(s: &[u8]) {
-	let mut i = 0;
+    let mut i = 0;
 
-	while i < s.len() {
-		print_char(s[i]);
-		i += 1;
-	}
+    while i < s.len() {
+        print_char(s[i]);
+        i += 1;
+    }
 }
 
 #[inline(always)]

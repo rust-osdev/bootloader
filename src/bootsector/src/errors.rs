@@ -1,5 +1,5 @@
-use shared::utils;
 use super::console::real_mode_println;
+use shared::utils;
 
 #[no_mangle]
 extern "C" fn dap_load_failed() -> ! {
