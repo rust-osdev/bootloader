@@ -11,3 +11,8 @@ members = [
 [profile.release]
 opt-level = "z"
 panic = "abort"
+lto = true
+
+[profile.release.package.bootsector]
+opt-level = "s"
+codegen-units = 1
