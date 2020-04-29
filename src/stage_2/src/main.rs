@@ -1,5 +1,6 @@
-#![no_std]
 #![feature(llvm_asm)]
+#![no_std]
+#![no_main]
 
 // FIXME
 #![allow(dead_code, unused_variables)]
