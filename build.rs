@@ -24,7 +24,7 @@ fn main() {
     );
 
     build_subproject(
-        Path::new("src/real/stage2"),
+        Path::new("src/real/stage_2"),
         &[
             "second_stage",
         ],
