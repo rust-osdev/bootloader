@@ -19,20 +19,8 @@ pub struct Writer {}
 
 impl Write for Writer {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        for c in s.chars() {
-            let _ = self.write_char(c);
-        }
-
-        Ok(())
-    }
-
-    fn write_char(&mut self, c: char) -> fmt::Result {
-        let mut buffer = [0u8; 4];
-
-        c.encode_utf8(&mut buffer);
-
-        for raw_char in &buffer {
-            self.write_raw_char(*raw_char);
+        for &byte in s.as_bytes() {
+            let _ = self.write_byte(byte);
         }
 
         Ok(())
@@ -41,7 +29,7 @@ impl Write for Writer {
 
 impl Writer {
     #[inline(always)]
-    fn write_raw_char(&mut self, c: u8) {
+    fn write_byte(&mut self, c: u8) {
         let ax = u16::from(c) | 0x0e00;
 
         unsafe {
