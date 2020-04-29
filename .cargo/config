@@ -1,0 +1,2 @@
+[alias]
+xbuild = "build -Zbuild-std=core"

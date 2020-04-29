@@ -41,14 +41,8 @@ jobs:
 
     - name: "Install Rustup Components"
       run: rustup component add rust-src llvm-tools-preview
-    - name: "Install cargo-xbuild"
-      run: cargo install cargo-xbuild --debug
     - name: "Install cargo-binutils"
       run: cargo install cargo-binutils --version 0.1.7 --debug
-
-    - run: cargo xbuild
-      working-directory: test-kernel
-      name: 'Build Test Kernel'
 
     - name: 'Build Bootloader'
       run: cargo xbuild --release
@@ -109,8 +103,6 @@ jobs:
       if: runner.os == 'macOS'
     - name: "Install Rustup Components"
       run: rustup component add rust-src llvm-tools-preview
-    - name: "Install cargo-xbuild"
-      run: cargo install cargo-xbuild --debug
     - name: 'Build Example Kernel'
       run: cargo xbuild
       working-directory: example-kernel
