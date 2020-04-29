@@ -53,7 +53,7 @@ fn build_subproject(
     let mut cmd = Command::new("cargo");
     cmd.current_dir(&dir);
 
-    cmd.arg("xbuild").arg("--release");    
+    cmd.arg("build").arg("--release").arg("-Zbuild-std=core");    
     cmd.arg("--verbose");
 
     cmd.arg(format!(
