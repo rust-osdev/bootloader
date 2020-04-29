@@ -4,8 +4,8 @@ members = [
   "src/v86",
   "src/bootsector",
   "src/stage_2",
-  "example-kernel",
-  "test-kernel",
+#  "example-kernel",
+#  "test-kernel",
 ]
 
 [profile.release]
