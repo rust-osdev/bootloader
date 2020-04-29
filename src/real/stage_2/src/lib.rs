@@ -6,7 +6,7 @@
 
 use shared::linker_symbol;
 use shared::println;
-use v86::gdt::{Descriptor, GlobalDescriptorTable, TaskStateSegment};
+use shared::structures::gdt::{Descriptor, GlobalDescriptorTable, TaskStateSegment};
 
 use lazy_static::lazy_static;
 

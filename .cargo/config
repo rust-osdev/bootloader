@@ -1,2 +1,2 @@
 [build]
-target = "src/real/x86_64-real_mode.json"
+target = "x86_64-real_mode.json"

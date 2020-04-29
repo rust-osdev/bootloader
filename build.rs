@@ -10,7 +10,7 @@ fn main() {
         .tool(&exe("llvm-objcopy"))
         .expect("llvm-objcopy not found");
 
-    build_subproject(
+    /*build_subproject(
         Path::new("src/real/bootsector"),
         &[
             "_start",
@@ -18,17 +18,17 @@ fn main() {
             "no_int13h_extensions",
             "dap_load_failed",
         ],
-        "real/x86_64-real_mode.json",
+        "x86_64-bootsector.json",
         &out_dir,
         &objcopy,
-    );
+    );*/
 
     build_subproject(
         Path::new("src/real/stage_2"),
         &[
             "second_stage",
         ],
-        "real/x86_64-real_mode.json",
+        "x86_64-stage_2.json",
         &out_dir,
         &objcopy,
     );
@@ -43,7 +43,6 @@ fn build_subproject(
     objcopy: &Path,
 ) {
     let dir_name = dir.file_name().unwrap().to_str().unwrap();
-    let manifest_path = dir.join("Cargo.toml");
     let out_path = Path::new(&out_dir);
     assert!(
         global_symbols.len() > 0,
@@ -52,14 +51,15 @@ fn build_subproject(
 
     // build
     let mut cmd = Command::new("cargo");
-    cmd.arg("xbuild").arg("--release");
-    
+    cmd.current_dir(&dir);
+
+    cmd.arg("xbuild").arg("--release");    
     cmd.arg("--verbose");
 
-    cmd.arg(format!("--manifest-path={}", manifest_path.display()));
     cmd.arg(format!(
         "--target={}",
-        dir.join("..").join("..").join(target).display()
+        //dir.join(target).display()
+        target
     ));
     cmd.arg("-Z").arg("unstable-options");
     cmd.arg("--out-dir").arg(&out_dir);
