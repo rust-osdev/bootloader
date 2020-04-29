@@ -4,4 +4,5 @@
 pub mod console;
 pub mod dap;
 pub mod utils;
-#[macro_use] pub mod macros;
+#[macro_use]
+pub mod macros;

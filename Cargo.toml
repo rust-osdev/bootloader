@@ -4,10 +4,15 @@ members = [
   "src/v86",
   "src/bootsector",
   "src/stage_2",
-#  "example-kernel",
-#  "test-kernel",
+  "example-kernel",
+  "test-kernel",
 ]
 
 [profile.release]
 opt-level = "z"
 panic = "abort"
+lto = true
+
+[profile.release.package.bootsector]
+opt-level = "s"
+codegen-units = 1

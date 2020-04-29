@@ -2,7 +2,6 @@
 #![feature(const_fn)]
 #![feature(llvm_asm)]
 #![no_std]
-
 // FIXME
 #![allow(dead_code, unused_imports)]
 
@@ -34,7 +33,7 @@ impl V86 {
 
         // Match the first byte of the instruction
         match instructions[0] {
-            // int <interrupt> 
+            // int <interrupt>
             0xcd => match instructions[1] {
                 // 0xFF (255) is our V86 monitor interrupt
                 0xff => {
@@ -52,7 +51,7 @@ impl V86 {
 
                         // Copy data into protected mode address space
                         0x1 => {
-                            // We read buffer addresses and size from 
+                            // We read buffer addresses and size from
                             let destination_pointer = stack[4] as *mut u32;
                             let source_pointer = stack[5] as *const u32;
                             let size = stack[6];
@@ -70,7 +69,7 @@ impl V86 {
                     stack_pointer = stack_pointer.offset(3);
                     frame.esp = ((frame.esp & 0xffff) - 6) & 0xffff;
 
-                    // Store the next instructions EIP and code segment onto the stack                    
+                    // Store the next instructions EIP and code segment onto the stack
                     stack[0] = (frame.eip + 2) as usize;
                     stack32[1] = frame.cs;
 

@@ -1,12 +1,12 @@
-#![no_std]
 #![feature(llvm_asm)]
-
+#![no_std]
+#![no_main]
 // FIXME
 #![allow(dead_code, unused_variables)]
 
-use shared::println;
 use shared::linker_symbol;
-use v86::gdt::{GlobalDescriptorTable, Descriptor, TaskStateSegment};
+use shared::println;
+use v86::gdt::{Descriptor, GlobalDescriptorTable, TaskStateSegment};
 
 use lazy_static::lazy_static;
 
@@ -20,7 +20,6 @@ lazy_static! {
 
         tss
     };
-
     static ref GDT: GlobalDescriptorTable = {
         let mut gdt = GlobalDescriptorTable::new();
         gdt.add_entry(Descriptor::kernel_code_segment());
@@ -43,7 +42,9 @@ pub fn second_stage() {
 fn enter_protected_mode() {
     println!("Loading GDT");
 
-    unsafe { GDT.load(); }
+    unsafe {
+        GDT.load();
+    }
 
     println!("GDT Loaded!");
 
@@ -53,7 +54,7 @@ fn enter_protected_mode() {
 
     println!("A20");
 
-    loop {};
+    loop {}
 
     unsafe {
         llvm_asm!("mov eax, cr0
@@ -72,7 +73,7 @@ fn enter_protected_mode() {
 extern "C" fn protected_mode() {
     println!("Protected Mode!");
 
-    loop {} 
+    loop {}
 }
 
 fn enable_a20() {

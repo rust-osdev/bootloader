@@ -13,3 +13,6 @@ v86 = { path = "../v86" }
 [dependencies.lazy_static]
 version = "1.0"
 features = ["spin_no_std"]
+
+[build-dependencies]
+llvm-tools = "0.1.1"

@@ -1,5 +1,5 @@
-use core::marker::PhantomData;
 use bit_field::BitField;
+use core::marker::PhantomData;
 
 /// An Interrupt Descriptor Table with 32 entries.
 #[derive(Clone)]

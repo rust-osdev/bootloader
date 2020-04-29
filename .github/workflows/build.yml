@@ -41,20 +41,15 @@ jobs:
 
     - name: "Install Rustup Components"
       run: rustup component add rust-src llvm-tools-preview
-    - name: "Install cargo-xbuild"
-      run: cargo install cargo-xbuild --debug
     - name: "Install cargo-binutils"
       run: cargo install cargo-binutils --version 0.1.7 --debug
 
-    - run: cargo xbuild
-      working-directory: test-kernel
-      name: 'Build Test Kernel'
-
     - name: 'Build Bootloader'
       run: cargo xbuild --release
+      working-directory: src/stage_2
 
     - name: 'Convert Bootloader ELF to Binary'
-      run: cargo objcopy -- -I elf64-i386 -O binary --binary-architecture=i386:x86-64 target/x86_64-real_mode/release/bootsector target/x86_64-real_mode/release/bootsector.bin
+      run: cargo objcopy -- -I elf64-i386 -O binary --binary-architecture=i386:x86-64 target/x86_64-real_mode/release/stage_2 target/x86_64-real_mode/release/image.bin
 
     #  # install QEMU
     # - name: Install QEMU (Linux)
@@ -108,8 +103,6 @@ jobs:
       if: runner.os == 'macOS'
     - name: "Install Rustup Components"
       run: rustup component add rust-src llvm-tools-preview
-    - name: "Install cargo-xbuild"
-      run: cargo install cargo-xbuild --debug
     - name: 'Build Example Kernel'
       run: cargo xbuild
       working-directory: example-kernel
