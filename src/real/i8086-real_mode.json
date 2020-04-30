@@ -17,10 +17,5 @@
 	"os": "none",
 	"vendor": "unknown",
 	"relocation_model": "static",
-	"eliminate_frame_pointer": true,
-	"pre-link-args": {
-		"ld.lld": [
-			"--script=real/linker.ld"
-		]
-	}
+	"eliminate_frame_pointer": true
 }

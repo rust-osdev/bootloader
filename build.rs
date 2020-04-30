@@ -8,16 +8,14 @@ use std::process::Command;
 
 fn main() {
     // Read environment variables set by cargo
+    let out_dir_path = env::var("OUT_DIR").expect("Missing OUT_DIR environment variable");
+    let out_dir = Path::new(&out_dir_path);
+
     let cargo_path = env::var("CARGO").expect("Missing CARGO environment variable");
     let cargo = Path::new(&cargo_path);
 
     let manifest_dir_path = env::var("CARGO_MANIFEST_DIR").expect("Missing CARGO_MANIFEST_DIR environment variable");
     let manifest_dir = Path::new(&manifest_dir_path);
-
-    // Calculate target directory
-    let current_dir = env::current_dir().expect("Couldn't get current directory");
-    let target_dir_rel = manifest_dir.join("target");
-    let target_dir = current_dir.join(target_dir_rel);
 
     // Find the objcopy binary
     let llvm_tools = LlvmTools::new().expect("LLVM tools not found");
@@ -34,8 +32,8 @@ fn main() {
             "no_int13h_extensions",
             "dap_load_failed",
         ],
-        "i8086-bootsector.json",
-        &target_dir,
+        "../i8086-real_mode.json",
+        &out_dir,
         &objcopy,
         &cargo,
     );
@@ -46,8 +44,8 @@ fn main() {
         &[
             "second_stage",
         ],
-        "i8086-stage_2.json",
-        &target_dir,
+        "../i8086-real_mode.json",
+        &out_dir,
         &objcopy,
         &cargo,
     );
@@ -57,12 +55,13 @@ fn build_subproject(
     subproject_dir: &Path,
     global_symbols: &[&str],
     target_file_path: &str,
-    target_dir: &Path,
+    root_out_dir: &Path,
     objcopy: &Path,
     cargo: &Path,
 ) {
     let subproject_name = subproject_dir.file_stem().expect("Couldn't get subproject name").to_str().expect("Subproject Name is not valid UTF-8");
     let target_file = Path::new(&target_file_path).file_stem().expect("Couldn't get target file stem");
+    let target_dir = root_out_dir.join("target").join(&subproject_name);
 
     // We have to export at least 1 symbol
     assert!(
@@ -82,8 +81,8 @@ fn build_subproject(
     // Cross-compile core (cargo-xbuild no longer needed)
     build_cmd.arg("-Zbuild-std=core");
 
-    // Use root package target directory
-    build_cmd.arg(format!("--target-dir={}", &target_dir.join(&subproject_name).display()));
+    // Use calculated target directory
+    build_cmd.arg(format!("--target-dir={}", &target_dir.display()));
 
     // Use the passed target
     build_cmd.arg("--target").arg(target_file_path);
@@ -93,7 +92,7 @@ fn build_subproject(
     assert!(build_status.success(), "Subcrate build failed!");
 
     // Compute the path to the binary
-    let binary_dir = target_dir.join(&subproject_name).join(&target_file).join("release");
+    let binary_dir = target_dir.join(&target_file).join("release");
     let binary_path = binary_dir.join(format!("lib{}.a", &subproject_name));
 
     // Use passed objcopy
