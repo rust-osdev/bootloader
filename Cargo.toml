@@ -1,18 +1,12 @@
-[workspace]
-members = [
-  "src/shared",
-  "src/v86",
-  "src/bootsector",
-  "src/stage_2",
-  "example-kernel",
-  "test-kernel",
-]
+[package]
+name = "bootloader"
+version = "0.1.0"
+authors = ["Ryland Morgan <ryland.hugo@gmail.com>"]
+edition = "2018"
+build = "build.rs"
 
-[profile.release]
-opt-level = "z"
-panic = "abort"
-lto = true
+[dependencies]
+shared = { path = "src/shared" }
 
-[profile.release.package.bootsector]
-opt-level = "s"
-codegen-units = 1
+[build-dependencies]
+llvm-tools = "0.1"

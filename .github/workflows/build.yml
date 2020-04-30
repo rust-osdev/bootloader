@@ -46,10 +46,9 @@ jobs:
 
     - name: 'Build Bootloader'
       run: cargo xbuild --release
-      working-directory: src/stage_2
 
     - name: 'Convert Bootloader ELF to Binary'
-      run: cargo objcopy -- -I elf64-i386 -O binary --binary-architecture=i386:x86-64 target/x86_64-real_mode/release/stage_2 target/x86_64-real_mode/release/image.bin
+      run: cargo objcopy -- -I elf64-i386 -O binary --binary-architecture=i386:x86-64 target/i8086-bootloader/release/bootloader target/i8086-bootloader/release/image.bin
 
     #  # install QEMU
     # - name: Install QEMU (Linux)

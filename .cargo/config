@@ -1,2 +1,5 @@
+[build]
+target = "i8086-bootloader.json"
+
 [alias]
 xbuild = "build -Zbuild-std=core"
