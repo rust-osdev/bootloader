@@ -4,7 +4,7 @@ use shared::utils;
 
 #[panic_handler]
 pub fn panic(info: &PanicInfo) -> ! {
-    println!("[Panic]");
+    println!("[Panic] {}", info);
 
     loop {
         utils::hlt()
