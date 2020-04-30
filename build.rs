@@ -50,6 +50,9 @@ fn main() {
         &objcopy,
         &cargo,
     );
+
+    // Inform cargo that we should rerun this on linker script changes
+    println!("cargo:rerun-if-changed=linker.ld");
 }
 
 fn build_subproject(
@@ -126,4 +129,10 @@ fn build_subproject(
     // Staticlibs can't be used as normal dependencies, they have to be linked by a build script
     println!("cargo:rustc-link-search=native={}", &binary_dir.display());
     println!("cargo:rustc-link-lib=static={}", &subproject_name);
+
+    // Inform cargo to rerun on source changes
+    //
+    // Cargo doesn't understand that the subcrates are part of the project because of how we build them, we have to tell it ourselves
+    println!("cargo:rerun-if-changed={}", &target_file_path);
+    println!("cargo:rerun-if-changed={}", &subproject_dir.display());
 }
