@@ -14,7 +14,8 @@ fn main() {
     let cargo_path = env::var("CARGO").expect("Missing CARGO environment variable");
     let cargo = Path::new(&cargo_path);
 
-    let manifest_dir_path = env::var("CARGO_MANIFEST_DIR").expect("Missing CARGO_MANIFEST_DIR environment variable");
+    let manifest_dir_path =
+        env::var("CARGO_MANIFEST_DIR").expect("Missing CARGO_MANIFEST_DIR environment variable");
     let manifest_dir = Path::new(&manifest_dir_path);
 
     // Find the objcopy binary
@@ -41,9 +42,7 @@ fn main() {
     // Build stage 2
     build_subproject(
         Path::new("src/real/stage_2"),
-        &[
-            "second_stage",
-        ],
+        &["second_stage"],
         "../i8086-real_mode.json",
         &out_dir,
         &objcopy,
@@ -59,8 +58,14 @@ fn build_subproject(
     objcopy: &Path,
     cargo: &Path,
 ) {
-    let subproject_name = subproject_dir.file_stem().expect("Couldn't get subproject name").to_str().expect("Subproject Name is not valid UTF-8");
-    let target_file = Path::new(&target_file_path).file_stem().expect("Couldn't get target file stem");
+    let subproject_name = subproject_dir
+        .file_stem()
+        .expect("Couldn't get subproject name")
+        .to_str()
+        .expect("Subproject Name is not valid UTF-8");
+    let target_file = Path::new(&target_file_path)
+        .file_stem()
+        .expect("Couldn't get target file stem");
     let target_dir = root_out_dir.join("target").join(&subproject_name);
 
     // We have to export at least 1 symbol
@@ -98,9 +103,9 @@ fn build_subproject(
     // Use passed objcopy
     let mut objcopy_cmd = Command::new(objcopy);
 
-    // Localize all symbols except those passed        
+    // Localize all symbols except those passed
     for symbol in global_symbols {
-        objcopy_cmd.arg("-G").arg(symbol);  
+        objcopy_cmd.arg("-G").arg(symbol);
     }
 
     // Pass the binary as argument
