@@ -7,6 +7,7 @@ use core::slice;
 
 const EFLAG_IF: u32 = 0x00000200;
 const EFLAG_VM: u32 = 0x00020000;
+
 /*
 pub struct V86 {}
 

@@ -12,6 +12,7 @@ SECTIONS {
 
         *(.bootstrap)
         *bootsector*
+        *core*
     }
 
     /* We write the magic number in the linker script to cause a link-time error if the bootloader overflows the 512 byte limit */
