@@ -1,3 +1,5 @@
+// This build script compiles our bootloader. Because of architecture differences we can't use the standard Rust dependency resolution. To get around this (and add some more seperation between different areas) we compile all of the subcrates as static libraries and link them like we would a C dependency
+
 // TODO - Reuse compilation artifacts so core isn't compiled so many times
 use llvm_tools::{exe, LlvmTools};
 use std::env;
