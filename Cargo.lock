@@ -4,13 +4,11 @@
 name = "bootloader"
 version = "0.1.0"
 dependencies = [
- "llvm-tools 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "llvm-tools",
 ]
 
 [[package]]
 name = "llvm-tools"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[metadata]
-"checksum llvm-tools 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "955be5d0ca0465caf127165acb47964f911e2bc26073e865deb8be7189302faf"
+checksum = "955be5d0ca0465caf127165acb47964f911e2bc26073e865deb8be7189302faf"
