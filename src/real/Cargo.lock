@@ -29,17 +29,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "llvm-tools"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "955be5d0ca0465caf127165acb47964f911e2bc26073e865deb8be7189302faf"
-
-[[package]]
 name = "shared"
 version = "0.1.0"
 dependencies = [
  "bit_field",
  "bitflags",
+ "lazy_static",
+ "spin",
+ "volatile",
 ]
 
 [[package]]
@@ -53,6 +50,11 @@ name = "stage_2"
 version = "0.1.0"
 dependencies = [
  "lazy_static",
- "llvm-tools",
  "shared",
 ]
+
+[[package]]
+name = "volatile"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6af0edf5b4faacc31fc51159244d78d65ec580f021afcef7bd53c04aeabc7f29"

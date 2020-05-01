@@ -26,6 +26,17 @@ fn main() {
         .tool(&exe("llvm-objcopy"))
         .expect("llvm-objcopy not found");
 
+    // Build stage 3
+    build_subproject(
+        Path::new("src/protected/stage_3"),
+        &["third_stage"],
+        "../i386-unknown-none.json",
+        &target_dir,
+        &objcopy,
+        &cargo,
+    );
+
+
     // Build the bootsector
     build_subproject(
         Path::new("src/real/bootsector"),
@@ -35,7 +46,7 @@ fn main() {
             "no_int13h_extensions",
             "dap_load_failed",
         ],
-        "../i8086-real_mode.json",
+        "../i386-unknown-none-code16.json",
         &target_dir,
         &objcopy,
         &cargo,
@@ -45,7 +56,7 @@ fn main() {
     build_subproject(
         Path::new("src/real/stage_2"),
         &["second_stage"],
-        "../i8086-real_mode.json",
+        "../i386-unknown-none-code16.json",
         &target_dir,
         &objcopy,
         &cargo,

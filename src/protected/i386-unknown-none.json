@@ -6,7 +6,7 @@
 	"executables": true,
 	"linker-flavor": "ld.lld",
 	"linker": "rust-lld",
-	"llvm-target": "i386-unknown-none-code16",
+	"llvm-target": "i386-unknown-none",
 	"max-atomic-width": 64,
 	"position-independent-executables": false,
 	"disable-redzone": true,
@@ -17,10 +17,5 @@
 	"os": "none",
 	"vendor": "unknown",
 	"relocation_model": "static",
-	"eliminate_frame_pointer": true,
-	"pre-link-args": {
-		"ld.lld": [
-			"--script=linker.ld"
-		]
-	}
+	"eliminate_frame_pointer": true
 }

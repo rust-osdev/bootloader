@@ -23,6 +23,7 @@ impl GlobalDescriptorTable {
     #[inline]
     pub fn add_entry(&mut self, entry: Descriptor) -> u16 {
         let index = self.push(entry.0);
+        
         index as u16
     }
 
@@ -57,6 +58,7 @@ impl GlobalDescriptorTable {
             let index = self.next_free;
             self.table[index] = value;
             self.next_free += 1;
+
             index
         } else {
             panic!("GDT full");
@@ -101,12 +103,13 @@ impl Descriptor {
 
         let flags =
             Flags::USER_SEGMENT | Flags::PRESENT | Flags::EXECUTABLE | Flags::READABLE_WRITABLE;
+
         Descriptor(flags.bits()).with_flat_limit()
     }
 
     /// Creates a segment descriptor for a protected mode kernel data segment.
     #[inline]
-    pub fn data_segment() -> Descriptor {
+    pub fn kernel_data_segment() -> Descriptor {
         use self::DescriptorFlags as Flags;
 
         let flags = Flags::USER_SEGMENT | Flags::PRESENT | Flags::READABLE_WRITABLE;
@@ -159,8 +162,14 @@ impl Descriptor {
     fn with_flat_limit(mut self) -> Self {
         // limit_low
         self.0.set_bits(0..16, 0xffff);
+
         // limit high
-        self.0.set_bits(48..52, 0xff);
+        // self.0.set_bits(48..52, 0xff);
+        self.0.set_bit(48, true);
+        self.0.set_bit(49, true);
+        self.0.set_bit(50, true);
+        self.0.set_bit(51, true);
+ 
         // granularity
         self.0 |= DescriptorFlags::GRANULARITY.bits();
 

@@ -3,10 +3,12 @@ name = "bootloader"
 version = "0.1.0"
 authors = ["Ryland Morgan <ryland.hugo@gmail.com>"]
 edition = "2018"
+description = "An experimental bootloader, written in Rust"
 build = "build.rs"
 
 [dependencies]
 shared = { path = "src/shared" }
+rlibc = "1"
 
 [build-dependencies]
 llvm-tools = "0.1"

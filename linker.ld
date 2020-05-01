@@ -24,10 +24,7 @@ SECTIONS {
     .rest_of_bootloader :
     {
         _rest_of_bootloader_start = .;
-
-        *stage_2*
-        *core*
-
+        
         *(.text .text.*)
         *(.data .data.*)
         *(.rodata .rodata.*)

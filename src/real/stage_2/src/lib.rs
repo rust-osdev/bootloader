@@ -12,6 +12,10 @@ use lazy_static::lazy_static;
 
 mod panic;
 
+extern "C" {
+    fn third_stage();
+}
+
 lazy_static! {
     static ref TSS: TaskStateSegment = {
         let mut tss = TaskStateSegment::new();
@@ -23,6 +27,7 @@ lazy_static! {
     static ref GDT: GlobalDescriptorTable = {
         let mut gdt = GlobalDescriptorTable::new();
         gdt.add_entry(Descriptor::kernel_code_segment());
+        gdt.add_entry(Descriptor::kernel_data_segment());
         gdt.add_entry(Descriptor::user_code_segment());
         gdt.add_entry(Descriptor::user_data_segment());
 
@@ -36,44 +41,33 @@ lazy_static! {
 pub fn second_stage() {
     println!("Stage 2");
 
-    loop {}
+    enter_protected_mode();
+
+    loop {};
 }
 
 fn enter_protected_mode() {
-    println!("Loading GDT");
-
     unsafe {
         GDT.load();
     }
 
-    println!("GDT Loaded!");
-
-    println!("Switching to 32-bit");
+    println!("Switching to Protected Mode");
 
     enable_a20();
 
-    println!("A20");
-
-    loop {}
+    println!("A20 On");
 
     unsafe {
-        llvm_asm!("mov eax, cr0
+        llvm_asm!("cli
+
+                   mov eax, cr0
                    or al, 1
                    mov cr0, eax
 
-                   mov bx, 0x10
-                   mov ds, bx
-                   mov es, bx
-
-                   jmp protected_mode" ::: "eax", "bx" : "intel", "volatile");
+                   jmp third_stage" ::: "eax" : "intel", "volatile");
     }
-}
 
-#[no_mangle]
-extern "C" fn protected_mode() {
-    println!("Protected Mode!");
-
-    loop {}
+    unreachable!();
 }
 
 fn enable_a20() {

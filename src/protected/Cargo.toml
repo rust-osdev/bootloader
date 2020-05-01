@@ -1,0 +1,10 @@
+[workspace]
+members = [
+  "v86",
+  "stage_3"
+]
+
+[profile.release]
+opt-level = "z"
+panic = "abort"
+lto = true

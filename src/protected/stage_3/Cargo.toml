@@ -1,5 +1,5 @@
 [package]
-name = "stage_2"
+name = "stage_3"
 version = "0.1.0"
 authors = ["Ryland Morgan <ryland.hugo@gmail.com>"]
 edition = "2018"
@@ -7,12 +7,8 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-name = "stage_2"
+name = "stage_3"
 crate-type = ["staticlib"]
 
 [dependencies]
 shared = { path = "../../shared" }
-
-[dependencies.lazy_static]
-version = "1.0"
-features = ["spin_no_std"]
