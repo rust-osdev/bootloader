@@ -10,7 +10,7 @@ use core::panic::PanicInfo;
 use shared::{dap, linker_symbol, utils};
 
 extern "C" {
-    fn second_stage();
+    fn second_stage() -> !;
 }
 global_asm!(include_str!("bootstrap.s"));
 
@@ -26,13 +26,10 @@ extern "C" fn rust_start(disk_number: u16) -> ! {
         linker_symbol!(_rest_of_bootloader_end) - linker_symbol!(_rest_of_bootloader_start),
     );
 
-    unsafe { dap.perform_load(disk_number) };
-
-    unsafe { second_stage() };
-
-    loop {
-        utils::hlt();
-    }
+    unsafe {
+        dap.perform_load(disk_number);
+        second_stage();
+    };
 }
 
 fn check_int13h_extensions(disk_number: u16) {

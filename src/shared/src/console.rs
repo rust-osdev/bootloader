@@ -9,7 +9,7 @@ lazy_static! {
     /// Used by the `print!` and `println!` macros.
     pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
         column_position: 0,
-        color_code: ColorCode::new(Color::Yellow, Color::Black),
+        color_code: ColorCode::new(Color::Red, Color::Black),
         buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
     });
 }
@@ -153,7 +153,7 @@ impl fmt::Write for Writer {
 /// Like the `print!` macro in the standard library, but prints to the VGA text buffer.
 #[macro_export]
 macro_rules! print {
-    ($($arg:tt)*) => ($crate::console::vga::_print(format_args!($($arg)*)));
+    ($($arg:tt)*) => ($crate::console::_print(format_args!($($arg)*)));
 }
 
 /// Like the `println!` macro in the standard library, but prints to the VGA text buffer.

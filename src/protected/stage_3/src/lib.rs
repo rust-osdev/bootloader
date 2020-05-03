@@ -6,12 +6,8 @@ use shared::println;
 mod panic;
 
 #[no_mangle]
-pub extern "C" fn third_stage() {
-	unsafe {
-		llvm_asm!("mov bx, 0x0
-		           mov ds, bx
-		           mov es, bx" ::: "bx" : "intel", "volatile");
-	}
+pub extern "C" fn third_stage() -> ! {
+	println!("X");
 
-	println!("Stage 3");
+	loop {}
 }

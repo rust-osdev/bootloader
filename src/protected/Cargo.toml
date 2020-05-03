@@ -1,6 +1,5 @@
 [workspace]
 members = [
-  "v86",
   "stage_3"
 ]
 

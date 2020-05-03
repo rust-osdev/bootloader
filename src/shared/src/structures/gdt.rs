@@ -96,6 +96,12 @@ bitflags! {
 }
 
 impl Descriptor {
+    /// Creates a null descriptor
+    #[inline]
+    pub fn null_descriptor() -> Descriptor {
+        Descriptor(0)
+    }
+
     /// Creates a segment descriptor for a protected mode kernel code segment.
     #[inline]
     pub fn kernel_code_segment() -> Descriptor {
