@@ -1,7 +1,7 @@
 #![feature(lang_items)]
 #![feature(global_asm)]
 #![feature(step_trait)]
-#![feature(asm)]
+#![feature(llvm_asm)]
 #![feature(nll)]
 #![feature(const_fn)]
 #![no_std]
@@ -19,9 +19,8 @@ use usize_conversions::usize_from;
 use x86_64::instructions::tlb;
 use x86_64::structures::paging::{
     frame::PhysFrameRange, page_table::PageTableEntry, Mapper, Page, PageTable, PageTableFlags,
-    PhysFrame, RecursivePageTable, Size2MiB, Size4KiB,
+    PageTableIndex, PhysFrame, RecursivePageTable, Size2MiB, Size4KiB, UnusedPhysFrame,
 };
-use x86_64::ux::u9;
 use x86_64::{PhysAddr, VirtAddr};
 
 // The bootloader_config.rs file contains some configuration constants set by the build script:
@@ -44,7 +43,7 @@ global_asm!(include_str!("video_mode/vga_320x200.s"));
 global_asm!(include_str!("video_mode/vga_text_80x25.s"));
 
 unsafe fn context_switch(boot_info: VirtAddr, entry_point: VirtAddr, stack_pointer: VirtAddr) -> ! {
-    asm!("jmp $1; ${:private}.spin.${:uid}: jmp ${:private}.spin.${:uid}" ::
+    llvm_asm!("call $1; ${:private}.spin.${:uid}: jmp ${:private}.spin.${:uid}" ::
          "{rsp}"(stack_pointer), "r"(entry_point), "{rdi}"(boot_info) :: "intel");
     ::core::hint::unreachable_unchecked()
 }
@@ -90,7 +89,7 @@ extern "C" {
 #[no_mangle]
 pub unsafe extern "C" fn stage_4() -> ! {
     // Set stack segment
-    asm!("mov bx, 0x0
+    llvm_asm!("mov bx, 0x0
           mov ss, bx" ::: "bx" : "intel");
 
     let kernel_start = 0x400000;
@@ -103,7 +102,7 @@ pub unsafe extern "C" fn stage_4() -> ! {
     let bootloader_end = &__bootloader_end as *const _ as u64;
     let p4_physical = &_p4 as *const _ as u64;
 
-    load_elf(
+    bootloader_main(
         IdentityMappedAddr(PhysAddr::new(kernel_start)),
         kernel_size,
         VirtAddr::new(memory_map_addr),
@@ -116,7 +115,7 @@ pub unsafe extern "C" fn stage_4() -> ! {
     )
 }
 
-fn load_elf(
+fn bootloader_main(
     kernel_start: IdentityMappedAddr,
     kernel_size: u64,
     memory_map_addr: VirtAddr,
@@ -174,7 +173,7 @@ fn load_elf(
     enable_nxe_bit();
 
     // Create a recursive page table entry
-    let recursive_index = u9::new(level4_entries.get_free_entry().try_into().unwrap());
+    let recursive_index = PageTableIndex::new(level4_entries.get_free_entry().try_into().unwrap());
     let mut entry = PageTableEntry::new();
     entry.set_addr(
         p4_physical,
@@ -245,12 +244,15 @@ fn load_elf(
 
     // Map a page for the boot info structure
     let boot_info_page = {
-        let page: Page = Page::from_page_table_indices(
-            level4_entries.get_free_entry(),
-            u9::new(0),
-            u9::new(0),
-            u9::new(0),
-        );
+        let page: Page = match BOOT_INFO_ADDRESS {
+            Some(addr) => Page::containing_address(VirtAddr::new(addr)),
+            None => Page::from_page_table_indices(
+                level4_entries.get_free_entry(),
+                PageTableIndex::new(0),
+                PageTableIndex::new(0),
+                PageTableIndex::new(0),
+            ),
+        };
         let frame = frame_allocator
             .allocate_frame(MemoryRegionType::BootInfo)
             .expect("frame allocation failed");
@@ -276,7 +278,7 @@ fn load_elf(
     };
 
     // Map kernel segments.
-    let stack_end = page_table::map_kernel(
+    let kernel_memory_info = page_table::map_kernel(
         kernel_start.phys(),
         kernel_stack_address,
         KERNEL_STACK_SIZE,
@@ -291,9 +293,12 @@ fn load_elf(
             // If offset not manually provided, find a free p4 entry and map memory here.
             // One level 4 entry spans 2^48/512 bytes (over 500gib) so this should suffice.
             assert!(max_phys_addr < (1 << 48) / 512);
-            Page::from_page_table_indices_1gib(level4_entries.get_free_entry(), u9::new(0))
-                .start_address()
-                .as_u64()
+            Page::from_page_table_indices_1gib(
+                level4_entries.get_free_entry(),
+                PageTableIndex::new(0),
+            )
+            .start_address()
+            .as_u64()
         });
 
         let virt_for_phys =
@@ -308,7 +313,7 @@ fn load_elf(
             unsafe {
                 page_table::map_page(
                     page,
-                    frame,
+                    UnusedPhysFrame::new(frame),
                     flags,
                     &mut rec_page_table,
                     &mut frame_allocator,
@@ -326,6 +331,7 @@ fn load_elf(
     // Construct boot info structure.
     let mut boot_info = BootInfo::new(
         memory_map,
+        kernel_memory_info.tls_segment,
         recursive_page_table_addr.as_u64(),
         physical_memory_offset,
     );
@@ -350,9 +356,11 @@ fn load_elf(
         mem::drop(rec_page_table);
     }
 
-    let entry_point = VirtAddr::new(entry_point);
+    #[cfg(feature = "sse")]
+    sse::enable_sse();
 
-    unsafe { context_switch(boot_info_addr, entry_point, stack_end) };
+    let entry_point = VirtAddr::new(entry_point);
+    unsafe { context_switch(boot_info_addr, entry_point, kernel_memory_info.stack_end) };
 }
 
 fn enable_nxe_bit() {
@@ -367,7 +375,7 @@ fn enable_write_protect_bit() {
 
 #[panic_handler]
 #[no_mangle]
-pub extern "C" fn panic(info: &PanicInfo) -> ! {
+pub fn panic(info: &PanicInfo) -> ! {
     use core::fmt::Write;
     write!(printer::Printer, "{}", info).unwrap();
     loop {}

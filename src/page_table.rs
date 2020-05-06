@@ -1,12 +1,32 @@
 use crate::frame_allocator::FrameAllocator;
 use bootloader::bootinfo::MemoryRegionType;
+use bootloader::bootinfo::TlsTemplate;
 use fixedvec::FixedVec;
 use x86_64::structures::paging::mapper::{MapToError, MapperFlush, UnmapError};
 use x86_64::structures::paging::{
     self, Mapper, Page, PageSize, PageTableFlags, PhysFrame, RecursivePageTable, Size4KiB,
+    UnusedPhysFrame,
 };
 use x86_64::{align_up, PhysAddr, VirtAddr};
 use xmas_elf::program::{self, ProgramHeader64};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MemoryInfo {
+    pub stack_end: VirtAddr,
+    pub tls_segment: Option<TlsTemplate>,
+}
+
+#[derive(Debug)]
+pub enum MapKernelError {
+    Mapping(MapToError),
+    MultipleTlsSegments,
+}
+
+impl From<MapToError> for MapKernelError {
+    fn from(e: MapToError) -> Self {
+        MapKernelError::Mapping(e)
+    }
+}
 
 pub(crate) fn map_kernel(
     kernel_start: PhysAddr,
@@ -15,9 +35,15 @@ pub(crate) fn map_kernel(
     segments: &FixedVec<ProgramHeader64>,
     page_table: &mut RecursivePageTable,
     frame_allocator: &mut FrameAllocator,
-) -> Result<VirtAddr, MapToError> {
+) -> Result<MemoryInfo, MapKernelError> {
+    let mut tls_segment = None;
     for segment in segments {
-        map_segment(segment, kernel_start, page_table, frame_allocator)?;
+        let tls = map_segment(segment, kernel_start, page_table, frame_allocator)?;
+        if let Some(tls) = tls {
+            if tls_segment.replace(tls).is_some() {
+                return Err(MapKernelError::MultipleTlsSegments);
+            }
+        }
     }
 
     // Create a stack
@@ -34,7 +60,10 @@ pub(crate) fn map_kernel(
         unsafe { map_page(page, frame, flags, page_table, frame_allocator)? }.flush();
     }
 
-    Ok(stack_end.start_address())
+    Ok(MemoryInfo {
+        stack_end: stack_end.start_address(),
+        tls_segment,
+    })
 }
 
 pub(crate) fn map_segment(
@@ -42,7 +71,7 @@ pub(crate) fn map_segment(
     kernel_start: PhysAddr,
     page_table: &mut RecursivePageTable,
     frame_allocator: &mut FrameAllocator,
-) -> Result<(), MapToError> {
+) -> Result<Option<TlsTemplate>, MapToError> {
     let typ = segment.get_type().unwrap();
     match typ {
         program::Type::Load => {
@@ -68,8 +97,16 @@ pub(crate) fn map_segment(
             for frame in PhysFrame::range_inclusive(start_frame, end_frame) {
                 let offset = frame - start_frame;
                 let page = start_page + offset;
-                unsafe { map_page(page, frame, page_table_flags, page_table, frame_allocator)? }
-                    .flush();
+                unsafe {
+                    map_page(
+                        page,
+                        UnusedPhysFrame::new(frame),
+                        page_table_flags,
+                        page_table,
+                        frame_allocator,
+                    )?
+                }
+                .flush();
             }
 
             if mem_size > file_size {
@@ -89,7 +126,7 @@ pub(crate) fn map_segment(
                     unsafe {
                         map_page(
                             temp_page.clone(),
-                            new_frame.clone(),
+                            UnusedPhysFrame::new(new_frame.clone()),
                             page_table_flags,
                             page_table,
                             frame_allocator,
@@ -151,15 +188,21 @@ pub(crate) fn map_segment(
                     unsafe { addr.as_mut_ptr::<u8>().write(0) };
                 }
             }
+
+            Ok(None)
         }
-        _ => {}
+        program::Type::Tls => Ok(Some(TlsTemplate {
+            start_addr: segment.virtual_addr,
+            mem_size: segment.mem_size,
+            file_size: segment.file_size,
+        })),
+        _ => Ok(None),
     }
-    Ok(())
 }
 
 pub(crate) unsafe fn map_page<'a, S>(
     page: Page<S>,
-    phys_frame: PhysFrame<S>,
+    phys_frame: UnusedPhysFrame<S>,
     flags: PageTableFlags,
     page_table: &mut RecursivePageTable<'a>,
     frame_allocator: &mut FrameAllocator,
@@ -171,7 +214,7 @@ where
     struct PageTableAllocator<'a, 'b: 'a>(&'a mut FrameAllocator<'b>);
 
     unsafe impl<'a, 'b> paging::FrameAllocator<Size4KiB> for PageTableAllocator<'a, 'b> {
-        fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KiB>> {
+        fn allocate_frame(&mut self) -> Option<UnusedPhysFrame<Size4KiB>> {
             self.0.allocate_frame(MemoryRegionType::PageTable)
         }
     }

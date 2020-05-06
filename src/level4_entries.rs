@@ -1,7 +1,9 @@
 use core::convert::TryInto;
 use fixedvec::FixedVec;
-use x86_64::ux;
-use x86_64::{structures::paging::Page, VirtAddr};
+use x86_64::{
+    structures::paging::{Page, PageTableIndex},
+    VirtAddr,
+};
 use xmas_elf::program::ProgramHeader64;
 
 pub struct UsedLevel4Entries {
@@ -29,7 +31,7 @@ impl UsedLevel4Entries {
         used
     }
 
-    pub fn get_free_entry(&mut self) -> ux::u9 {
+    pub fn get_free_entry(&mut self) -> PageTableIndex {
         let (idx, entry) = self
             .entry_state
             .iter_mut()
@@ -38,6 +40,6 @@ impl UsedLevel4Entries {
             .expect("no usable level 4 entries found");
 
         *entry = true;
-        ux::u9::new(idx.try_into().unwrap())
+        PageTableIndex::new(idx.try_into().unwrap())
     }
 }

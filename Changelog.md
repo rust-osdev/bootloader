@@ -1,3 +1,51 @@
+# 0.9.2
+
+- **Nightly Breakage:** Use `llvm_asm!` instead of deprecated `asm!` ([#108](https://github.com/rust-osdev/bootloader/pull/108))
+
+# 0.9.1
+
+- SSE feature: remove inline assembly + don't set reserved bits ([#105](https://github.com/rust-osdev/bootloader/pull/105))
+
+# 0.9.0
+
+- **Breaking**: Identity-map complete vga region (0xa0000 to 0xc0000) ([#104](https://github.com/rust-osdev/bootloader/pull/104))
+
+# 0.8.9
+
+- Implement boot-info-address ([#101](https://github.com/rust-osdev/bootloader/pull/101))
+
+# 0.8.8
+
+- Add basic support for ELF thread local storage segments ([#96](https://github.com/rust-osdev/bootloader/pull/96))
+
+# 0.8.7
+
+- Fix docs.rs build (see commit 01671dbe449b85b3c0ea73c5796cc8f9661585ee)
+
+# 0.8.6
+
+- Objcopy replaces `.` chars with `_` chars ([#94](https://github.com/rust-osdev/bootloader/pull/94))
+
+# 0.8.5
+
+- Update x86_64 dependency ([#92](https://github.com/rust-osdev/bootloader/pull/92))
+
+# 0.8.4
+
+- Move architecture checks from build script into lib.rs ([#91](https://github.com/rust-osdev/bootloader/pull/91))
+
+# 0.8.3
+
+- Remove unnecessary `extern C` on panic handler to fix not-ffi-safe warning ([#85](https://github.com/rust-osdev/bootloader/pull/85))
+
+# 0.8.2
+
+- Change the way the kernel entry point is called to honor alignement ABI ([#81](https://github.com/rust-osdev/bootloader/pull/81))
+
+# 0.8.1
+
+- Add a Cargo Feature for Enabling SSE ([#77](https://github.com/rust-osdev/bootloader/pull/77))
+
 # 0.8.0
 
 - **Breaking**: Parse bootloader configuration from kernel's Cargo.toml ([#73](https://github.com/rust-osdev/bootloader/pull/73))
