@@ -85,6 +85,12 @@ impl BootInfo {
             None
         }
     }
+
+    /// Returns the index into the page tables that recursively maps the page tables themselves.
+    #[cfg(feature = "recursive_page_table")]
+    pub fn recursive_index(&self) -> u16 {
+        ((self.recursive_page_table_addr >> 12) & 0x1FF) as u16
+    }
 }
 
 /// Information about the thread local storage (TLS) template.
