@@ -1,16 +1,13 @@
 use super::{frame_range, phys_frame_range};
 use bootloader::bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
-use x86_64::structures::paging::{frame::PhysFrameRange, PhysFrame, UnusedPhysFrame};
+use x86_64::structures::paging::{frame::PhysFrameRange, PhysFrame};
 
 pub(crate) struct FrameAllocator<'a> {
     pub memory_map: &'a mut MemoryMap,
 }
 
 impl<'a> FrameAllocator<'a> {
-    pub(crate) fn allocate_frame(
-        &mut self,
-        region_type: MemoryRegionType,
-    ) -> Option<UnusedPhysFrame> {
+    pub(crate) fn allocate_frame(&mut self, region_type: MemoryRegionType) -> Option<PhysFrame> {
         // try to find an existing region of same type that can be enlarged
         let mut iter = self.memory_map.iter_mut().peekable();
         while let Some(region) = iter.next() {
@@ -20,8 +17,7 @@ impl<'a> FrameAllocator<'a> {
                         && next.region_type == MemoryRegionType::Usable
                         && !next.range.is_empty()
                     {
-                        let frame =
-                            unsafe { UnusedPhysFrame::new(phys_frame_range(region.range).end) };
+                        let frame = phys_frame_range(region.range).end;
                         region.range.end_frame_number += 1;
                         iter.next().unwrap().range.start_frame_number += 1;
                         return Some(frame);
@@ -30,7 +26,7 @@ impl<'a> FrameAllocator<'a> {
             }
         }
 
-        fn split_usable_region<'a, I>(iter: &mut I) -> Option<(UnusedPhysFrame, PhysFrameRange)>
+        fn split_usable_region<'a, I>(iter: &mut I) -> Option<(PhysFrame, PhysFrameRange)>
         where
             I: Iterator<Item = &'a mut MemoryRegion>,
         {
@@ -42,10 +38,9 @@ impl<'a> FrameAllocator<'a> {
                     continue;
                 }
 
-                let physframe = phys_frame_range(region.range).start;
-                let unused_frame = unsafe { UnusedPhysFrame::new(physframe) };
+                let frame = phys_frame_range(region.range).start;
                 region.range.start_frame_number += 1;
-                return Some((unused_frame, PhysFrame::range(physframe, physframe + 1)));
+                return Some((frame, PhysFrame::range(frame, frame + 1)));
             }
             None
         }
