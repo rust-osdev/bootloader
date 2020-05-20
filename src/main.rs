@@ -19,7 +19,7 @@ use usize_conversions::usize_from;
 use x86_64::instructions::tlb;
 use x86_64::structures::paging::{
     frame::PhysFrameRange, page_table::PageTableEntry, Mapper, Page, PageTable, PageTableFlags,
-    PageTableIndex, PhysFrame, RecursivePageTable, Size2MiB, Size4KiB, UnusedPhysFrame,
+    PageTableIndex, PhysFrame, RecursivePageTable, Size2MiB, Size4KiB,
 };
 use x86_64::{PhysAddr, VirtAddr};
 
@@ -309,7 +309,7 @@ fn bootloader_main(
             unsafe {
                 page_table::map_page(
                     page,
-                    UnusedPhysFrame::new(frame),
+                    frame,
                     flags,
                     &mut rec_page_table,
                     &mut frame_allocator,
