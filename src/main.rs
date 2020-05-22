@@ -1,9 +1,6 @@
 #![feature(lang_items)]
 #![feature(global_asm)]
-#![feature(step_trait)]
 #![feature(llvm_asm)]
-#![feature(nll)]
-#![feature(const_fn)]
 #![no_std]
 #![no_main]
 
