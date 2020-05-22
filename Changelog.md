@@ -1,3 +1,5 @@
+- Remove unused feature gates ([#118](https://github.com/rust-osdev/bootloader/pull/118))
+
 # 0.9.3
 
 - Update x86_64 dependency to version 0.11.0 ([#117](https://github.com/rust-osdev/bootloader/pull/117))
