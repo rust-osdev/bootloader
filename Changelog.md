@@ -1,3 +1,5 @@
+# 0.9.4
+
 - Add recursive_idx for boot info ([#116](https://github.com/rust-osdev/bootloader/pull/116))
 - Remove unused feature gates ([#118](https://github.com/rust-osdev/bootloader/pull/118))
 
