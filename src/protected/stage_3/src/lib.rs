@@ -7,7 +7,7 @@ mod panic;
 
 #[no_mangle]
 pub extern "C" fn third_stage() -> ! {
-	println!("X");
+	println!("[Bootloader] [32] Stage 3");
 
 	loop {}
 }

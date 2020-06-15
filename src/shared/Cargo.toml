@@ -13,3 +13,9 @@ spin = "0.5"
 [dependencies.lazy_static]
 version = "1"
 features = ["spin_no_std"]
+
+[profile.release]
+debug = true
+opt-level = "z"
+panic = "abort"
+lto = true

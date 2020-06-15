@@ -1,9 +1,11 @@
 use bit_field::BitField;
 use bitflags::bitflags;
 
+use crate::println;
+
 #[derive(Debug, Clone)]
 pub struct GlobalDescriptorTable {
-    table: [u64; 8],
+    pub table: [u64; 8],
     next_free: usize,
 }
 
@@ -30,7 +32,7 @@ impl GlobalDescriptorTable {
     /// Loads the GDT in the CPU using the `lgdt` instruction. This does **not** alter any of the
     /// segment registers; you **must** (re)load them yourself.
     #[inline]
-    pub unsafe fn load(&'static self) {
+    pub unsafe fn load(&self) {
         use core::mem::size_of;
 
         /// A struct describing a pointer to a descriptor table (GDT / IDT).
@@ -90,6 +92,9 @@ bitflags! {
         /// The DPL for this descriptor is Ring 3
         const DPL_RING_3        = 3 << 45;
 
+        /// If set, this page is a 32 bit descriptor
+        const SIZE              = 1 << 54;
+
         /// If set, limit is in 4k pages
         const GRANULARITY       = 1 << 55;
     }
@@ -108,7 +113,7 @@ impl Descriptor {
         use self::DescriptorFlags as Flags;
 
         let flags =
-            Flags::USER_SEGMENT | Flags::PRESENT | Flags::EXECUTABLE | Flags::READABLE_WRITABLE;
+            Flags::USER_SEGMENT | Flags::PRESENT | Flags::EXECUTABLE | Flags::READABLE_WRITABLE | Flags::SIZE;
 
         Descriptor(flags.bits()).with_flat_limit()
     }
@@ -118,7 +123,7 @@ impl Descriptor {
     pub fn kernel_data_segment() -> Descriptor {
         use self::DescriptorFlags as Flags;
 
-        let flags = Flags::USER_SEGMENT | Flags::PRESENT | Flags::READABLE_WRITABLE;
+        let flags = Flags::USER_SEGMENT | Flags::PRESENT | Flags::READABLE_WRITABLE | Flags::SIZE;
         Descriptor(flags.bits()).with_flat_limit()
     }
 
@@ -147,7 +152,7 @@ impl Descriptor {
 
     /// Creates a TSS system descriptor for the given TSS.
     #[inline]
-    pub fn tss_segment(tss: &'static TaskStateSegment) -> Descriptor {
+    pub fn tss_segment(tss: &TaskStateSegment) -> Descriptor {
         use self::DescriptorFlags as Flags;
         use core::mem::size_of;
 

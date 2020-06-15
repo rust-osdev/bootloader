@@ -12,3 +12,6 @@ lto = true
 [profile.release.package.bootsector]
 opt-level = "s"
 codegen-units = 1
+
+[profile.release.package.stage_2]
+debug = true

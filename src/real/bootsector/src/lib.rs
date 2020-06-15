@@ -16,7 +16,7 @@ global_asm!(include_str!("bootstrap.s"));
 
 #[no_mangle]
 extern "C" fn rust_start(disk_number: u16) -> ! {
-    real_mode_println(b"Stage 1");
+    real_mode_println(b"[Bootloader] [16] Bootsector");
 
     check_int13h_extensions(disk_number);
 
