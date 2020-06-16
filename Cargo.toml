@@ -19,3 +19,6 @@ log = "0.4.8"
 
 [dependencies.bootloader-lib]
 path = "bootloader-lib"
+
+[profile.release]
+overflow-checks = true
