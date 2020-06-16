@@ -2,64 +2,67 @@
 #![no_main]
 #![feature(abi_efiapi)]
 
-extern crate alloc;
+static KERNEL: PageAligned<[u8; 137224]> = PageAligned(*include_bytes!(
+    "../../blog_os/post-01/target/x86_64-blog_os/debug/blog_os"
+));
+
+#[repr(align(4096))]
+struct PageAligned<T>(T);
+
 extern crate rlibc;
 
-use alloc::vec;
-use core::mem;
+use core::{mem, slice};
 use uefi::{
     prelude::{entry, Boot, Handle, ResultExt, Status, SystemTable},
-    proto::console::gop::GraphicsOutput,
-    table::boot::MemoryDescriptor,
+    proto::console::gop::{GraphicsOutput, PixelFormat},
+    table::boot::{MemoryDescriptor, MemoryType},
 };
 
 #[entry]
 fn efi_main(image: Handle, st: SystemTable<Boot>) -> Status {
-    // Initialize utilities (logging, memory allocation...)
-    uefi_services::init(&st).expect_success("Failed to initialize utilities");
-
-    log::set_max_level(log::LevelFilter::Info);
-
-    let stdout = st.stdout();
-    stdout.reset(true).expect_success("failed to reset stdout");
+    init_logger(&st);
     log::info!("Hello World from UEFI bootloader!");
 
-    let boot_services = st.boot_services();
-    let gop = boot_services
+    let mmap_storage = {
+        let max_mmap_size =
+            st.boot_services().memory_map_size() + 8 * mem::size_of::<MemoryDescriptor>();
+        let ptr = st
+            .boot_services()
+            .allocate_pool(MemoryType::LOADER_DATA, max_mmap_size)?
+            .log();
+        unsafe { slice::from_raw_parts_mut(ptr, max_mmap_size) }
+    };
+
+    log::trace!("exiting boot services");
+    let (_st, memory_map) = st
+        .exit_boot_services(image, mmap_storage)
+        .expect_success("Failed to exit boot services");
+
+    bootloader_lib::load_kernel(&KERNEL.0)
+}
+
+fn init_logger(st: &SystemTable<Boot>) {
+    let gop = st
+        .boot_services()
         .locate_protocol::<GraphicsOutput>()
         .expect_success("failed to locate gop");
     let gop = unsafe { &mut *gop.get() };
 
-    // print available video modes
-    for mode in gop.modes().map(|c| c.unwrap()) {
-        log::trace!("Mode: {:x?}", mode.info());
-    }
-
     let mode_info = gop.current_mode_info();
-    let (width, height) = mode_info.resolution();
-    log::info!("Active video Mode: {:x?}", mode_info);
-
     let mut framebuffer = gop.frame_buffer();
-
-    let max_mmap_size =
-        st.boot_services().memory_map_size() + 8 * mem::size_of::<MemoryDescriptor>();
-    let mut mmap_storage = vec![0; max_mmap_size];
-
-    log::trace!("exiting boot services");
-
-    st.exit_boot_services(image, &mut mmap_storage)
-        .expect_success("Failed to exit boot services");
-
-    let fill_color = [0x00u8, 0x00, 0xff, 0x00];
-    for col in 0..width {
-        for row in 0..height {
-            let index = row * mode_info.stride() + col;
-            let byte_index = index * 4;
-            unsafe {
-                framebuffer.write_value(byte_index, fill_color);
+    let slice = unsafe { slice::from_raw_parts_mut(framebuffer.as_mut_ptr(), framebuffer.size()) };
+    let info = bootloader_lib::FrameBufferInfo {
+        horizontal_resolution: mode_info.resolution().0,
+        vertical_resolution: mode_info.resolution().1,
+        pixel_format: match mode_info.pixel_format() {
+            PixelFormat::RGB => bootloader_lib::PixelFormat::BGR,
+            PixelFormat::BGR => bootloader_lib::PixelFormat::BGR,
+            PixelFormat::Bitmask | PixelFormat::BltOnly => {
+                panic!("Bitmask and BltOnly framebuffers are not supported")
             }
-        }
-    }
+        },
+        stride: mode_info.stride(),
+    };
 
-    loop {}
+    bootloader_lib::init_logger(slice, info);
 }
