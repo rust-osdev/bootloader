@@ -94,7 +94,7 @@ impl Logger {
                 if self.x_pos >= self.width() {
                     self.newline();
                 }
-                if self.y_pos >= self.height() {
+                if self.y_pos >= (self.height() - 8) {
                     self.clear();
                 }
                 let rendered = font8x8::BASIC_FONTS
