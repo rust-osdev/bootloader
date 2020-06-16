@@ -17,6 +17,9 @@ pub fn print(s: &[u8]) {
 pub fn print_char(c: u8) {
     let ax = u16::from(c) | 0x0e00;
     unsafe {
-        llvm_asm!("int 0x10" :: "{ax}"(ax) :: "intel" );
+        asm!("int 0x10",
+            in("ax") ax,
+            options(nostack)
+        );
     }
 }

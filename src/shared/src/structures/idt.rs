@@ -86,7 +86,10 @@ impl InterruptDescriptorTable {
             limit: (size_of::<Self>() - 1) as u16,
         };
 
-        llvm_asm!("lidt ($0)" :: "r" (&ptr) : "memory");
+        asm!("lidt [{}]",
+             in(reg) &ptr,
+             options(nostack)
+        );
     }
 }
 
@@ -142,7 +145,11 @@ impl<F> Entry<F> {
         self.offset_high = (addr >> 16) as u16;
 
         let segment: u16;
-        unsafe { llvm_asm!("mov %cs, $0" : "=r" (segment) ) };
+
+        unsafe { asm!("mov {:x}, cs",
+                      out(reg) segment,
+                      options(nostack, nomem)
+               ) };
 
         self.gdt_selector = segment;
 

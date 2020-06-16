@@ -31,9 +31,11 @@ impl DiskAddressPacket {
     #[inline(always)]
     pub unsafe fn perform_load(&self, disk_number: u16) {
         let self_addr = self as *const Self as u16;
-        llvm_asm!("
+        asm!("
             int 0x13
-            jc dap_load_failed
-        " :: "{si}"(self_addr), "{ax}"(0x4200), "{dx}"(disk_number) : "bx" : "intel", "volatile");
+            jc dap_load_failed",
+            in("si") self_addr, in("ax") 0x4200, in("dx") disk_number, out("bx") _,
+            options(nostack)
+        );
     }
 }

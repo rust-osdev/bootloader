@@ -51,7 +51,10 @@ impl GlobalDescriptorTable {
             limit: (self.table.len() * size_of::<u64>() - 1) as u16,
         };
 
-        llvm_asm!("lgdt ($0)" :: "r" (&ptr) : "memory");
+        asm!("lgdt [{}]",
+             in(reg) &ptr,
+             options(nostack)
+        );
     }
 
     #[inline]

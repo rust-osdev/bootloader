@@ -1,4 +1,4 @@
-#![feature(llvm_asm, global_asm)]
+#![feature(asm, global_asm)]
 #![no_std]
 #![allow(dead_code)]
 
@@ -34,10 +34,13 @@ extern "C" fn rust_start(disk_number: u16) -> ! {
 
 fn check_int13h_extensions(disk_number: u16) {
     unsafe {
-        llvm_asm!("
-			int 0x13
-    		jc no_int13h_extensions
-        " :: "{ah}"(0x41), "{bx}"(0x55aa), "{dl}"(disk_number) :: "intel", "volatile");
+        asm!("
+            int 0x13
+            jc no_int13h_extensions",
+
+            in("ax") 0x41, in("bx") 0x55aa, in("dx") disk_number,
+            options(nostack)
+        )
     }
 }
 

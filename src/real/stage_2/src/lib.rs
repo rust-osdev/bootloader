@@ -1,4 +1,4 @@
-#![feature(global_asm, llvm_asm)]
+#![feature(global_asm, asm)]
 #![no_std]
 
 use shared::linker_symbol;
@@ -52,8 +52,11 @@ pub fn second_stage() -> ! {
 
 fn enable_a20() {
     unsafe {
-        llvm_asm!("in al, 0x92
-                   or al, 2
-                   out 0x92, al" ::: "al" : "intel", "volatile");
+        asm!("in {0}, 0x92
+              or {0}, 2
+              out 0x92, {0}",
+            out(reg) _,
+            options(nostack)
+        );
     }
 }
