@@ -8,3 +8,6 @@ edition = "2018"
 
 [dependencies]
 uefi = "0.4.4"
+rlibc = "1.0.0"
+uefi-services = "0.2.4"
+log = "0.4.8"

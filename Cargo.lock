@@ -2,6 +2,12 @@
 # It is not intended for manual editing.
 [[package]]
 name = "bit_field"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed8765909f9009617974ab6b7d332625b320b33c326b1e9321382ef1999b5d56"
+
+[[package]]
+name = "bit_field"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a165d606cf084741d4ac3a28fb6e9b1eb0bd31f6cd999098cfddb0b2ab381dc0"
@@ -29,27 +35,33 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.10"
+version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df246d292ff63439fea9bc8c0a270bed0e390d5ebd4db4ba15aba81111b5abe3"
+checksum = "beae6331a816b1f65d04c45b078fd8e6c93e8071771f41b8163255bbd8d7c8fa"
 dependencies = [
  "unicode-xid",
 ]
 
 [[package]]
 name = "quote"
-version = "1.0.3"
+version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2bdc6c187c65bca4260c9011c9e3132efe4909da44726bad24cf7572ae338d7f"
+checksum = "aa563d17ecb180e500da1cfd2b028310ac758de548efdd203e18f283af693f37"
 dependencies = [
  "proc-macro2",
 ]
 
 [[package]]
-name = "syn"
-version = "1.0.17"
+name = "rlibc"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0df0eb663f387145cab623dea85b09c2c5b4b0aef44e945d928e682fce71bb03"
+checksum = "fc874b127765f014d792f16763a81245ab80500e2ad921ed4ee9e82481ee08fe"
+
+[[package]]
+name = "syn"
+version = "1.0.31"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b5304cfdf27365b7585c25d4af91b35016ed21ef88f17ced89c7093b43dba8b6"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -62,14 +74,14 @@ version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "85061f4e43545a613c0da6b87725bf23f8da8613cf2473719c4f71a270c4ce8a"
 dependencies = [
- "bit_field",
+ "bit_field 0.10.0",
 ]
 
 [[package]]
 name = "uefi"
-version = "0.4.4"
+version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5cec6a2850639f588cc8042140b5deaa2f2170c23db5adb08f4316fa04cdb4a0"
+checksum = "ab1f1403ecbad37d25120161acc3db12066febf3446efcc40b7631d30678505d"
 dependencies = [
  "bitflags",
  "log",
@@ -79,9 +91,9 @@ dependencies = [
 
 [[package]]
 name = "uefi-macros"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7d4a1b0215dc72e83d8d501b3275eb59477d3b595be8861abfb8ab110180955"
+checksum = "7a69fa8dd920e84d783769c44560484ade81f6c765cde2e1cc46c754ddf95947"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -89,10 +101,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "uefi-services"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8a985e3dd3e8ce234af981948ff1138e72936af03b04a90b082f9d8a6f35ad37"
+dependencies = [
+ "log",
+ "uefi",
+ "x86_64",
+]
+
+[[package]]
 name = "uefi-test"
 version = "0.1.0"
 dependencies = [
+ "log",
+ "rlibc",
  "uefi",
+ "uefi-services",
 ]
 
 [[package]]
@@ -100,3 +126,13 @@ name = "unicode-xid"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "826e7639553986605ec5979c7dd957c7895e93eabed50ab2ffa7f6128a75097c"
+
+[[package]]
+name = "x86_64"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "365de37eb7c6da582cbb510dd0f3f1235d24ff6309a8a96e8a9909cc9bfd608f"
+dependencies = [
+ "bit_field 0.9.0",
+ "bitflags",
+]
