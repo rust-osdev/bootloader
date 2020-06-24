@@ -232,5 +232,5 @@ impl From<E820MemoryRegion> for MemoryRegion {
 }
 
 extern "C" {
-    fn _improper_ctypes_check(_boot_info: MemoryMap);
+    fn _improper_ctypes_check_memory_map(_memory_map: MemoryMap);
 }
