@@ -1,3 +1,5 @@
+- Fix warning by renaming `_improper_ctypes_check` functions ([#122](https://github.com/rust-osdev/bootloader/pull/122))
+
 # 0.9.4
 
 - Add recursive_idx for boot info ([#116](https://github.com/rust-osdev/bootloader/pull/116))
