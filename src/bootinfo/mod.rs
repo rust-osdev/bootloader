@@ -116,5 +116,5 @@ pub struct TlsTemplate {
 }
 
 extern "C" {
-    fn _improper_ctypes_check(_boot_info: BootInfo);
+    fn _improper_ctypes_check_bootinfo(_boot_info: BootInfo);
 }
