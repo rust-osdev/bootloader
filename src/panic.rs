@@ -1,12 +1,11 @@
 use core::panic::PanicInfo;
-use shared::println;
-use shared::utils;
+use shared::{println, instructions};
 
 #[panic_handler]
 pub fn panic(info: &PanicInfo) -> ! {
     println!("[Panic] {}", info);
 
     loop {
-        utils::hlt()
+        instructions::hlt()
     }
 }

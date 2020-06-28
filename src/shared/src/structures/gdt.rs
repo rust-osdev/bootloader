@@ -1,8 +1,6 @@
 use bit_field::BitField;
 use bitflags::bitflags;
 
-use crate::println;
-
 #[derive(Debug, Clone)]
 pub struct GlobalDescriptorTable {
     pub table: [u64; 8],
@@ -77,6 +75,8 @@ pub struct Descriptor(u64);
 bitflags! {
     /// Flags for a GDT descriptor. Not all flags are valid for all descriptor types.
     pub struct DescriptorFlags: u64 {
+        /// The CPU sets this value to one when the segment is accessed
+        const ACCESSED          = 1 << 40;
         /// For data segments, this flag sets the segment as writable. For code
         /// segments, it defines whether the segment is readable.
         const READABLE_WRITABLE = 1 << 41;
@@ -161,14 +161,15 @@ impl Descriptor {
 
         let ptr = tss as *const _ as u64;
 
-        let mut val = Flags::PRESENT.bits();
+
+        let mut val: u64 = (Flags::PRESENT | Flags::EXECUTABLE | Flags::ACCESSED | Flags::SIZE).bits();
+
         // base
         val.set_bits(16..40, ptr.get_bits(0..24));
         val.set_bits(56..64, ptr.get_bits(24..32));
+
         // limit (the `-1` in needed since the bound is inclusive)
-        val.set_bits(0..16, (size_of::<TaskStateSegment>() - 1) as u64);
-        // type (0b1001 = available 32-bit tss)
-        val.set_bits(40..44, 0b1001);
+        val.set_bits(0..16, ((size_of::<TaskStateSegment>() - 1) as u64).get_bits(0..16));
 
         Descriptor(val)
     }

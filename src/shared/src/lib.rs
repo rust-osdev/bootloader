@@ -5,7 +5,6 @@
 
 pub mod console;
 pub mod dap;
-pub mod utils;
 #[macro_use]
 pub mod macros;
 pub mod structures;

@@ -63,6 +63,8 @@ fn main() {
     );
 
     // Inform cargo that we should rerun this on linker script changes
+    //
+    // This is NOT performed by default
     println!("cargo:rerun-if-changed=linker.ld");
 }
 

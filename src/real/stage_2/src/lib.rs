@@ -24,11 +24,17 @@ lazy_static! {
     static ref GDT: GlobalDescriptorTable = {
         let mut gdt = GlobalDescriptorTable::new();
 
+        // Set up kernel segments
         gdt.add_entry(Descriptor::kernel_code_segment());
         gdt.add_entry(Descriptor::kernel_data_segment());
 
-        gdt.add_entry(Descriptor::tss_segment(&TSS));
+        // Set up user segments
+        gdt.add_entry(Descriptor::user_code_segment());
+        gdt.add_entry(Descriptor::user_data_segment());
 
+        // Set up the TSS
+        gdt.add_entry(Descriptor::tss_segment(&*TSS));
+        
         gdt
     };
 }
@@ -43,11 +49,11 @@ pub fn second_stage() -> ! {
 
     unsafe {
         GDT.load();
+
+        println!("[Bootloader] [16] Loaded GDT");
         
         protected_mode_switch();
     }
-
-    unreachable!();
 }
 
 fn enable_a20() {

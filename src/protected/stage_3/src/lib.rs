@@ -1,6 +1,7 @@
 #![no_std]
 
 use shared::println;
+use shared::instructions;
 
 mod panic;
 
@@ -14,6 +15,13 @@ pub extern "C" fn third_stage() -> ! {
     }
 
     println!("[Bootloader] [32] > 1MB");
+
+    // Load the TSS
+    unsafe {
+        instructions::ltr(0x2B)
+    };
+
+    println!("[Bootloader] [32] Loaded TSS");
 
 	loop {}
 }

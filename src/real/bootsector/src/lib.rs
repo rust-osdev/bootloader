@@ -7,7 +7,7 @@ mod errors;
 
 use self::console::real_mode_println;
 use core::panic::PanicInfo;
-use shared::{dap, linker_symbol, utils};
+use shared::{dap, linker_symbol, instructions};
 
 extern "C" {
     fn second_stage() -> !;
@@ -49,6 +49,6 @@ fn panic(_info: &PanicInfo) -> ! {
     real_mode_println(b"[Panic]");
 
     loop {
-        utils::hlt()
+        instructions::hlt()
     }
 }
