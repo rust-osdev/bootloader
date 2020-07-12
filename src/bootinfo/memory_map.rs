@@ -115,12 +115,12 @@ impl MemoryRegion {
 pub struct FrameRange {
     /// The frame _number_ of the first 4KiB frame in the region.
     ///
-    /// This convert this frame number to a physical address, multiply it with the
+    /// To convert this frame number to a physical address, multiply it with the
     /// page size (4KiB).
     pub start_frame_number: u64,
     /// The frame _number_ of the first 4KiB frame that does no longer belong to the region.
     ///
-    /// This convert this frame number to a physical address, multiply it with the
+    /// To convert this frame number to a physical address, multiply it with the
     /// page size (4KiB).
     pub end_frame_number: u64,
 }
