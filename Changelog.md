@@ -1,3 +1,5 @@
+# Unreleased
+
 # 0.9.5
 
 - Fix warning by renaming `_improper_ctypes_check` functions ([#122](https://github.com/rust-osdev/bootloader/pull/122))

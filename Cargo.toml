@@ -51,3 +51,11 @@ target = "x86_64-bootloader.json"
 [package.metadata.docs.rs]
 features = [ "recursive_page_table", "map_physical_memory" ]
 default-target = "x86_64-unknown-linux-gnu"
+
+[package.metadata.release]
+no-dev-version = true
+pre-release-replacements = [
+    { file="Changelog.md", search="# Unreleased", replace="# Unreleased\n\n# {{version}} – {{date}}", exactly=1 },
+]
+pre-release-commit-message = "Release version {{version}}"
+disable-publish = true
