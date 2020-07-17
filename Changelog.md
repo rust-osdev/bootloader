@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.9.8 – 2020-07-17
+
 - Enable rlibc dependency only with `binary` feature ([#126](https://github.com/rust-osdev/bootloader/pull/126))
 
 # 0.9.7 – 2020-07-17
