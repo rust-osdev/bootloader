@@ -1,5 +1,7 @@
 # Unreleased
 
+- Make bootloader buildable with `-Zbuild-std` ([#125](https://github.com/rust-osdev/bootloader/pull/125))
+
 # 0.9.6 – 2020-07-16
 
 - Change 1st stage int 13h addressing ([#123](https://github.com/rust-osdev/bootloader/pull/123))
