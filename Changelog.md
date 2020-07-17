@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.9.7 – 2020-07-17
+
 - Make bootloader buildable with `-Zbuild-std` ([#125](https://github.com/rust-osdev/bootloader/pull/125))
 
 # 0.9.6 – 2020-07-16

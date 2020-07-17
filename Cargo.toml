@@ -1,6 +1,6 @@
 [package]
 name = "bootloader"
-version = "0.9.6"
+version = "0.9.7"
 authors = ["Philipp Oppermann <dev@phil-opp.com>"]
 license = "MIT/Apache-2.0"
 description = "An experimental pure-Rust x86 bootloader."
