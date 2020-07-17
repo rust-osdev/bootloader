@@ -1,5 +1,7 @@
 # Unreleased
 
+- Enable rlibc dependency only with `binary` feature ([#126](https://github.com/rust-osdev/bootloader/pull/126))
+
 # 0.9.7 – 2020-07-17
 
 - Make bootloader buildable with `-Zbuild-std` ([#125](https://github.com/rust-osdev/bootloader/pull/125))
