@@ -57,6 +57,8 @@ fn runner(file_path: &Path) -> anyhow::Result<Option<ExitCode>> {
     qemu.arg("-s");
     qemu.arg("-nodefaults");
     qemu.arg("-vga").arg("std");
+    qemu.arg("-d").arg("int");
+    qemu.arg("--no-reboot");
     println!("{:?}", qemu);
     let exit_status = qemu.status()?;
     let ret = if exit_status.success() {
