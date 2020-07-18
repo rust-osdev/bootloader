@@ -178,6 +178,7 @@ dependencies = [
  "log",
  "rlibc",
  "uefi",
+ "x86_64",
 ]
 
 [[package]]

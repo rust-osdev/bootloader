@@ -16,6 +16,7 @@ members = [
 uefi = "0.4.4"
 rlibc = "1.0.0"
 log = "0.4.8"
+x86_64 = "0.11.0"
 
 [dependencies.bootloader-lib]
 path = "bootloader-lib"
