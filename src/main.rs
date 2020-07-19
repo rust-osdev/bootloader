@@ -15,12 +15,14 @@ use core::{mem, slice};
 use uefi::{
     prelude::{entry, Boot, Handle, ResultExt, Status, SystemTable},
     proto::console::gop::{GraphicsOutput, PixelFormat},
-    table::boot::{MemoryDescriptor, MemoryType},
+    table::boot::{MemoryDescriptor, MemoryMapIter, MemoryType},
 };
 use x86_64::{
-    structures::paging::{OffsetPageTable, PageTable, PhysFrame},
-    VirtAddr,
+    structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB},
+    PhysAddr, VirtAddr,
 };
+
+const PAGE_SIZE: u64 = 4096;
 
 #[entry]
 fn efi_main(image: Handle, st: SystemTable<Boot>) -> Status {
@@ -42,16 +44,7 @@ fn efi_main(image: Handle, st: SystemTable<Boot>) -> Status {
         .exit_boot_services(image, mmap_storage)
         .expect_success("Failed to exit boot services");
 
-    for memory_region in memory_map {
-        let addr = 0x7c42000;
-        if memory_region.phys_start <= addr
-            && addr < (memory_region.phys_start + memory_region.page_count * 4096)
-        {
-            log::trace!("{:#x?}", memory_region);
-        }
-    }
-
-    let mut frame_allocator = ();
+    let mut frame_allocator = UefiFrameAllocator::new(memory_map);
 
     let mut page_table = {
         // UEFI identity maps all memory, so physical memory offset is 0
@@ -98,4 +91,62 @@ fn init_logger(st: &SystemTable<Boot>) {
     };
 
     bootloader_lib::init_logger(slice, info);
+}
+
+struct UefiFrameAllocator<'a> {
+    memory_map: MemoryMapIter<'a>,
+    current_descriptor: Option<&'a MemoryDescriptor>,
+    next_frame: PhysFrame,
+}
+
+impl<'a> UefiFrameAllocator<'a> {
+    fn new(memory_map: MemoryMapIter<'a>) -> Self {
+        Self {
+            memory_map,
+            current_descriptor: None,
+            next_frame: PhysFrame::containing_address(PhysAddr::new(0)),
+        }
+    }
+
+    fn allocate_frame_from_descriptor(
+        &mut self,
+        descriptor: &MemoryDescriptor,
+    ) -> Option<PhysFrame> {
+        let start_addr = PhysAddr::new(descriptor.phys_start);
+        let start_frame: PhysFrame = PhysFrame::containing_address(start_addr.align_up(PAGE_SIZE));
+        let end_frame = start_frame + descriptor.page_count;
+        if self.next_frame < end_frame {
+            let ret = self.next_frame;
+            self.next_frame += 1;
+            Some(ret)
+        } else {
+            None
+        }
+    }
+}
+
+unsafe impl FrameAllocator<Size4KiB> for UefiFrameAllocator<'_> {
+    fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KiB>> {
+        if let Some(current_descriptor) = self.current_descriptor {
+            match self.allocate_frame_from_descriptor(current_descriptor) {
+                Some(frame) => return Some(frame),
+                None => {
+                    self.current_descriptor = None;
+                }
+            }
+        }
+
+        // find next suitable descriptor
+        while let Some(descriptor) = self.memory_map.next() {
+            if descriptor.ty != MemoryType::CONVENTIONAL {
+                continue;
+            }
+            if let Some(frame) = self.allocate_frame_from_descriptor(descriptor) {
+                self.current_descriptor = Some(descriptor);
+                return Some(frame);
+            }
+        }
+
+        None
+    }
 }
