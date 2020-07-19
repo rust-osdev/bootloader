@@ -109,6 +109,8 @@ where
             .flush();
         }
 
+        // FIXME: Handle .bss section (mem_size > file_size)
+
         Ok(())
     }
 
