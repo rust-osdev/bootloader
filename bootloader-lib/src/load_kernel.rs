@@ -127,5 +127,5 @@ pub fn load_kernel(
     let mut loader = Loader::new(bytes, page_table, frame_allocator)?;
     loader.load_segments()?;
 
-    Err("unfinished implementation!")
+    Ok(())
 }
