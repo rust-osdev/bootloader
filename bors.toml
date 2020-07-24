@@ -1,0 +1,4 @@
+status = [
+    "Test", "Build Example Kernel", "Check Formatting"
+]
+delete_merged_branches = true
