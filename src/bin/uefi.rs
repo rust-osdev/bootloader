@@ -5,8 +5,8 @@
 #![feature(unsafe_block_in_unsafe_fn)]
 #![deny(unsafe_op_in_unsafe_fn)]
 
-static KERNEL: PageAligned<[u8; 137224]> = PageAligned(*include_bytes!(
-    "../../blog_os/post-01/target/x86_64-blog_os/debug/blog_os"
+static KERNEL: PageAligned<[u8; 1736736]> = PageAligned(*include_bytes!(
+    "../../../blog_os/post-01/target/x86_64-blog_os/debug/blog_os"
 ));
 
 #[repr(align(4096))]
