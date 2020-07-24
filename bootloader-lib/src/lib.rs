@@ -1,5 +1,6 @@
 #![no_std]
 #![feature(slice_fill)]
+#![feature(asm)]
 #![feature(unsafe_block_in_unsafe_fn)]
 #![deny(unsafe_op_in_unsafe_fn)]
 
@@ -31,5 +32,7 @@ pub fn load_kernel(
 fn panic(info: &PanicInfo) -> ! {
     unsafe { logger::LOGGER.get().map(|l| l.force_unlock()) };
     log::error!("{}", info);
-    loop {}
+    loop {
+        unsafe { asm!("cli; hlt") };
+    }
 }
