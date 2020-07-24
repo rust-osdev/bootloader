@@ -6,3 +6,8 @@ runner = "cargo run --manifest-path runner/Cargo.toml --target x86_64-unknown-li
 
 [alias]
 x = "-Z build-std=core,alloc"
+
+build-uefi = "x build --target x86_64-unknown-uefi --bin uefi --features uefi_bin"
+run-uefi = "x run --target x86_64-unknown-uefi --bin uefi --features uefi_bin"
+
+build-bios = "x build --target x86_64-bootloader.json --bin bios --features bios_bin"
