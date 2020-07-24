@@ -5,9 +5,10 @@
 #![feature(unsafe_block_in_unsafe_fn)]
 #![deny(unsafe_op_in_unsafe_fn)]
 
-static KERNEL: PageAligned<[u8; 1736736]> = PageAligned(*include_bytes!(
-    "../../../blog_os/post-01/target/x86_64-blog_os/debug/blog_os"
-));
+// Defines the constants `KERNEL_BYTES` (array of `u8`) and `KERNEL_SIZE` (`usize`).
+include!(concat!(env!("OUT_DIR"), "/kernel_info.rs"));
+
+static KERNEL: PageAligned<[u8; KERNEL_SIZE]> = PageAligned(KERNEL_BYTES);
 
 #[repr(align(4096))]
 struct PageAligned<T>(T);
