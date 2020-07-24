@@ -180,7 +180,7 @@ where
             // segments now.
 
             // calculate the frame where the last segment page is mapped
-            let orig_frame = PhysFrame::containing_address(phys_start_addr + file_size - 1);
+            let orig_frame: PhysFrame = PhysFrame::containing_address(phys_start_addr + file_size - 1u64);
             // allocate a new frame to replace `orig_frame`
             let new_frame = self.frame_allocator.allocate_frame().unwrap();
 
@@ -206,7 +206,7 @@ where
 
             // remap last page from orig_frame to `new_frame`
             log::info!("Remap last page");
-            let last_page = Page::containing_address(virt_start_addr + file_size - 1);
+            let last_page = Page::containing_address(virt_start_addr + file_size - 1u64);
             self.page_table
                 .unmap(last_page.clone())
                 .map_err(|_err| "Failed to unmap last segment page because of bss memory")?;
