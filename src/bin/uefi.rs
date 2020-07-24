@@ -100,7 +100,7 @@ fn efi_main(image: Handle, st: SystemTable<Boot>) -> Status {
     }
 }
 
-pub unsafe fn context_switch(
+unsafe fn context_switch(
     addresses: Addresses,
     mut page_table: OffsetPageTable,
     mut frame_allocator: UefiFrameAllocator,
@@ -125,7 +125,7 @@ pub unsafe fn context_switch(
             in(reg) addresses.page_table.start_address().as_u64(),
             in(reg) addresses.stack_top.as_u64(),
             in(reg) addresses.entry_point.as_u64(),
-            in("rdi") addresses.framebuffer_addr,
+            in("rdi") addresses.framebuffer_addr.as_u64(),
         );
     }
     unreachable!();
