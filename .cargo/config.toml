@@ -1,5 +1,5 @@
 [build]
-target = "x86_64-unknown-uefi"
+target = "x86_64-bootloader.json"
 
 [target.x86_64-unknown-uefi]
 runner = "cargo run --manifest-path runner/Cargo.toml --target x86_64-unknown-linux-gnu"
