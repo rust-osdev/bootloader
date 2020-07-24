@@ -48,8 +48,9 @@ toml = { version = "0.5.1", optional = true }
 
 [features]
 default = []
-bios_bin = ["xmas-elf", "x86_64", "usize_conversions", "fixedvec", "llvm-tools", "toml", "rlibc"]
-uefi_bin = ["x86_64", "rlibc", "log", "uefi", "bootloader-lib"]
+bios_bin = ["binary", "xmas-elf", "x86_64", "usize_conversions", "fixedvec", "rlibc"]
+uefi_bin = ["binary", "x86_64", "rlibc", "log", "uefi", "bootloader-lib"]
+binary = ["llvm-tools", "toml"]
 vga_320x200 = ["font8x8"]
 recursive_page_table = []
 map_physical_memory = []
