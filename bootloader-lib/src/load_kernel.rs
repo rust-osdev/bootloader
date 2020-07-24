@@ -74,6 +74,10 @@ where
         }
         Ok(())
     }
+
+    fn entry_point(&self) -> VirtAddr {
+        VirtAddr::new(self.elf_file.header.pt2.entry_point())
+    }
 }
 
 impl<'a, M, F> Inner<'a, M, F>
@@ -249,9 +253,9 @@ pub fn load_kernel(
     bytes: &[u8],
     page_table: &mut impl MapperAllSizes,
     frame_allocator: &mut impl FrameAllocator<Size4KiB>,
-) -> Result<(), &'static str> {
+) -> Result<VirtAddr, &'static str> {
     let mut loader = Loader::new(bytes, page_table, frame_allocator)?;
     loader.load_segments()?;
 
-    Ok(())
+    Ok(loader.entry_point())
 }

@@ -3,7 +3,10 @@
 
 use core::panic::PanicInfo;
 pub use logger::{FrameBufferInfo, PixelFormat};
-use x86_64::structures::paging::{FrameAllocator, MapperAllSizes, Size4KiB};
+use x86_64::{
+    structures::paging::{FrameAllocator, MapperAllSizes, Size4KiB},
+    VirtAddr,
+};
 
 mod load_kernel;
 mod logger;
@@ -18,8 +21,8 @@ pub fn load_kernel(
     kernel: &'static [u8],
     page_table: &mut impl MapperAllSizes,
     frame_allocator: &mut impl FrameAllocator<Size4KiB>,
-) {
-    load_kernel::load_kernel(kernel, page_table, frame_allocator).expect("Failed to parse kernel");
+) -> VirtAddr {
+    load_kernel::load_kernel(kernel, page_table, frame_allocator).expect("Failed to parse kernel")
 }
 
 #[panic_handler]
