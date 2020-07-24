@@ -1,5 +1,7 @@
-#![feature(slice_fill)]
 #![no_std]
+#![feature(slice_fill)]
+#![feature(unsafe_block_in_unsafe_fn)]
+#![deny(unsafe_op_in_unsafe_fn)]
 
 use core::panic::PanicInfo;
 pub use logger::{FrameBufferInfo, PixelFormat};
