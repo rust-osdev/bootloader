@@ -15,7 +15,11 @@ members = [
 ]
 
 [[bin]]
-name = "bootloader"
+name = "bios"
+required-features = ["binary"]
+
+[[bin]]
+name = "uefi"
 required-features = ["binary"]
 
 [dependencies]
