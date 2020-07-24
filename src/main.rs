@@ -1,6 +1,9 @@
 #![no_std]
 #![no_main]
 #![feature(abi_efiapi)]
+#![feature(asm)]
+#![feature(unsafe_block_in_unsafe_fn)]
+#![deny(unsafe_op_in_unsafe_fn)]
 
 static KERNEL: PageAligned<[u8; 137224]> = PageAligned(*include_bytes!(
     "../../blog_os/post-01/target/x86_64-blog_os/debug/blog_os"
@@ -18,7 +21,11 @@ use uefi::{
     table::boot::{MemoryDescriptor, MemoryMapIter, MemoryType},
 };
 use x86_64::{
-    structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB},
+    registers,
+    structures::paging::{
+        FrameAllocator, Mapper, OffsetPageTable, Page, PageTable, PageTableFlags, PhysFrame,
+        Size4KiB,
+    },
     PhysAddr, VirtAddr,
 };
 
@@ -26,8 +33,9 @@ const PAGE_SIZE: u64 = 4096;
 
 #[entry]
 fn efi_main(image: Handle, st: SystemTable<Boot>) -> Status {
-    init_logger(&st);
+    let framebuffer_addr = init_logger(&st);
     log::info!("Hello World from UEFI bootloader!");
+    log::info!("Using framebuffer at {:#x}", framebuffer_addr);
 
     let mmap_storage = {
         let max_mmap_size =
@@ -46,28 +54,91 @@ fn efi_main(image: Handle, st: SystemTable<Boot>) -> Status {
 
     let mut frame_allocator = UefiFrameAllocator::new(memory_map);
 
-    let mut page_table = {
+    let (mut page_table, level_4_frame) = {
         // UEFI identity maps all memory, so physical memory offset is 0
         let phys_offset = VirtAddr::new(0);
         // get an unused frame for new level 4 page table
         let frame: PhysFrame = frame_allocator.allocate_frame().expect("no unused frames");
+        log::info!("New page table at: {:#?}", &frame);
         // get the corresponding virtual address
         let addr = phys_offset + frame.start_address().as_u64();
         // initialize a new page table
         let ptr = addr.as_mut_ptr();
         unsafe { *ptr = PageTable::new() };
         let level_4_table = unsafe { &mut *ptr };
-        unsafe { OffsetPageTable::new(level_4_table, phys_offset) }
+        (
+            unsafe { OffsetPageTable::new(level_4_table, phys_offset) },
+            frame,
+        )
     };
+    log::info!("New page table at: {:?}", level_4_frame);
 
-    bootloader_lib::load_kernel(&KERNEL.0, &mut page_table, &mut frame_allocator);
+    let entry_point = bootloader_lib::load_kernel(&KERNEL.0, &mut page_table, &mut frame_allocator);
+    log::info!("Entry point at: {:#x}", entry_point.as_u64());
 
-    loop {
-        unsafe { asm!("cli; hlt") };
+    // create a stack
+    let stack_start: Page = Page::containing_address(VirtAddr::new(0xfff00000000));
+    let stack_end = stack_start + 20;
+    for page in Page::range(stack_start, stack_end) {
+        let frame = frame_allocator
+            .allocate_frame()
+            .expect("frame allocation failed when mapping a kernel stack");
+        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+        unsafe { page_table.map_to(page, frame, flags, &mut frame_allocator) }
+            .unwrap()
+            .flush();
+    }
+
+    let addresses = Addresses {
+        page_table: level_4_frame,
+        stack_top: stack_end.start_address(),
+        entry_point,
+        framebuffer_addr,
+    };
+    unsafe {
+        context_switch(addresses, page_table, frame_allocator);
     }
 }
 
-fn init_logger(st: &SystemTable<Boot>) {
+pub unsafe fn context_switch(
+    addresses: Addresses,
+    mut page_table: OffsetPageTable,
+    mut frame_allocator: UefiFrameAllocator,
+) -> ! {
+    // identity-map current and next frame, so that we don't get an immediate pagefault
+    // after switching the active page table
+    let current_addr = PhysAddr::new(registers::read_rip());
+    let current_frame: PhysFrame = PhysFrame::containing_address(current_addr);
+    for frame in PhysFrame::range_inclusive(current_frame, current_frame + 1) {
+        unsafe { page_table.identity_map(frame, PageTableFlags::PRESENT, &mut frame_allocator) }
+            .unwrap()
+            .flush();
+    }
+
+    // we don't need the page table anymore
+    mem::drop(page_table);
+
+    // do the context switch
+    unsafe {
+        asm!(
+            "mov cr3, {}; mov rsp, {}; push 0; jmp {}",
+            in(reg) addresses.page_table.start_address().as_u64(),
+            in(reg) addresses.stack_top.as_u64(),
+            in(reg) addresses.entry_point.as_u64(),
+            in("rdi") addresses.framebuffer_addr,
+        );
+    }
+    unreachable!();
+}
+
+struct Addresses {
+    page_table: PhysFrame,
+    stack_top: VirtAddr,
+    entry_point: VirtAddr,
+    framebuffer_addr: PhysAddr,
+}
+
+fn init_logger(st: &SystemTable<Boot>) -> PhysAddr {
     let gop = st
         .boot_services()
         .locate_protocol::<GraphicsOutput>()
@@ -91,6 +162,8 @@ fn init_logger(st: &SystemTable<Boot>) {
     };
 
     bootloader_lib::init_logger(slice, info);
+
+    PhysAddr::new(framebuffer.as_mut_ptr() as u64)
 }
 
 struct UefiFrameAllocator<'a> {
