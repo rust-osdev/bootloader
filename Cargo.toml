@@ -16,11 +16,11 @@ members = [
 
 [[bin]]
 name = "bios"
-required-features = ["binary"]
+required-features = ["bios_bin"]
 
 [[bin]]
 name = "uefi"
-required-features = ["binary"]
+required-features = ["uefi_bin"]
 
 [dependencies]
 xmas-elf = { version = "0.6.2", optional = true }
@@ -48,7 +48,8 @@ toml = { version = "0.5.1", optional = true }
 
 [features]
 default = []
-binary = ["xmas-elf", "x86_64", "usize_conversions", "fixedvec", "llvm-tools", "toml", "rlibc", "log", "uefi", "bootloader-lib"]
+bios_bin = ["xmas-elf", "x86_64", "usize_conversions", "fixedvec", "llvm-tools", "toml", "rlibc"]
+uefi_bin = ["x86_64", "rlibc", "log", "uefi", "bootloader-lib"]
 vga_320x200 = ["font8x8"]
 recursive_page_table = []
 map_physical_memory = []

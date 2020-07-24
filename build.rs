@@ -1,7 +1,7 @@
-#[cfg(not(feature = "binary"))]
+#[cfg(not(feature = "bios_bin"))]
 fn main() {}
 
-#[cfg(feature = "binary")]
+#[cfg(feature = "bios_bin")]
 #[derive(Default)]
 struct BootloaderConfig {
     physical_memory_offset: Option<u64>,
@@ -10,7 +10,7 @@ struct BootloaderConfig {
     boot_info_address: Option<u64>,
 }
 
-#[cfg(feature = "binary")]
+#[cfg(feature = "bios_bin")]
 fn parse_aligned_addr(key: &str, value: &str) -> u64 {
     let num = if value.starts_with("0x") {
         u64::from_str_radix(&value[2..], 16)
@@ -33,7 +33,7 @@ fn parse_aligned_addr(key: &str, value: &str) -> u64 {
     }
 }
 
-#[cfg(feature = "binary")]
+#[cfg(feature = "bios_bin")]
 fn parse_to_config(cfg: &mut BootloaderConfig, table: &toml::value::Table) {
     use toml::Value;
 
@@ -84,7 +84,7 @@ fn parse_to_config(cfg: &mut BootloaderConfig, table: &toml::value::Table) {
     }
 }
 
-#[cfg(feature = "binary")]
+#[cfg(feature = "bios_bin")]
 fn main() {
     use std::{
         env,
