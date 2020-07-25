@@ -34,8 +34,8 @@ pub struct InterruptDescriptorTable {
 impl InterruptDescriptorTable {
     /// Creates a new IDT filled with non-present entries.
     #[inline]
-    pub const fn new() -> InterruptDescriptorTable {
-        InterruptDescriptorTable {
+    pub fn new() -> InterruptDescriptorTable {
+        let idt = InterruptDescriptorTable {
             divide_error: Entry::missing(),
             debug: Entry::missing(),
             non_maskable_interrupt: Entry::missing(),
@@ -60,7 +60,9 @@ impl InterruptDescriptorTable {
             reserved_2: [Entry::missing(); 9],
             security_exception: Entry::missing(),
             reserved_3: Entry::missing(),
-        }
+        };
+
+        idt
     }
 
     /// Loads the IDT in the CPU using the `lidt` command.
@@ -122,7 +124,7 @@ pub struct Entry<F> {
 impl<F> Entry<F> {
     /// Creates a non-present IDT entry (but sets the must-be-one bits).
     #[inline]
-    pub const fn missing() -> Self {
+    pub fn missing() -> Self {
         Entry {
             gdt_selector: 0,
             offset_low: 0,
@@ -140,7 +142,7 @@ impl<F> Entry<F> {
     /// The function returns a mutable reference to the entry's options that allows
     /// further customization.
     #[inline]
-    fn set_handler_addr(&mut self, addr: u32) -> &mut EntryOptions {
+    pub fn set_handler_addr(&mut self, addr: u32) -> &mut EntryOptions {
         self.offset_low = addr as u16;
         self.offset_high = (addr >> 16) as u16;
 
@@ -196,7 +198,7 @@ impl EntryOptions {
     /// Set or reset the preset bit.
     #[inline]
     pub fn set_present(&mut self, present: bool) -> &mut Self {
-        self.0.set_bit(15, present);
+        self.0.set_bit(7, present);
         self
     }
 }
@@ -213,7 +215,7 @@ pub type DivergingHandlerFuncWithErrCode =
     extern "x86-interrupt" fn(&mut InterruptStackFrame, error_code: u64) -> !;
 
 /// Represents the interrupt stack frame pushed by the CPU on interrupt or exception entry.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 #[repr(C)]
 pub struct InterruptStackFrame {
     pub eip: u32,

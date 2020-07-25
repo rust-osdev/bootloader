@@ -17,6 +17,7 @@ lazy_static! {
         let mut tss = TaskStateSegment::new();
 
         tss.privilege_stack_table[0].esp = linker_symbol!(_protected_mode_stack_end);
+        tss.privilege_stack_table[0].ss = 2 * 8; // Kernel data segment is 2nd segment (null, code, data)
 
         tss
     };

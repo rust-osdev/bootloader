@@ -1,8 +1,10 @@
 #![no_std]
+#![feature(abi_x86_interrupt, asm)]
 
 use shared::println;
 use shared::instructions;
 
+mod interrupts;
 mod panic;
 
 #[no_mangle]
@@ -23,5 +25,13 @@ pub extern "C" fn third_stage() -> ! {
 
     println!("[Bootloader] [32] Loaded TSS");
 
-	loop {}
+    interrupts::init_idt();
+
+    println!("[Bootloader] [32] Loaded IDT");
+
+    unsafe { asm!("int 3") };
+
+    println!("[Bootloader] [32] It didn't crash!");
+
+    loop {};
 }

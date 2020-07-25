@@ -47,6 +47,10 @@ SECTIONS {
     
     /DISCARD/ :
     {
+        /* 
+          Weird section that always puts itself at the start and causes the binary to be non-bootable
+          Only seems to appear on some platforms, and we can find no use of it in our circumstances
+        */
         *(.eh_frame)
     }
 }
