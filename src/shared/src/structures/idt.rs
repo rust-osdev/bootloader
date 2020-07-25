@@ -207,12 +207,12 @@ impl EntryOptions {
 pub type HandlerFunc = extern "x86-interrupt" fn(&mut InterruptStackFrame);
 /// A handler function for an exception that pushes an error code.
 pub type HandlerFuncWithErrCode =
-    extern "x86-interrupt" fn(&mut InterruptStackFrame, error_code: u64);
+    extern "x86-interrupt" fn(&mut InterruptStackFrame, error_code: u32);
 /// A handler function that must not return, e.g. for a machine check exception.
 pub type DivergingHandlerFunc = extern "x86-interrupt" fn(&mut InterruptStackFrame) -> !;
 /// A handler function with an error code that must not return, e.g. for a double fault exception.
 pub type DivergingHandlerFuncWithErrCode =
-    extern "x86-interrupt" fn(&mut InterruptStackFrame, error_code: u64) -> !;
+    extern "x86-interrupt" fn(&mut InterruptStackFrame, error_code: u32) -> !;
 
 /// Represents the interrupt stack frame pushed by the CPU on interrupt or exception entry.
 #[derive(Clone, Debug)]

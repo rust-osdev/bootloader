@@ -29,9 +29,5 @@ pub extern "C" fn third_stage() -> ! {
 
     println!("[Bootloader] [32] Loaded IDT");
 
-    unsafe { asm!("int 3") };
-
-    println!("[Bootloader] [32] It didn't crash!");
-
     loop {};
 }
