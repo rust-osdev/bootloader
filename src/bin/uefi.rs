@@ -19,7 +19,7 @@ use core::{mem, slice};
 use uefi::{
     prelude::{entry, Boot, Handle, ResultExt, Status, SystemTable},
     proto::console::gop::{GraphicsOutput, PixelFormat},
-    table::boot::{MemoryDescriptor, MemoryMapIter, MemoryType},
+    table::boot::{MemoryDescriptor, MemoryType},
 };
 use x86_64::{
     registers,
@@ -104,7 +104,7 @@ fn efi_main(image: Handle, st: SystemTable<Boot>) -> Status {
 unsafe fn context_switch(
     addresses: Addresses,
     mut page_table: OffsetPageTable,
-    mut frame_allocator: UefiFrameAllocator,
+    mut frame_allocator: impl FrameAllocator<Size4KiB>,
 ) -> ! {
     // identity-map current and next frame, so that we don't get an immediate pagefault
     // after switching the active page table
@@ -167,15 +167,20 @@ fn init_logger(st: &SystemTable<Boot>) -> PhysAddr {
     PhysAddr::new(framebuffer.as_mut_ptr() as u64)
 }
 
-struct UefiFrameAllocator<'a> {
-    memory_map: MemoryMapIter<'a>,
+struct UefiFrameAllocator<'a, I> {
+    original: I,
+    memory_map: I,
     current_descriptor: Option<&'a MemoryDescriptor>,
     next_frame: PhysFrame,
 }
 
-impl<'a> UefiFrameAllocator<'a> {
-    fn new(memory_map: MemoryMapIter<'a>) -> Self {
+impl<'a, I> UefiFrameAllocator<'a, I>
+where
+    I: Iterator<Item = &'a MemoryDescriptor> + Clone,
+{
+    fn new(memory_map: I) -> Self {
         Self {
+            original: memory_map.clone(),
             memory_map,
             current_descriptor: None,
             next_frame: PhysFrame::containing_address(PhysAddr::new(0)),
@@ -199,7 +204,10 @@ impl<'a> UefiFrameAllocator<'a> {
     }
 }
 
-unsafe impl FrameAllocator<Size4KiB> for UefiFrameAllocator<'_> {
+unsafe impl<'a, I> FrameAllocator<Size4KiB> for UefiFrameAllocator<'a, I>
+where
+    I: Iterator<Item = &'a MemoryDescriptor> + Clone,
+{
     fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KiB>> {
         if let Some(current_descriptor) = self.current_descriptor {
             match self.allocate_frame_from_descriptor(current_descriptor) {
