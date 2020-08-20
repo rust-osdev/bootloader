@@ -101,6 +101,34 @@ fn efi_main(image: Handle, st: SystemTable<Boot>) -> Status {
             .flush();
     }
 
+    // reserve two unused frames for context switch
+    let two_frames = TwoFrames::new(&mut frame_allocator);
+
+    // create memory map
+    let memory_map = {
+        use bootloader::memory_map::{MemoryMap, MemoryMapBuilder};
+
+        let frame = frame_allocator
+            .allocate_frame()
+            .expect("frame allocation for memory map failed");
+        let memory_map_ptr: *mut MemoryMap =
+            VirtAddr::new(frame.start_address().as_u64()).as_mut_ptr();
+        let memory_map = unsafe {
+            memory_map_ptr.write(MemoryMap::new());
+            &mut *memory_map_ptr
+        };
+
+        // identity-map the frame in new page tables
+        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+        unsafe { page_table.identity_map(frame, flags, &mut frame_allocator) }
+            .unwrap()
+            .flush();
+
+        let mut builder = MemoryMapBuilder::new(memory_map);
+        frame_allocator.construct_memory_map(&mut builder);
+        builder.finalize()
+    };
+
     let addresses = Addresses {
         page_table: level_4_frame,
         stack_top: stack_end.start_address(),
@@ -108,7 +136,7 @@ fn efi_main(image: Handle, st: SystemTable<Boot>) -> Status {
         framebuffer_addr,
     };
     unsafe {
-        context_switch(addresses, page_table, frame_allocator);
+        context_switch(addresses, page_table, two_frames);
     }
 }
 
@@ -216,6 +244,42 @@ where
             None
         }
     }
+
+    fn construct_memory_map(self, builder: &mut bootloader::memory_map::MemoryMapBuilder) {
+        use bootloader::memory_map::{MemoryMap, MemoryRegion, MemoryRegionKind};
+
+        for mut descriptor in self.original.copied() {
+            let end = descriptor.phys_start + PAGE_SIZE * descriptor.page_count;
+            let next_free = self.next_frame.start_address().as_u64();
+            let kind = match descriptor.ty {
+                MemoryType::CONVENTIONAL if end <= next_free => MemoryRegionKind::Bootloader,
+                MemoryType::CONVENTIONAL if descriptor.phys_start >= next_free => {
+                    MemoryRegionKind::Usable
+                }
+                MemoryType::CONVENTIONAL => {
+                    // part of the region is used -> add is separately
+                    let used_region = MemoryRegion {
+                        start: descriptor.phys_start,
+                        end: next_free,
+                        kind: MemoryRegionKind::Bootloader,
+                    };
+                    builder.add_region(used_region);
+
+                    // add unused part normally
+                    descriptor.phys_start = next_free;
+                    MemoryRegionKind::Usable
+                }
+                MemoryType::RESERVED => MemoryRegionKind::Reserved,
+                other => continue,
+            };
+            let region = MemoryRegion {
+                start: descriptor.phys_start,
+                end,
+                kind,
+            };
+            builder.add_region(region);
+        }
+    }
 }
 
 unsafe impl<'a, I> FrameAllocator<Size4KiB> for UefiFrameAllocator<'a, I>
@@ -244,5 +308,26 @@ where
         }
 
         None
+    }
+}
+
+pub struct TwoFrames {
+    frames: [Option<PhysFrame>; 2],
+}
+
+impl TwoFrames {
+    pub fn new(frame_allocator: &mut impl FrameAllocator<Size4KiB>) -> Self {
+        TwoFrames {
+            frames: [
+                Some(frame_allocator.allocate_frame().unwrap()),
+                Some(frame_allocator.allocate_frame().unwrap()),
+            ],
+        }
+    }
+}
+
+unsafe impl FrameAllocator<Size4KiB> for TwoFrames {
+    fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KiB>> {
+        self.frames.iter_mut().find_map(|f| f.take())
     }
 }

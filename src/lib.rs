@@ -12,6 +12,8 @@ pub use crate::bootinfo::BootInfo;
 
 pub mod bootinfo;
 
+pub mod memory_map;
+
 #[cfg(target_arch = "x86")]
 compile_error!(
     "This crate currently does not support 32-bit protected mode. \
