@@ -195,6 +195,7 @@ dependencies = [
 [[package]]
 name = "uefi"
 version = "0.5.0"
+source = "git+https://github.com/rust-osdev/uefi-rs.git#fa4b0081f0e7d9fdd72caa7f3e5a052ed6ba6de7"
 dependencies = [
  "bitflags",
  "log",
