@@ -298,7 +298,6 @@ fn main() {
     println!("cargo:rerun-if-changed=build.rs");
 }
 
-
 #[cfg(feature = "uefi_bin")]
 fn main() {
     use std::{
@@ -397,7 +396,8 @@ fn main() {
     let file_path = out_dir.join("kernel_info.rs");
     let mut file = File::create(file_path).expect("failed to create kernel_info.rs");
     let kernel_size = fs::metadata(&stripped_kernel)
-        .expect("Failed to read file metadata of stripped kernel").len();
+        .expect("Failed to read file metadata of stripped kernel")
+        .len();
     file.write_all(
         format!(
             "const KERNEL_SIZE: usize = {}; const KERNEL_BYTES: [u8; KERNEL_SIZE] = *include_bytes!(\"{}\");",

@@ -180,7 +180,8 @@ where
             // segments now.
 
             // calculate the frame where the last segment page is mapped
-            let orig_frame: PhysFrame = PhysFrame::containing_address(phys_start_addr + file_size - 1u64);
+            let orig_frame: PhysFrame =
+                PhysFrame::containing_address(phys_start_addr + file_size - 1u64);
             // allocate a new frame to replace `orig_frame`
             let new_frame = self.frame_allocator.allocate_frame().unwrap();
 
