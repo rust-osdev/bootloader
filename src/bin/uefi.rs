@@ -34,7 +34,7 @@ const PAGE_SIZE: u64 = 4096;
 
 #[entry]
 fn efi_main(image: Handle, st: SystemTable<Boot>) -> Status {
-    let framebuffer_addr = init_logger(&st);
+    let (framebuffer_addr, framebuffer_size) = init_logger(&st);
     log::info!("Hello World from UEFI bootloader!");
     log::info!("Using framebuffer at {:#x}", framebuffer_addr);
 
@@ -90,6 +90,17 @@ fn efi_main(image: Handle, st: SystemTable<Boot>) -> Status {
             .flush();
     }
 
+    // identity-map framebuffer
+    let framebuffer_start_frame: PhysFrame = PhysFrame::containing_address(framebuffer_addr);
+    let framebuffer_end_frame =
+        PhysFrame::containing_address(framebuffer_addr + framebuffer_size - 1u64);
+    for frame in PhysFrame::range_inclusive(framebuffer_start_frame, framebuffer_end_frame) {
+        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+        unsafe { page_table.identity_map(frame, flags, &mut frame_allocator) }
+            .unwrap()
+            .flush();
+    }
+
     let addresses = Addresses {
         page_table: level_4_frame,
         stack_top: stack_end.start_address(),
@@ -139,7 +150,7 @@ struct Addresses {
     framebuffer_addr: PhysAddr,
 }
 
-fn init_logger(st: &SystemTable<Boot>) -> PhysAddr {
+fn init_logger(st: &SystemTable<Boot>) -> (PhysAddr, usize) {
     let gop = st
         .boot_services()
         .locate_protocol::<GraphicsOutput>()
@@ -164,7 +175,10 @@ fn init_logger(st: &SystemTable<Boot>) -> PhysAddr {
 
     bootloader_lib::init_logger(slice, info);
 
-    PhysAddr::new(framebuffer.as_mut_ptr() as u64)
+    (
+        PhysAddr::new(framebuffer.as_mut_ptr() as u64),
+        framebuffer.size(),
+    )
 }
 
 struct UefiFrameAllocator<'a, I> {
