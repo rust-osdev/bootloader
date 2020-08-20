@@ -12,6 +12,7 @@ pub use crate::bootinfo::BootInfo;
 
 pub mod bootinfo;
 
+pub mod boot_info_uefi;
 pub mod memory_map;
 
 #[cfg(target_arch = "x86")]

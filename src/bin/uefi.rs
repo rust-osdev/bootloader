@@ -101,8 +101,19 @@ fn efi_main(image: Handle, st: SystemTable<Boot>) -> Status {
             .flush();
     }
 
-    // reserve two unused frames for context switch
+    // reserve two unused frames for context switch and one for the boot info
     let two_frames = TwoFrames::new(&mut frame_allocator);
+    let boot_info_frame = frame_allocator.allocate_frame().unwrap();
+    // identity-map the boot info frame in new page tables
+    unsafe {
+        page_table.identity_map(
+            boot_info_frame,
+            PageTableFlags::PRESENT | PageTableFlags::WRITABLE,
+            &mut frame_allocator,
+        )
+    }
+    .unwrap()
+    .flush();
 
     // create memory map
     let memory_map = {
@@ -129,11 +140,30 @@ fn efi_main(image: Handle, st: SystemTable<Boot>) -> Status {
         builder.finalize()
     };
 
+    // create boot info
+    let boot_info = {
+        use bootloader::boot_info_uefi::{BootInfo, FrameBufferInfo};
+
+        let boot_info = BootInfo {
+            memory_map,
+            framebuffer: FrameBufferInfo {
+                start_addr: framebuffer_addr.as_u64(),
+                len: framebuffer_size,
+            },
+        };
+        let ptr: *mut BootInfo =
+            VirtAddr::new(boot_info_frame.start_address().as_u64()).as_mut_ptr();
+        unsafe {
+            ptr.write(boot_info);
+            &mut *ptr
+        }
+    };
+
     let addresses = Addresses {
         page_table: level_4_frame,
         stack_top: stack_end.start_address(),
         entry_point,
-        framebuffer_addr,
+        boot_info,
     };
     unsafe {
         context_switch(addresses, page_table, two_frames);
@@ -165,7 +195,7 @@ unsafe fn context_switch(
             in(reg) addresses.page_table.start_address().as_u64(),
             in(reg) addresses.stack_top.as_u64(),
             in(reg) addresses.entry_point.as_u64(),
-            in("rdi") addresses.framebuffer_addr.as_u64(),
+            in("rdi") addresses.boot_info as *const _ as usize,
         );
     }
     unreachable!();
@@ -175,7 +205,7 @@ struct Addresses {
     page_table: PhysFrame,
     stack_top: VirtAddr,
     entry_point: VirtAddr,
-    framebuffer_addr: PhysAddr,
+    boot_info: &'static mut bootloader::boot_info_uefi::BootInfo,
 }
 
 fn init_logger(st: &SystemTable<Boot>) -> (PhysAddr, usize) {
