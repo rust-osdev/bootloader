@@ -49,7 +49,7 @@ toml = { version = "0.5.1", optional = true }
 [features]
 default = []
 bios_bin = ["binary", "xmas-elf", "x86_64", "usize_conversions", "fixedvec", "rlibc"]
-uefi_bin = ["binary", "x86_64", "rlibc", "log", "uefi", "bootloader-lib"]
+uefi_bin = ["binary", "x86_64", "rlibc", "log", "uefi", "bootloader-lib", "usize_conversions"]
 binary = ["llvm-tools", "toml"]
 vga_320x200 = ["font8x8"]
 recursive_page_table = []

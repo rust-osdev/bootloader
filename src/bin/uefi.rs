@@ -3,6 +3,9 @@
 #![feature(abi_efiapi)]
 #![feature(asm)]
 #![feature(unsafe_block_in_unsafe_fn)]
+#![feature(min_const_generics)]
+#![feature(maybe_uninit_extra)]
+#![feature(maybe_uninit_slice_assume_init)]
 #![deny(unsafe_op_in_unsafe_fn)]
 
 // Defines the constants `KERNEL_BYTES` (array of `u8`) and `KERNEL_SIZE` (`usize`).
@@ -15,12 +18,18 @@ struct PageAligned<T>(T);
 
 extern crate rlibc;
 
-use core::{mem, slice};
+use bootloader::boot_info_uefi::{BootInfo, FrameBufferInfo};
+use bootloader::memory_map::{MemoryMap, MemoryRegion};
+use core::{
+    mem::{self, MaybeUninit},
+    slice,
+};
 use uefi::{
     prelude::{entry, Boot, Handle, ResultExt, Status, SystemTable},
     proto::console::gop::{GraphicsOutput, PixelFormat},
     table::boot::{MemoryDescriptor, MemoryType},
 };
+use usize_conversions::FromUsize;
 use x86_64::{
     registers,
     structures::paging::{
@@ -54,10 +63,52 @@ fn efi_main(image: Handle, st: SystemTable<Boot>) -> Status {
         .expect_success("Failed to exit boot services");
 
     let mut frame_allocator = UefiFrameAllocator::new(memory_map);
+    let mut page_tables = create_page_tables(&mut frame_allocator);
+    let mappings = set_up_mappings(
+        &mut frame_allocator,
+        &mut page_tables.kernel,
+        framebuffer_addr,
+        framebuffer_size,
+    );
+    let (boot_info, two_frames) = create_boot_info(
+        frame_allocator,
+        &mut page_tables,
+        mappings.framebuffer,
+        framebuffer_size,
+    );
+    switch_to_kernel(page_tables, mappings, boot_info, two_frames);
+}
 
-    let (mut page_table, level_4_frame) = {
-        // UEFI identity maps all memory, so physical memory offset is 0
-        let phys_offset = VirtAddr::new(0);
+/// Creates page table abstraction types for both the bootloader and kernel page tables.
+fn create_page_tables(frame_allocator: &mut impl FrameAllocator<Size4KiB>) -> PageTables {
+    // UEFI identity-maps all memory, so the offset between physical and virtual addresses is 0
+    let phys_offset = VirtAddr::new(0);
+
+    // copy the currently active level 4 page table, because it might be read-only
+    log::trace!("switching to new level 4 table");
+    let mut bootloader_page_table = {
+        let old_frame = x86_64::registers::control::Cr3::read().0;
+        let old_table: *const PageTable =
+            (phys_offset + old_frame.start_address().as_u64()).as_ptr();
+        let new_frame = frame_allocator
+            .allocate_frame()
+            .expect("Failed to allocate frame for new level 4 table");
+        let new_table: *mut PageTable =
+            (phys_offset + new_frame.start_address().as_u64()).as_mut_ptr();
+        // copy the table to the new frame
+        unsafe { core::ptr::copy_nonoverlapping(old_table, new_table, 1) };
+        // the tables are now identical, so we can just load the new one
+        unsafe {
+            x86_64::registers::control::Cr3::write(
+                new_frame,
+                x86_64::registers::control::Cr3Flags::empty(),
+            );
+            unsafe { OffsetPageTable::new(&mut *new_table, phys_offset) }
+        }
+    };
+
+    // create a new page table hierarchy for the kernel
+    let (mut kernel_page_table, kernel_level_4_frame) = {
         // get an unused frame for new level 4 page table
         let frame: PhysFrame = frame_allocator.allocate_frame().expect("no unused frames");
         log::info!("New page table at: {:#?}", &frame);
@@ -72,107 +123,187 @@ fn efi_main(image: Handle, st: SystemTable<Boot>) -> Status {
             frame,
         )
     };
-    log::info!("New page table at: {:?}", level_4_frame);
 
-    let entry_point = bootloader_lib::load_kernel(&KERNEL.0, &mut page_table, &mut frame_allocator);
+    PageTables {
+        bootloader: bootloader_page_table,
+        kernel: kernel_page_table,
+        kernel_level_4_frame,
+    }
+}
+
+struct PageTables {
+    bootloader: OffsetPageTable<'static>,
+    kernel: OffsetPageTable<'static>,
+    kernel_level_4_frame: PhysFrame,
+}
+
+/// Sets up mappings for a kernel stack and the framebuffer
+fn set_up_mappings(
+    frame_allocator: &mut impl FrameAllocator<Size4KiB>,
+    kernel_page_table: &mut OffsetPageTable,
+    framebuffer_addr: PhysAddr,
+    framebuffer_size: usize,
+) -> Mappings {
+    let entry_point = bootloader_lib::load_kernel(&KERNEL.0, kernel_page_table, frame_allocator);
     log::info!("Entry point at: {:#x}", entry_point.as_u64());
 
     // create a stack
-    let stack_start: Page = Page::containing_address(VirtAddr::new(0xfff00000000));
+    let stack_start: Page = kernel_stack_start_location();
     let stack_end = stack_start + 20;
     for page in Page::range(stack_start, stack_end) {
         let frame = frame_allocator
             .allocate_frame()
             .expect("frame allocation failed when mapping a kernel stack");
         let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
-        unsafe { page_table.map_to(page, frame, flags, &mut frame_allocator) }
+        unsafe { kernel_page_table.map_to(page, frame, flags, frame_allocator) }
             .unwrap()
             .flush();
     }
 
-    // identity-map framebuffer
+    log::info!("Map framebuffer");
+
+    // map framebuffer
     let framebuffer_start_frame: PhysFrame = PhysFrame::containing_address(framebuffer_addr);
     let framebuffer_end_frame =
         PhysFrame::containing_address(framebuffer_addr + framebuffer_size - 1u64);
-    for frame in PhysFrame::range_inclusive(framebuffer_start_frame, framebuffer_end_frame) {
+    let start_page = frame_buffer_location();
+    for (i, frame) in
+        PhysFrame::range_inclusive(framebuffer_start_frame, framebuffer_end_frame).enumerate()
+    {
+        let page = start_page + u64::from_usize(i);
         let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
-        unsafe { page_table.identity_map(frame, flags, &mut frame_allocator) }
+        unsafe { kernel_page_table.map_to(page, frame, flags, frame_allocator) }
             .unwrap()
             .flush();
     }
+    let framebuffer_virt_addr = start_page.start_address();
 
-    // reserve two unused frames for context switch and one for the boot info
-    let two_frames = TwoFrames::new(&mut frame_allocator);
-    let boot_info_frame = frame_allocator.allocate_frame().unwrap();
-    // identity-map the boot info frame in new page tables
-    unsafe {
-        page_table.identity_map(
-            boot_info_frame,
-            PageTableFlags::PRESENT | PageTableFlags::WRITABLE,
-            &mut frame_allocator,
-        )
+    Mappings {
+        framebuffer: framebuffer_virt_addr,
+        entry_point,
+        stack_end,
     }
-    .unwrap()
-    .flush();
+}
 
-    // create memory map
-    let memory_map = {
-        use bootloader::memory_map::{MemoryMap, MemoryMapBuilder};
+struct Mappings {
+    entry_point: VirtAddr,
+    framebuffer: VirtAddr,
+    stack_end: Page,
+}
 
-        let frame = frame_allocator
-            .allocate_frame()
-            .expect("frame allocation for memory map failed");
-        let memory_map_ptr: *mut MemoryMap =
-            VirtAddr::new(frame.start_address().as_u64()).as_mut_ptr();
-        let memory_map = unsafe {
-            memory_map_ptr.write(MemoryMap::new());
-            &mut *memory_map_ptr
-        };
+/// Allocates and initializes the boot info struct and the memory map
+fn create_boot_info<'a, I>(
+    mut frame_allocator: UefiFrameAllocator<'a, I>,
+    page_tables: &mut PageTables,
+    framebuffer_virt_addr: VirtAddr,
+    framebuffer_size: usize,
+) -> (&'static mut BootInfo, TwoFrames)
+where
+    I: Iterator<Item = &'a MemoryDescriptor> + Clone,
+{
+    log::info!("Allocate bootinfo");
 
-        // identity-map the frame in new page tables
-        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
-        unsafe { page_table.identity_map(frame, flags, &mut frame_allocator) }
+    // allocate and map space for the boot info
+    let (boot_info, memory_map, memory_regions) = {
+        let boot_info_addr = boot_info_location();
+        let boot_info_end = boot_info_addr + mem::size_of::<BootInfo>();
+        let memory_map_addr = boot_info_end.align_up(u64::from_usize(mem::align_of::<MemoryMap>()));
+        let memory_map_end = memory_map_addr + mem::size_of::<MemoryMap>();
+        let memory_map_regions_addr =
+            memory_map_end.align_up(u64::from_usize(mem::align_of::<MemoryRegion>()));
+        let regions = frame_allocator.len();
+        let memory_map_regions_end =
+            memory_map_regions_addr + regions * mem::size_of::<MemoryRegion>();
+
+        let start_page = Page::containing_address(boot_info_addr);
+        let end_page = Page::containing_address(memory_map_regions_end - 1u64);
+        for page in Page::range_inclusive(start_page, end_page) {
+            log::info!("Mapping page {:?}", page);
+            let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+            let frame = frame_allocator
+                .allocate_frame()
+                .expect("frame allocation for boot info failed");
+            log::info!("1 {:?}", page);
+            unsafe {
+                page_tables
+                    .kernel
+                    .map_to(page, frame, flags, &mut frame_allocator)
+            }
             .unwrap()
             .flush();
+            log::info!("2 {:?}", page);
+            // we need to be able to access it too
+            unsafe {
+                page_tables
+                    .bootloader
+                    .map_to(page, frame, flags, &mut frame_allocator)
+            }
+            .unwrap()
+            .flush();
+            log::info!("Finished mapping page {:?}", page);
+        }
 
-        let mut builder = MemoryMapBuilder::new(memory_map);
-        frame_allocator.construct_memory_map(&mut builder);
-        builder.finalize()
+        let boot_info: &'static mut MaybeUninit<BootInfo> =
+            unsafe { &mut *boot_info_addr.as_mut_ptr() };
+        let memory_map: &'static mut MaybeUninit<MemoryMap> =
+            unsafe { &mut *memory_map_addr.as_mut_ptr() };
+        let memory_regions: &'static mut [MaybeUninit<MemoryRegion>] =
+            unsafe { slice::from_raw_parts_mut(memory_map_regions_addr.as_mut_ptr(), regions) };
+        (boot_info, memory_map, memory_regions)
     };
+
+    // reserve two unused frames for context switch
+    let two_frames = TwoFrames::new(&mut frame_allocator);
+
+    log::info!("Create Memory Map");
+
+    // build memory map
+    let memory_regions = frame_allocator.construct_memory_map(memory_regions);
+
+    log::info!("Create bootinfo");
 
     // create boot info
-    let boot_info = {
-        use bootloader::boot_info_uefi::{BootInfo, FrameBufferInfo};
+    let boot_info = boot_info.write(BootInfo {
+        memory_regions,
+        framebuffer: FrameBufferInfo {
+            start_addr: framebuffer_virt_addr.as_u64(),
+            len: framebuffer_size,
+        },
+    });
 
-        let boot_info = BootInfo {
-            memory_map,
-            framebuffer: FrameBufferInfo {
-                start_addr: framebuffer_addr.as_u64(),
-                len: framebuffer_size,
-            },
-        };
-        let ptr: *mut BootInfo =
-            VirtAddr::new(boot_info_frame.start_address().as_u64()).as_mut_ptr();
-        unsafe {
-            ptr.write(boot_info);
-            &mut *ptr
-        }
-    };
+    (boot_info, two_frames)
+}
 
+fn switch_to_kernel(
+    page_tables: PageTables,
+    mappings: Mappings,
+    boot_info: &'static mut BootInfo,
+    two_frames: TwoFrames,
+) -> ! {
+    let PageTables {
+        kernel_level_4_frame,
+        kernel: kernel_page_table,
+        ..
+    } = page_tables;
     let addresses = Addresses {
-        page_table: level_4_frame,
-        stack_top: stack_end.start_address(),
-        entry_point,
+        page_table: kernel_level_4_frame,
+        stack_top: mappings.stack_end.start_address(),
+        entry_point: mappings.entry_point,
         boot_info,
     };
+
+    log::info!(
+        "Jumping to kernel entry point at {:?}",
+        addresses.entry_point
+    );
     unsafe {
-        context_switch(addresses, page_table, two_frames);
+        context_switch(addresses, kernel_page_table, two_frames);
     }
 }
 
 unsafe fn context_switch(
     addresses: Addresses,
-    mut page_table: OffsetPageTable,
+    mut kernel_page_table: OffsetPageTable,
     mut frame_allocator: impl FrameAllocator<Size4KiB>,
 ) -> ! {
     // identity-map current and next frame, so that we don't get an immediate pagefault
@@ -180,13 +311,15 @@ unsafe fn context_switch(
     let current_addr = PhysAddr::new(registers::read_rip());
     let current_frame: PhysFrame = PhysFrame::containing_address(current_addr);
     for frame in PhysFrame::range_inclusive(current_frame, current_frame + 1) {
-        unsafe { page_table.identity_map(frame, PageTableFlags::PRESENT, &mut frame_allocator) }
-            .unwrap()
-            .flush();
+        unsafe {
+            kernel_page_table.identity_map(frame, PageTableFlags::PRESENT, &mut frame_allocator)
+        }
+        .unwrap()
+        .flush();
     }
 
-    // we don't need the page table anymore
-    mem::drop(page_table);
+    // we don't need the kernel page table anymore
+    mem::drop(kernel_page_table);
 
     // do the context switch
     unsafe {
@@ -255,7 +388,7 @@ where
             original: memory_map.clone(),
             memory_map,
             current_descriptor: None,
-            next_frame: PhysFrame::containing_address(PhysAddr::new(0)),
+            next_frame: PhysFrame::containing_address(PhysAddr::new(0x1000)),
         }
     }
 
@@ -275,8 +408,17 @@ where
         }
     }
 
-    fn construct_memory_map(self, builder: &mut bootloader::memory_map::MemoryMapBuilder) {
-        use bootloader::memory_map::{MemoryMap, MemoryRegion, MemoryRegionKind};
+    fn len(&self) -> usize {
+        self.original.clone().count() // TODO ExactSizeIterator implementation possible?
+    }
+
+    fn construct_memory_map(
+        self,
+        regions: &mut [MaybeUninit<MemoryRegion>],
+    ) -> &mut [MemoryRegion] {
+        use bootloader::memory_map::MemoryRegionKind;
+
+        let mut next_index = 0;
 
         for mut descriptor in self.original.copied() {
             let end = descriptor.phys_start + PAGE_SIZE * descriptor.page_count;
@@ -293,7 +435,7 @@ where
                         end: next_free,
                         kind: MemoryRegionKind::Bootloader,
                     };
-                    builder.add_region(used_region);
+                    Self::add_region(used_region, regions, &mut next_index);
 
                     // add unused part normally
                     descriptor.phys_start = next_free;
@@ -307,8 +449,27 @@ where
                 end,
                 kind,
             };
-            builder.add_region(region);
+            Self::add_region(region, regions, &mut next_index);
         }
+
+        let initialized = &mut regions[..next_index];
+        unsafe { MaybeUninit::slice_get_mut(initialized) }
+    }
+
+    fn add_region(
+        region: MemoryRegion,
+        regions: &mut [MaybeUninit<MemoryRegion>],
+        next_index: &mut usize,
+    ) -> Result<(), ()> {
+        unsafe {
+            regions
+                .get_mut(*next_index)
+                .ok_or(())?
+                .as_mut_ptr()
+                .write(region)
+        };
+        *next_index += 1;
+        Ok(())
     }
 }
 
@@ -360,4 +521,16 @@ unsafe impl FrameAllocator<Size4KiB> for TwoFrames {
     fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KiB>> {
         self.frames.iter_mut().find_map(|f| f.take())
     }
+}
+
+fn boot_info_location() -> VirtAddr {
+    VirtAddr::new(0x_0000_00bb_bbbb_0000)
+}
+
+fn frame_buffer_location() -> Page {
+    Page::containing_address(VirtAddr::new(0x_0000_00cc_cccc_0000))
+}
+
+fn kernel_stack_start_location() -> Page {
+    Page::containing_address(VirtAddr::new(0x_0000_0fff_0000_0000));
 }

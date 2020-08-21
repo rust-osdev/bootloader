@@ -7,6 +7,7 @@
 
 #![no_std]
 #![warn(missing_docs)]
+#![feature(min_const_generics)]
 
 pub use crate::bootinfo::BootInfo;
 
