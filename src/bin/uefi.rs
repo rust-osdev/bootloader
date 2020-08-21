@@ -19,7 +19,7 @@ struct PageAligned<T>(T);
 extern crate rlibc;
 
 use bootloader::boot_info_uefi::{BootInfo, FrameBufferInfo};
-use bootloader::memory_map::{MemoryMap, MemoryRegion};
+use bootloader::memory_map::MemoryRegion;
 use core::{
     mem::{self, MaybeUninit},
     slice,
@@ -204,13 +204,11 @@ where
     log::info!("Allocate bootinfo");
 
     // allocate and map space for the boot info
-    let (boot_info, memory_map, memory_regions) = {
+    let (boot_info, memory_regions) = {
         let boot_info_addr = boot_info_location();
         let boot_info_end = boot_info_addr + mem::size_of::<BootInfo>();
-        let memory_map_addr = boot_info_end.align_up(u64::from_usize(mem::align_of::<MemoryMap>()));
-        let memory_map_end = memory_map_addr + mem::size_of::<MemoryMap>();
         let memory_map_regions_addr =
-            memory_map_end.align_up(u64::from_usize(mem::align_of::<MemoryRegion>()));
+            boot_info_end.align_up(u64::from_usize(mem::align_of::<MemoryRegion>()));
         let regions = frame_allocator.len();
         let memory_map_regions_end =
             memory_map_regions_addr + regions * mem::size_of::<MemoryRegion>();
@@ -245,11 +243,9 @@ where
 
         let boot_info: &'static mut MaybeUninit<BootInfo> =
             unsafe { &mut *boot_info_addr.as_mut_ptr() };
-        let memory_map: &'static mut MaybeUninit<MemoryMap> =
-            unsafe { &mut *memory_map_addr.as_mut_ptr() };
         let memory_regions: &'static mut [MaybeUninit<MemoryRegion>] =
             unsafe { slice::from_raw_parts_mut(memory_map_regions_addr.as_mut_ptr(), regions) };
-        (boot_info, memory_map, memory_regions)
+        (boot_info, memory_regions)
     };
 
     // reserve two unused frames for context switch
