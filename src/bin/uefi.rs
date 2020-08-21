@@ -21,6 +21,7 @@ extern crate rlibc;
 use bootloader::boot_info_uefi::{BootInfo, FrameBufferInfo};
 use bootloader::memory_map::MemoryRegion;
 use core::{
+    panic::PanicInfo,
     mem::{self, MaybeUninit},
     slice,
 };
@@ -144,7 +145,7 @@ fn set_up_mappings(
     framebuffer_addr: PhysAddr,
     framebuffer_size: usize,
 ) -> Mappings {
-    let entry_point = bootloader_lib::load_kernel(&KERNEL.0, kernel_page_table, frame_allocator);
+    let entry_point = bootloader::load_kernel(&KERNEL.0, kernel_page_table, frame_allocator);
     log::info!("Entry point at: {:#x}", entry_point.as_u64());
 
     // create a stack
@@ -351,12 +352,12 @@ fn init_logger(st: &SystemTable<Boot>) -> (PhysAddr, usize) {
     let mode_info = gop.current_mode_info();
     let mut framebuffer = gop.frame_buffer();
     let slice = unsafe { slice::from_raw_parts_mut(framebuffer.as_mut_ptr(), framebuffer.size()) };
-    let info = bootloader_lib::FrameBufferInfo {
+    let info = bootloader::FrameBufferInfo {
         horizontal_resolution: mode_info.resolution().0,
         vertical_resolution: mode_info.resolution().1,
         pixel_format: match mode_info.pixel_format() {
-            PixelFormat::RGB => bootloader_lib::PixelFormat::BGR,
-            PixelFormat::BGR => bootloader_lib::PixelFormat::BGR,
+            PixelFormat::RGB => bootloader::PixelFormat::BGR,
+            PixelFormat::BGR => bootloader::PixelFormat::BGR,
             PixelFormat::Bitmask | PixelFormat::BltOnly => {
                 panic!("Bitmask and BltOnly framebuffers are not supported")
             }
@@ -364,7 +365,7 @@ fn init_logger(st: &SystemTable<Boot>) -> (PhysAddr, usize) {
         stride: mode_info.stride(),
     };
 
-    bootloader_lib::init_logger(slice, info);
+    bootloader::init_logger(slice, info);
 
     (
         PhysAddr::new(framebuffer.as_mut_ptr() as u64),
@@ -537,7 +538,7 @@ fn kernel_stack_start_location() -> Page {
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    unsafe { logger::LOGGER.get().map(|l| l.force_unlock()) };
+    unsafe { bootloader::logger::LOGGER.get().map(|l| l.force_unlock()) };
     log::error!("{}", info);
     loop {
         unsafe { asm!("cli; hlt") };

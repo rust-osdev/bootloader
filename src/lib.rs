@@ -6,15 +6,33 @@
 //! blog for an explanation.
 
 #![no_std]
-#![warn(missing_docs)]
 #![feature(min_const_generics)]
+#![feature(slice_fill)]
+#![feature(asm)]
+#![feature(unsafe_block_in_unsafe_fn)]
+#![deny(unsafe_op_in_unsafe_fn)]
+//#![warn(missing_docs)]
 
 pub use crate::bootinfo::BootInfo;
+
+use core::panic::PanicInfo;
+#[cfg(feature = "uefi_bin")]
+pub use logger::{FrameBufferInfo, PixelFormat};
+#[cfg(feature = "uefi_bin")]
+use x86_64::{
+    structures::paging::{FrameAllocator, MapperAllSizes, Size4KiB},
+    VirtAddr,
+};
 
 pub mod bootinfo;
 
 pub mod boot_info_uefi;
 pub mod memory_map;
+
+#[cfg(feature = "uefi_bin")]
+mod load_kernel;
+#[cfg(feature = "uefi_bin")]
+pub mod logger;
 
 #[cfg(target_arch = "x86")]
 compile_error!(
@@ -43,4 +61,20 @@ macro_rules! entry_point {
             f(boot_info)
         }
     };
+}
+
+#[cfg(feature = "uefi_bin")]
+pub fn init_logger(framebuffer: &'static mut [u8], info: FrameBufferInfo) {
+    let logger = logger::LOGGER.get_or_init(move || logger::LockedLogger::new(framebuffer, info));
+    log::set_logger(logger).expect("logger already set");
+    log::set_max_level(log::LevelFilter::Trace);
+}
+
+#[cfg(feature = "uefi_bin")]
+pub fn load_kernel(
+    kernel: &'static [u8],
+    page_table: &mut impl MapperAllSizes,
+    frame_allocator: &mut impl FrameAllocator<Size4KiB>,
+) -> VirtAddr {
+    load_kernel::load_kernel(kernel, page_table, frame_allocator).expect("Failed to parse kernel")
 }

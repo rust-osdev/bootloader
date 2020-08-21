@@ -10,7 +10,6 @@ build = "build.rs"
 
 [workspace]
 members = [
-    "bootloader-lib",
     "runner",
 ]
 
@@ -37,15 +36,13 @@ log = { version = "0.4.8", optional = true }
 uefi = { git = "https://github.com/rust-osdev/uefi-rs.git", optional = true }
 argh = { version = "0.1.3", optional = true }
 displaydoc = { version = "0.1.7", optional = true }
+conquer-once = { version = "0.2.1", optional = true, default-features = false }
+spinning_top = { version = "0.2.1", optional = true }
 
 [dependencies.font8x8]
-version = "0.2.4"
+version = "0.2.5"
 default-features = false
 features = ["unicode"]
-optional = true
-
-[dependencies.bootloader-lib]
-path = "bootloader-lib"
 optional = true
 
 [build-dependencies]
@@ -55,9 +52,9 @@ toml = { version = "0.5.1", optional = true }
 [features]
 default = []
 builder = ["argh", "displaydoc"]
-bios_bin = ["binary", "xmas-elf", "x86_64", "usize_conversions", "fixedvec", "rlibc"]
-uefi_bin = ["binary", "x86_64", "rlibc", "log", "uefi", "bootloader-lib", "usize_conversions"]
-binary = ["llvm-tools", "toml"]
+bios_bin = ["binary", "fixedvec", "rlibc"]
+uefi_bin = ["binary", "rlibc", "log", "uefi", "conquer-once", "font8x8", "spinning_top"]
+binary = ["llvm-tools", "x86_64", "toml", "xmas-elf", "usize_conversions"]
 vga_320x200 = ["font8x8"]
 recursive_page_table = []
 map_physical_memory = []

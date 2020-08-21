@@ -59,30 +59,19 @@ version = "0.9.8"
 dependencies = [
  "argh",
  "bit_field 0.10.0",
- "bootloader-lib",
+ "conquer-once",
  "displaydoc",
  "fixedvec",
  "font8x8",
  "llvm-tools",
  "log",
  "rlibc",
+ "spinning_top",
  "toml",
  "uefi",
  "usize_conversions",
  "x86_64",
- "xmas-elf 0.6.2",
-]
-
-[[package]]
-name = "bootloader-lib"
-version = "0.1.0"
-dependencies = [
- "conquer-once",
- "font8x8",
- "log",
- "spinning_top",
- "x86_64",
- "xmas-elf 0.7.0",
+ "xmas-elf",
 ]
 
 [[package]]
@@ -146,9 +135,9 @@ checksum = "955be5d0ca0465caf127165acb47964f911e2bc26073e865deb8be7189302faf"
 
 [[package]]
 name = "lock_api"
-version = "0.3.4"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c4da24a77a3d8a6d4862d95f72e6fdb9c09a643ecdb402d754004a557f2bec75"
+checksum = "28247cc5a5be2f05fbcd76dd0cf2c7d3b5400cb978a28042abcd4fa0b3f8261c"
 dependencies = [
  "scopeguard",
 ]
@@ -207,9 +196,9 @@ checksum = "7fe5626ac617da2f2d9c48af5515a21d5a480dbd151e01bb1c355e26a3e68113"
 
 [[package]]
 name = "spinning_top"
-version = "0.1.1"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "047031d6df5f5ae0092c97aa4f6bb04cfc9c081b4cd4cb9cdb38657994279a00"
+checksum = "3ae8ba8ba35ec6c69da715181fb4b5451c3974b997596c0443d0bbc18c8cf6cd"
 dependencies = [
  "lock_api",
 ]
@@ -298,15 +287,6 @@ name = "xmas-elf"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22678df5df766e8d1e5d609da69f0c3132d794edf6ab5e75e7abcd2270d4cf58"
-dependencies = [
- "zero",
-]
-
-[[package]]
-name = "xmas-elf"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e74de9a366f6ab8c405fa6b371d9ac24943921fa14b3d64afcb202065c405f11"
 dependencies = [
  "zero",
 ]
