@@ -210,7 +210,7 @@ where
         let boot_info_end = boot_info_addr + mem::size_of::<BootInfo>();
         let memory_map_regions_addr =
             boot_info_end.align_up(u64::from_usize(mem::align_of::<MemoryRegion>()));
-        let regions = frame_allocator.len();
+        let regions = frame_allocator.len() + 1; // one region might be split into used/unused
         let memory_map_regions_end =
             memory_map_regions_addr + regions * mem::size_of::<MemoryRegion>();
 
