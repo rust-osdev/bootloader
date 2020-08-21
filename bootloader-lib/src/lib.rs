@@ -28,11 +28,3 @@ pub fn load_kernel(
     load_kernel::load_kernel(kernel, page_table, frame_allocator).expect("Failed to parse kernel")
 }
 
-#[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
-    unsafe { logger::LOGGER.get().map(|l| l.force_unlock()) };
-    log::error!("{}", info);
-    loop {
-        unsafe { asm!("cli; hlt") };
-    }
-}

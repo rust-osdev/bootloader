@@ -534,3 +534,12 @@ fn frame_buffer_location() -> Page {
 fn kernel_stack_start_location() -> Page {
     Page::containing_address(VirtAddr::new(0x_0000_0fff_0000_0000))
 }
+
+#[panic_handler]
+fn panic(info: &PanicInfo) -> ! {
+    unsafe { logger::LOGGER.get().map(|l| l.force_unlock()) };
+    log::error!("{}", info);
+    loop {
+        unsafe { asm!("cli; hlt") };
+    }
+}
