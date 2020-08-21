@@ -5,7 +5,7 @@
 //! [_Writing an OS in Rust_](https://os.phil-opp.com/minimal-rust-kernel/#creating-a-bootimage)
 //! blog for an explanation.
 
-#![no_std]
+#![cfg_attr(not(feature = "builder"), no_std)]
 #![feature(min_const_generics)]
 #![feature(slice_fill)]
 #![feature(asm)]
@@ -15,9 +15,13 @@
 
 pub use crate::bootinfo::BootInfo;
 
-use core::panic::PanicInfo;
 #[cfg(feature = "uefi_bin")]
 pub use logger::{FrameBufferInfo, PixelFormat};
+#[cfg(feature = "bios_bin")]
+use x86_64::{
+    structures::paging::{frame::PhysFrameRange, PhysFrame},
+    PhysAddr,
+};
 #[cfg(feature = "uefi_bin")]
 use x86_64::{
     structures::paging::{FrameAllocator, MapperAllSizes, Size4KiB},
@@ -29,10 +33,27 @@ pub mod bootinfo;
 pub mod boot_info_uefi;
 pub mod memory_map;
 
+#[cfg(feature = "builder")]
+pub mod disk_image;
+
 #[cfg(feature = "uefi_bin")]
 mod load_kernel;
 #[cfg(feature = "uefi_bin")]
 pub mod logger;
+
+#[cfg(feature = "bios_bin")]
+pub mod boot_info;
+#[cfg(feature = "bios_bin")]
+pub mod frame_allocator;
+#[cfg(feature = "bios_bin")]
+pub mod level4_entries;
+#[cfg(feature = "bios_bin")]
+pub mod page_table;
+#[cfg(feature = "bios_bin")]
+pub mod printer;
+
+#[cfg(all(feature = "bios_bin", feature = "sse"))]
+pub mod sse;
 
 #[cfg(target_arch = "x86")]
 compile_error!(
@@ -77,4 +98,20 @@ pub fn load_kernel(
     frame_allocator: &mut impl FrameAllocator<Size4KiB>,
 ) -> VirtAddr {
     load_kernel::load_kernel(kernel, page_table, frame_allocator).expect("Failed to parse kernel")
+}
+
+#[cfg(feature = "bios_bin")]
+pub fn phys_frame_range(range: bootinfo::FrameRange) -> PhysFrameRange {
+    PhysFrameRange {
+        start: PhysFrame::from_start_address(PhysAddr::new(range.start_addr())).unwrap(),
+        end: PhysFrame::from_start_address(PhysAddr::new(range.end_addr())).unwrap(),
+    }
+}
+
+#[cfg(feature = "bios_bin")]
+pub fn frame_range(range: PhysFrameRange) -> bootinfo::FrameRange {
+    bootinfo::FrameRange::new(
+        range.start.start_address().as_u64(),
+        range.end.start_address().as_u64(),
+    )
 }

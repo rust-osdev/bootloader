@@ -21,8 +21,8 @@ extern crate rlibc;
 use bootloader::boot_info_uefi::{BootInfo, FrameBufferInfo};
 use bootloader::memory_map::MemoryRegion;
 use core::{
-    panic::PanicInfo,
     mem::{self, MaybeUninit},
+    panic::PanicInfo,
     slice,
 };
 use uefi::{
@@ -87,7 +87,7 @@ fn create_page_tables(frame_allocator: &mut impl FrameAllocator<Size4KiB>) -> Pa
 
     // copy the currently active level 4 page table, because it might be read-only
     log::trace!("switching to new level 4 table");
-    let mut bootloader_page_table = {
+    let bootloader_page_table = {
         let old_frame = x86_64::registers::control::Cr3::read().0;
         let old_table: *const PageTable =
             (phys_offset + old_frame.start_address().as_u64()).as_ptr();
@@ -104,12 +104,12 @@ fn create_page_tables(frame_allocator: &mut impl FrameAllocator<Size4KiB>) -> Pa
                 new_frame,
                 x86_64::registers::control::Cr3Flags::empty(),
             );
-            unsafe { OffsetPageTable::new(&mut *new_table, phys_offset) }
+            OffsetPageTable::new(&mut *new_table, phys_offset)
         }
     };
 
     // create a new page table hierarchy for the kernel
-    let (mut kernel_page_table, kernel_level_4_frame) = {
+    let (kernel_page_table, kernel_level_4_frame) = {
         // get an unused frame for new level 4 page table
         let frame: PhysFrame = frame_allocator.allocate_frame().expect("no unused frames");
         log::info!("New page table at: {:#?}", &frame);
@@ -436,7 +436,8 @@ where
                         end: next_free,
                         kind: MemoryRegionKind::Bootloader,
                     };
-                    Self::add_region(used_region, regions, &mut next_index);
+                    Self::add_region(used_region, regions, &mut next_index)
+                        .expect("Failed to add memory region");
 
                     // add unused part normally
                     descriptor.phys_start = next_free;

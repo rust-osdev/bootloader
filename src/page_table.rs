@@ -1,6 +1,6 @@
+use crate::bootinfo::MemoryRegionType;
+use crate::bootinfo::TlsTemplate;
 use crate::frame_allocator::FrameAllocator;
-use bootloader::bootinfo::MemoryRegionType;
-use bootloader::bootinfo::TlsTemplate;
 use fixedvec::FixedVec;
 use x86_64::structures::paging::mapper::{MapToError, MapperFlush, UnmapError};
 use x86_64::structures::paging::{
@@ -27,7 +27,7 @@ impl From<MapToError<Size4KiB>> for MapKernelError {
     }
 }
 
-pub(crate) fn map_kernel(
+pub fn map_kernel(
     kernel_start: PhysAddr,
     stack_start: Page,
     stack_size: u64,
@@ -65,7 +65,7 @@ pub(crate) fn map_kernel(
     })
 }
 
-pub(crate) fn map_segment(
+pub fn map_segment(
     segment: &ProgramHeader64,
     kernel_start: PhysAddr,
     page_table: &mut RecursivePageTable,
@@ -191,7 +191,7 @@ pub(crate) fn map_segment(
     }
 }
 
-pub(crate) unsafe fn map_page<'a, S>(
+pub unsafe fn map_page<'a, S>(
     page: Page<S>,
     phys_frame: PhysFrame<S>,
     flags: PageTableFlags,
@@ -210,10 +210,12 @@ where
         }
     }
 
-    page_table.map_to(
-        page,
-        phys_frame,
-        flags,
-        &mut PageTableAllocator(frame_allocator),
-    )
+    unsafe {
+        page_table.map_to(
+            page,
+            phys_frame,
+            flags,
+            &mut PageTableAllocator(frame_allocator),
+        )
+    }
 }

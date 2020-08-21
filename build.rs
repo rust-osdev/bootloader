@@ -86,6 +86,7 @@ fn parse_to_config(cfg: &mut BootloaderConfig, table: &toml::value::Table) {
 
 #[cfg(feature = "bios_bin")]
 fn main() {
+    use llvm_tools_build as llvm_tools;
     use std::{
         env,
         fs::{self, File},
@@ -300,6 +301,7 @@ fn main() {
 
 #[cfg(feature = "uefi_bin")]
 fn main() {
+    use llvm_tools_build as llvm_tools;
     use std::{
         env,
         fs::{self, File},

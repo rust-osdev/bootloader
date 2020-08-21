@@ -38,6 +38,9 @@ displaydoc = { version = "0.1.7", optional = true }
 conquer-once = { version = "0.2.1", optional = true, default-features = false }
 spinning_top = { version = "0.2.1", optional = true }
 anyhow = { version = "1.0.32", optional = true }
+llvm-tools = { version = "0.1.1", optional = true }
+thiserror = { version = "1.0.20", optional = true }
+json = { version = "0.12.4", optional = true }
 
 [dependencies.font8x8]
 version = "0.2.5"
@@ -46,16 +49,16 @@ features = ["unicode"]
 optional = true
 
 [build-dependencies]
-llvm-tools = { version = "0.1", optional = true }
+llvm-tools-build = { version = "0.1", optional = true, package = "llvm-tools" }
 toml = { version = "0.5.1", optional = true }
 
 [features]
 default = []
-builder = ["argh", "displaydoc"]
+builder = ["argh", "thiserror", "displaydoc", "anyhow", "llvm-tools", "json"]
 runner = ["anyhow"]
 bios_bin = ["binary", "fixedvec", "rlibc"]
 uefi_bin = ["binary", "rlibc", "log", "uefi", "conquer-once", "font8x8", "spinning_top"]
-binary = ["llvm-tools", "x86_64", "toml", "xmas-elf", "usize_conversions"]
+binary = ["llvm-tools-build", "x86_64", "toml", "xmas-elf", "usize_conversions"]
 vga_320x200 = ["font8x8"]
 recursive_page_table = []
 map_physical_memory = []

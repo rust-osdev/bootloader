@@ -9,7 +9,10 @@ compile_error!("The bootloader crate must be compiled for the `x86_64-bootloader
 
 extern crate rlibc;
 
-use bootloader::bootinfo::{BootInfo, FrameRange};
+use bootloader::{
+    boot_info, bootinfo::BootInfo, frame_allocator, frame_range, level4_entries, page_table,
+    printer,
+};
 use core::convert::TryInto;
 use core::panic::PanicInfo;
 use core::{mem, slice};
@@ -17,8 +20,8 @@ use fixedvec::alloc_stack;
 use usize_conversions::usize_from;
 use x86_64::instructions::tlb;
 use x86_64::structures::paging::{
-    frame::PhysFrameRange, page_table::PageTableEntry, Mapper, Page, PageTable, PageTableFlags,
-    PageTableIndex, PhysFrame, RecursivePageTable, Size2MiB, Size4KiB,
+    page_table::PageTableEntry, Mapper, Page, PageTable, PageTableFlags, PageTableIndex, PhysFrame,
+    RecursivePageTable, Size2MiB, Size4KiB,
 };
 use x86_64::{PhysAddr, VirtAddr};
 
@@ -31,29 +34,21 @@ use x86_64::{PhysAddr, VirtAddr};
 // KERNEL_STACK_SIZE: The number of pages in the kernel stack.
 include!(concat!(env!("OUT_DIR"), "/bootloader_config.rs"));
 
-global_asm!(include_str!("stage_1.s"));
-global_asm!(include_str!("stage_2.s"));
-global_asm!(include_str!("e820.s"));
-global_asm!(include_str!("stage_3.s"));
+global_asm!(include_str!("../asm/stage_1.s"));
+global_asm!(include_str!("../asm/stage_2.s"));
+global_asm!(include_str!("../asm/e820.s"));
+global_asm!(include_str!("../asm/stage_3.s"));
 
 #[cfg(feature = "vga_320x200")]
-global_asm!(include_str!("video_mode/vga_320x200.s"));
+global_asm!(include_str!("../asm/video_mode/vga_320x200.s"));
 #[cfg(not(feature = "vga_320x200"))]
-global_asm!(include_str!("video_mode/vga_text_80x25.s"));
+global_asm!(include_str!("../asm/video_mode/vga_text_80x25.s"));
 
 unsafe fn context_switch(boot_info: VirtAddr, entry_point: VirtAddr, stack_pointer: VirtAddr) -> ! {
     llvm_asm!("call $1; ${:private}.spin.${:uid}: jmp ${:private}.spin.${:uid}" ::
          "{rsp}"(stack_pointer), "r"(entry_point), "{rdi}"(boot_info) :: "intel");
     ::core::hint::unreachable_unchecked()
 }
-
-mod boot_info;
-mod frame_allocator;
-mod level4_entries;
-mod page_table;
-mod printer;
-#[cfg(feature = "sse")]
-mod sse;
 
 pub struct IdentityMappedAddr(PhysAddr);
 
@@ -385,18 +380,4 @@ pub extern "C" fn eh_personality() {
 #[no_mangle]
 pub extern "C" fn _Unwind_Resume() {
     loop {}
-}
-
-fn phys_frame_range(range: FrameRange) -> PhysFrameRange {
-    PhysFrameRange {
-        start: PhysFrame::from_start_address(PhysAddr::new(range.start_addr())).unwrap(),
-        end: PhysFrame::from_start_address(PhysAddr::new(range.end_addr())).unwrap(),
-    }
-}
-
-fn frame_range(range: PhysFrameRange) -> FrameRange {
-    FrameRange::new(
-        range.start.start_address().as_u64(),
-        range.end.start_address().as_u64(),
-    )
 }

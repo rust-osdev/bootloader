@@ -1,13 +1,13 @@
 use super::{frame_range, phys_frame_range};
-use bootloader::bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
+use crate::bootinfo::{MemoryMap, MemoryRegion, MemoryRegionType};
 use x86_64::structures::paging::{frame::PhysFrameRange, PhysFrame};
 
-pub(crate) struct FrameAllocator<'a> {
+pub struct FrameAllocator<'a> {
     pub memory_map: &'a mut MemoryMap,
 }
 
 impl<'a> FrameAllocator<'a> {
-    pub(crate) fn allocate_frame(&mut self, region_type: MemoryRegionType) -> Option<PhysFrame> {
+    pub fn allocate_frame(&mut self, region_type: MemoryRegionType) -> Option<PhysFrame> {
         // try to find an existing region of same type that can be enlarged
         let mut iter = self.memory_map.iter_mut().peekable();
         while let Some(region) = iter.next() {
@@ -66,7 +66,7 @@ impl<'a> FrameAllocator<'a> {
     /// Marks the passed region in the memory map.
     ///
     /// Panics if a non-usable region (e.g. a reserved region) overlaps with the passed region.
-    pub(crate) fn mark_allocated_region(&mut self, region: MemoryRegion) {
+    pub fn mark_allocated_region(&mut self, region: MemoryRegion) {
         for r in self.memory_map.iter_mut() {
             if region.range.start_frame_number >= r.range.end_frame_number {
                 continue;
