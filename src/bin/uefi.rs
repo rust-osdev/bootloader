@@ -536,5 +536,5 @@ fn frame_buffer_location() -> Page {
 }
 
 fn kernel_stack_start_location() -> Page {
-    Page::containing_address(VirtAddr::new(0x_0000_0fff_0000_0000));
+    Page::containing_address(VirtAddr::new(0x_0000_0fff_0000_0000))
 }
