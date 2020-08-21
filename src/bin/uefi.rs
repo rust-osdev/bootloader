@@ -274,6 +274,7 @@ where
     (boot_info, two_frames)
 }
 
+/// Switches to the kernel address space and jumps to the kernel entry point.
 fn switch_to_kernel(
     page_tables: PageTables,
     mappings: Mappings,
@@ -301,6 +302,9 @@ fn switch_to_kernel(
     }
 }
 
+/// Performs the actual context switch
+///
+/// This function should stay small because it needs to be identity-mapped.
 unsafe fn context_switch(
     addresses: Addresses,
     mut kernel_page_table: OffsetPageTable,
