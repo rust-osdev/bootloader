@@ -2,6 +2,7 @@ use anyhow::{anyhow, Context};
 use argh::FromArgs;
 use bootloader::disk_image::create_disk_image;
 use std::{
+    fs,
     path::{Path, PathBuf},
     process::Command,
     str::FromStr,
@@ -27,6 +28,22 @@ struct BuildArguments {
     /// whether to run the resulting binary in QEMU
     #[argh(switch)]
     run: bool,
+
+    /// suppress stdout output
+    #[argh(switch)]
+    quiet: bool,
+
+    /// build the bootloader with the given cargo features
+    #[argh(option)]
+    features: Vec<String>,
+
+    /// use the given path as target directory
+    #[argh(option)]
+    target_dir: Option<PathBuf>,
+
+    /// place the output binaries at the given path
+    #[argh(option)]
+    out_dir: Option<PathBuf>,
 }
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
@@ -61,8 +78,14 @@ fn main() -> anyhow::Result<()> {
         let mut cmd = Command::new(env!("CARGO"));
         cmd.arg(build_or_run).arg("--bin").arg("uefi");
         cmd.arg("--target").arg("x86_64-unknown-uefi");
-        cmd.arg("--features").arg("uefi_bin");
+        cmd.arg("--features").arg(args.features.join(" ") + " uefi_bin");
         cmd.arg("-Zbuild-std=core");
+        if let Some(target_dir) = &args.target_dir {
+            cmd.arg("--target-dir").arg(target_dir);
+        }
+        if args.quiet {
+            cmd.arg("--quiet");
+        }
         cmd.env("KERNEL", &args.kernel_binary);
         cmd.env("KERNEL_MANIFEST", &args.kernel_manifest);
         assert!(cmd.status()?.success());
@@ -74,8 +97,14 @@ fn main() -> anyhow::Result<()> {
         cmd.arg("--profile").arg("release");
         cmd.arg("-Z").arg("unstable-options");
         cmd.arg("--target").arg("x86_64-bootloader.json");
-        cmd.arg("--features").arg("bios_bin");
+        cmd.arg("--features").arg(args.features.join(" ") + " bios_bin");
         cmd.arg("-Zbuild-std=core");
+        if let Some(target_dir) = &args.target_dir {
+            cmd.arg("--target-dir").arg(target_dir);
+        }
+        if args.quiet {
+            cmd.arg("--quiet");
+        }
         cmd.env("KERNEL", &args.kernel_binary);
         cmd.env("KERNEL_MANIFEST", &args.kernel_manifest);
         cmd.env("RUSTFLAGS", "-C opt-level=s");
@@ -103,18 +132,27 @@ fn main() -> anyhow::Result<()> {
         assert_eq!(executables.len(), 1);
         let executable_path = executables.pop().unwrap();
         let executable_name = executable_path.file_name().unwrap().to_str().unwrap();
-        let output_bin_path = executable_path
+        let kernel_name = args.kernel_binary.file_name().unwrap().to_str().unwrap();
+        let mut output_bin_path = executable_path
             .parent()
             .unwrap()
-            .join(format!("bootimage-{}.bin", executable_name));
+            .join(format!("bootimage-{}-{}.bin", executable_name, kernel_name));
 
         create_disk_image(&executable_path, &output_bin_path)
             .context("Failed to create bootable disk image")?;
 
-        println!(
-            "Created bootable disk image at {}",
-            output_bin_path.display()
-        );
+        if let Some(out_dir) = &args.out_dir {
+            let file = out_dir.join(output_bin_path.file_name().unwrap());
+            fs::copy(output_bin_path, &file)?;
+            output_bin_path = file;
+        }
+
+        if !args.quiet {
+            println!(
+                "Created bootable disk image at {}",
+                output_bin_path.display()
+            );
+        }
 
         if args.run {
             bios_run(&output_bin_path)?;
