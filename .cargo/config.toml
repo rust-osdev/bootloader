@@ -2,4 +2,4 @@
 runner = "cargo run --bin runner --features runner"
 
 [alias]
-builder = "run --bin builder --features builder --"
+builder = "run --bin builder --features builder --quiet --"
