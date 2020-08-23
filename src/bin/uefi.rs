@@ -18,6 +18,7 @@ struct PageAligned<T>(T);
 
 extern crate rlibc;
 
+use bootloader::legacy_memory_region::LegacyFrameAllocator;
 use bootloader::boot_info_uefi::{BootInfo, FrameBufferInfo};
 use bootloader::memory_map::MemoryRegion;
 use core::{
@@ -40,8 +41,6 @@ use x86_64::{
     PhysAddr, VirtAddr,
 };
 
-const PAGE_SIZE: u64 = 4096;
-
 #[entry]
 fn efi_main(image: Handle, st: SystemTable<Boot>) -> Status {
     let (framebuffer_addr, framebuffer_size) = init_logger(&st);
@@ -63,7 +62,7 @@ fn efi_main(image: Handle, st: SystemTable<Boot>) -> Status {
         .exit_boot_services(image, mmap_storage)
         .expect_success("Failed to exit boot services");
 
-    let mut frame_allocator = UefiFrameAllocator::new(memory_map);
+    let mut frame_allocator = LegacyFrameAllocator::new(memory_map.copied());
     let mut page_tables = create_page_tables(&mut frame_allocator);
     let mappings = set_up_mappings(
         &mut frame_allocator,
@@ -193,14 +192,15 @@ struct Mappings {
 }
 
 /// Allocates and initializes the boot info struct and the memory map
-fn create_boot_info<'a, I>(
-    mut frame_allocator: UefiFrameAllocator<'a, I>,
+fn create_boot_info<I, D>(
+    mut frame_allocator: LegacyFrameAllocator<I, D>,
     page_tables: &mut PageTables,
     framebuffer_virt_addr: VirtAddr,
     framebuffer_size: usize,
 ) -> (&'static mut BootInfo, TwoFrames)
 where
-    I: Iterator<Item = &'a MemoryDescriptor> + Clone,
+    I: ExactSizeIterator<Item = D> + Clone,
+    D: bootloader::legacy_memory_region::LegacyMemoryRegion,
 {
     log::info!("Allocate bootinfo");
 
@@ -371,137 +371,6 @@ fn init_logger(st: &SystemTable<Boot>) -> (PhysAddr, usize) {
         PhysAddr::new(framebuffer.as_mut_ptr() as u64),
         framebuffer.size(),
     )
-}
-
-struct UefiFrameAllocator<'a, I> {
-    original: I,
-    memory_map: I,
-    current_descriptor: Option<&'a MemoryDescriptor>,
-    next_frame: PhysFrame,
-}
-
-impl<'a, I> UefiFrameAllocator<'a, I>
-where
-    I: Iterator<Item = &'a MemoryDescriptor> + Clone,
-{
-    fn new(memory_map: I) -> Self {
-        Self {
-            original: memory_map.clone(),
-            memory_map,
-            current_descriptor: None,
-            next_frame: PhysFrame::containing_address(PhysAddr::new(0x1000)),
-        }
-    }
-
-    fn allocate_frame_from_descriptor(
-        &mut self,
-        descriptor: &MemoryDescriptor,
-    ) -> Option<PhysFrame> {
-        let start_addr = PhysAddr::new(descriptor.phys_start);
-        let start_frame: PhysFrame = PhysFrame::containing_address(start_addr.align_up(PAGE_SIZE));
-        let end_frame = start_frame + descriptor.page_count;
-        if self.next_frame < end_frame {
-            let ret = self.next_frame;
-            self.next_frame += 1;
-            Some(ret)
-        } else {
-            None
-        }
-    }
-
-    fn len(&self) -> usize {
-        self.original.clone().count() // TODO ExactSizeIterator implementation possible?
-    }
-
-    fn construct_memory_map(
-        self,
-        regions: &mut [MaybeUninit<MemoryRegion>],
-    ) -> &mut [MemoryRegion] {
-        use bootloader::memory_map::MemoryRegionKind;
-
-        let mut next_index = 0;
-
-        for mut descriptor in self.original.copied() {
-            let end = descriptor.phys_start + PAGE_SIZE * descriptor.page_count;
-            let next_free = self.next_frame.start_address().as_u64();
-            let kind = match descriptor.ty {
-                MemoryType::CONVENTIONAL if end <= next_free => MemoryRegionKind::Bootloader,
-                MemoryType::CONVENTIONAL if descriptor.phys_start >= next_free => {
-                    MemoryRegionKind::Usable
-                }
-                MemoryType::CONVENTIONAL => {
-                    // part of the region is used -> add is separately
-                    let used_region = MemoryRegion {
-                        start: descriptor.phys_start,
-                        end: next_free,
-                        kind: MemoryRegionKind::Bootloader,
-                    };
-                    Self::add_region(used_region, regions, &mut next_index)
-                        .expect("Failed to add memory region");
-
-                    // add unused part normally
-                    descriptor.phys_start = next_free;
-                    MemoryRegionKind::Usable
-                }
-                MemoryType::RESERVED => MemoryRegionKind::Reserved,
-                other => continue,
-            };
-            let region = MemoryRegion {
-                start: descriptor.phys_start,
-                end,
-                kind,
-            };
-            Self::add_region(region, regions, &mut next_index);
-        }
-
-        let initialized = &mut regions[..next_index];
-        unsafe { MaybeUninit::slice_get_mut(initialized) }
-    }
-
-    fn add_region(
-        region: MemoryRegion,
-        regions: &mut [MaybeUninit<MemoryRegion>],
-        next_index: &mut usize,
-    ) -> Result<(), ()> {
-        unsafe {
-            regions
-                .get_mut(*next_index)
-                .ok_or(())?
-                .as_mut_ptr()
-                .write(region)
-        };
-        *next_index += 1;
-        Ok(())
-    }
-}
-
-unsafe impl<'a, I> FrameAllocator<Size4KiB> for UefiFrameAllocator<'a, I>
-where
-    I: Iterator<Item = &'a MemoryDescriptor> + Clone,
-{
-    fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KiB>> {
-        if let Some(current_descriptor) = self.current_descriptor {
-            match self.allocate_frame_from_descriptor(current_descriptor) {
-                Some(frame) => return Some(frame),
-                None => {
-                    self.current_descriptor = None;
-                }
-            }
-        }
-
-        // find next suitable descriptor
-        while let Some(descriptor) = self.memory_map.next() {
-            if descriptor.ty != MemoryType::CONVENTIONAL {
-                continue;
-            }
-            if let Some(frame) = self.allocate_frame_from_descriptor(descriptor) {
-                self.current_descriptor = Some(descriptor);
-                return Some(frame);
-            }
-        }
-
-        None
-    }
 }
 
 pub struct TwoFrames {

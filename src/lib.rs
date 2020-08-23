@@ -10,6 +10,7 @@
 #![feature(slice_fill)]
 #![feature(asm)]
 #![feature(unsafe_block_in_unsafe_fn)]
+#![feature(maybe_uninit_slice_assume_init)]
 #![deny(unsafe_op_in_unsafe_fn)]
 //#![warn(missing_docs)]
 
@@ -51,6 +52,9 @@ pub mod level4_entries;
 pub mod page_table;
 #[cfg(feature = "bios_bin")]
 pub mod printer;
+
+#[cfg(feature = "binary")]
+pub mod legacy_memory_region;
 
 #[cfg(all(feature = "bios_bin", feature = "sse"))]
 pub mod sse;
