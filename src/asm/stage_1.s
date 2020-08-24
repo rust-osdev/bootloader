@@ -80,6 +80,12 @@ check_int13h_extensions:
 load_rest_of_bootloader_from_disk:
     lea eax, _rest_of_bootloader_start_addr
 
+    mov ecx, 0
+
+load_from_disk:
+    lea eax, _rest_of_bootloader_start_addr
+    add eax, ecx # add offset
+
     # dap buffer segment
     mov ebx, eax
     shr ebx, 4 # divide by 16
@@ -91,12 +97,21 @@ load_rest_of_bootloader_from_disk:
     mov [dap_buffer_addr], ax
 
     lea eax, _rest_of_bootloader_start_addr
+    add eax, ecx # add offset
 
     # number of disk blocks to load
     lea ebx, _rest_of_bootloader_end_addr
     sub ebx, eax # end - start
+    jz load_from_disk_done
     shr ebx, 9 # divide by 512 (block size)
+    cmp ebx, 127
+    jle .continue_loading_from_disk
+    mov ebx, 127
+.continue_loading_from_disk:
     mov [dap_blocks], bx
+    # increase offset
+    shl ebx, 9
+    add ecx, ebx
 
     # number of start block
     lea ebx, _start
@@ -108,7 +123,10 @@ load_rest_of_bootloader_from_disk:
     mov ah, 0x42
     int 0x13
     jc rest_of_bootloader_load_failed
-    
+
+    jmp load_from_disk
+
+load_from_disk_done:
     # reset segment to 0
     mov word ptr [dap_buffer_seg], 0
 
