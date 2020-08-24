@@ -24,6 +24,7 @@ use x86_64::{
 };
 
 pub mod bootinfo;
+pub mod config;
 
 pub mod boot_info;
 pub mod memory_map;
