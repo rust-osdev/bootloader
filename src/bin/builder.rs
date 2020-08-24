@@ -78,7 +78,8 @@ fn main() -> anyhow::Result<()> {
         let mut cmd = Command::new(env!("CARGO"));
         cmd.arg(build_or_run).arg("--bin").arg("uefi");
         cmd.arg("--target").arg("x86_64-unknown-uefi");
-        cmd.arg("--features").arg(args.features.join(" ") + " uefi_bin");
+        cmd.arg("--features")
+            .arg(args.features.join(" ") + " uefi_bin");
         cmd.arg("-Zbuild-std=core");
         if let Some(target_dir) = &args.target_dir {
             cmd.arg("--target-dir").arg(target_dir);
@@ -97,7 +98,8 @@ fn main() -> anyhow::Result<()> {
         cmd.arg("--profile").arg("release");
         cmd.arg("-Z").arg("unstable-options");
         cmd.arg("--target").arg("x86_64-bootloader.json");
-        cmd.arg("--features").arg(args.features.join(" ") + " bios_bin");
+        cmd.arg("--features")
+            .arg(args.features.join(" ") + " bios_bin");
         cmd.arg("-Zbuild-std=core");
         if let Some(target_dir) = &args.target_dir {
             cmd.arg("--target-dir").arg(target_dir);
