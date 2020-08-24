@@ -5,6 +5,8 @@ use core::{
     mem::{self, MaybeUninit},
     slice,
 };
+use level_4_entries::UsedLevel4Entries;
+use parsed_config::CONFIG;
 use usize_conversions::FromUsize;
 use x86_64::{
     registers,
@@ -13,8 +15,6 @@ use x86_64::{
     },
     PhysAddr, VirtAddr,
 };
-use parsed_config::CONFIG;
-use level_4_entries::UsedLevel4Entries;
 
 #[cfg(feature = "bios_bin")]
 pub mod bios;
@@ -22,9 +22,9 @@ pub mod bios;
 pub mod uefi;
 
 pub mod legacy_memory_region;
+pub mod level_4_entries;
 pub mod load_kernel;
 pub mod logger;
-pub mod level_4_entries;
 
 // Contains the parsed configuration table from the kernel's Cargo.toml.
 //
@@ -316,19 +316,22 @@ unsafe impl FrameAllocator<Size4KiB> for TwoFrames {
 }
 
 fn boot_info_location(used_entries: &mut UsedLevel4Entries) -> VirtAddr {
-    CONFIG.boot_info_address.map(VirtAddr::new).unwrap_or_else(|| {
-        used_entries.get_free_address()
-    })
+    CONFIG
+        .boot_info_address
+        .map(VirtAddr::new)
+        .unwrap_or_else(|| used_entries.get_free_address())
 }
 
 fn frame_buffer_location(used_entries: &mut UsedLevel4Entries) -> VirtAddr {
-    CONFIG.framebuffer_address.map(VirtAddr::new).unwrap_or_else(|| {
-        used_entries.get_free_address()
-    })
+    CONFIG
+        .framebuffer_address
+        .map(VirtAddr::new)
+        .unwrap_or_else(|| used_entries.get_free_address())
 }
 
 fn kernel_stack_start_location(used_entries: &mut UsedLevel4Entries) -> VirtAddr {
-    CONFIG.kernel_stack_address.map(VirtAddr::new).unwrap_or_else(|| {
-        used_entries.get_free_address()
-    })
+    CONFIG
+        .kernel_stack_address
+        .map(VirtAddr::new)
+        .unwrap_or_else(|| used_entries.get_free_address())
 }

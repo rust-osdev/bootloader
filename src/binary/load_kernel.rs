@@ -1,3 +1,4 @@
+use crate::binary::{level_4_entries::UsedLevel4Entries, PAGE_SIZE};
 use x86_64::{
     align_up,
     structures::paging::{
@@ -11,7 +12,6 @@ use xmas_elf::{
     program::{self, ProgramHeader, Type},
     ElfFile,
 };
-use crate::binary::{PAGE_SIZE, level_4_entries::UsedLevel4Entries};
 
 struct Loader<'a, M, F> {
     elf_file: ElfFile<'a>,

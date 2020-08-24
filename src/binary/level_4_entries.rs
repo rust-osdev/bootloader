@@ -19,8 +19,9 @@ impl UsedLevel4Entries {
 
         for segment in segments {
             let start_page: Page = Page::containing_address(VirtAddr::new(segment.virtual_addr()));
-            let end_page: Page =
-                Page::containing_address(VirtAddr::new(segment.virtual_addr() + segment.mem_size()));
+            let end_page: Page = Page::containing_address(VirtAddr::new(
+                segment.virtual_addr() + segment.mem_size(),
+            ));
 
             for p4_index in u64::from(start_page.p4_index())..=u64::from(end_page.p4_index()) {
                 used.entry_state[p4_index as usize] = true;
@@ -43,10 +44,7 @@ impl UsedLevel4Entries {
     }
 
     pub fn get_free_address(&mut self) -> VirtAddr {
-        Page::from_page_table_indices_1gib(
-            self.get_free_entry(),
-            PageTableIndex::new(0),
-        )
-        .start_address()
+        Page::from_page_table_indices_1gib(self.get_free_entry(), PageTableIndex::new(0))
+            .start_address()
     }
 }
