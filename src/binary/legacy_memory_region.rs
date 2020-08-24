@@ -47,9 +47,15 @@ where
 
     fn allocate_frame_from_descriptor(&mut self, descriptor: D) -> Option<PhysFrame> {
         let start_addr = descriptor.start();
+        let start_frame = PhysFrame::containing_address(start_addr);
         let end_addr = start_addr + descriptor.len();
-        let start_frame: PhysFrame = PhysFrame::containing_address(start_addr.align_up(PAGE_SIZE));
         let end_frame = PhysFrame::containing_address(end_addr - 1u64);
+
+        // increase self.next_frame to start_frame if smaller
+        if self.next_frame < start_frame {
+            self.next_frame = start_frame;
+        }
+
         if self.next_frame < end_frame {
             let ret = self.next_frame;
             self.next_frame += 1;
