@@ -1,6 +1,8 @@
 #![feature(lang_items)]
 #![feature(global_asm)]
 #![feature(llvm_asm)]
+#![feature(asm)]
+#![feature(slice_fill)]
 #![no_std]
 #![no_main]
 
@@ -9,19 +11,12 @@ compile_error!("The bootloader crate must be compiled for the `x86_64-bootloader
 
 extern crate rlibc;
 
-use bootloader::{
-    boot_info, bootinfo::BootInfo, frame_allocator, frame_range, level4_entries, page_table,
-    printer,
-};
-use core::convert::TryInto;
 use core::panic::PanicInfo;
-use core::{mem, slice};
-use fixedvec::alloc_stack;
+use core::slice;
 use usize_conversions::usize_from;
-use x86_64::instructions::tlb;
+use x86_64::structures::paging::{FrameAllocator, OffsetPageTable};
 use x86_64::structures::paging::{
-    page_table::PageTableEntry, Mapper, Page, PageTable, PageTableFlags, PageTableIndex, PhysFrame,
-    RecursivePageTable, Size2MiB, Size4KiB,
+    Mapper, PageTable, PageTableFlags, PhysFrame, Size2MiB, Size4KiB,
 };
 use x86_64::{PhysAddr, VirtAddr};
 
@@ -44,28 +39,6 @@ global_asm!(include_str!("../asm/video_mode/vga_320x200.s"));
 #[cfg(not(feature = "vga_320x200"))]
 global_asm!(include_str!("../asm/video_mode/vga_text_80x25.s"));
 
-unsafe fn context_switch(boot_info: VirtAddr, entry_point: VirtAddr, stack_pointer: VirtAddr) -> ! {
-    llvm_asm!("call $1; ${:private}.spin.${:uid}: jmp ${:private}.spin.${:uid}" ::
-         "{rsp}"(stack_pointer), "r"(entry_point), "{rdi}"(boot_info) :: "intel");
-    ::core::hint::unreachable_unchecked()
-}
-
-pub struct IdentityMappedAddr(PhysAddr);
-
-impl IdentityMappedAddr {
-    fn phys(&self) -> PhysAddr {
-        self.0
-    }
-
-    fn virt(&self) -> VirtAddr {
-        VirtAddr::new(self.0.as_u64())
-    }
-
-    fn as_u64(&self) -> u64 {
-        self.0.as_u64()
-    }
-}
-
 // Symbols defined in `linker.ld`
 extern "C" {
     static mmap_ent: usize;
@@ -73,11 +46,6 @@ extern "C" {
     static _kernel_start_addr: usize;
     static _kernel_end_addr: usize;
     static _kernel_size: usize;
-    static __page_table_start: usize;
-    static __page_table_end: usize;
-    static __bootloader_end: usize;
-    static __bootloader_start: usize;
-    static _p4: usize;
 }
 
 #[no_mangle]
@@ -90,176 +58,91 @@ pub unsafe extern "C" fn stage_4() -> ! {
     let kernel_size = &_kernel_size as *const _ as u64;
     let memory_map_addr = &_memory_map as *const _ as u64;
     let memory_map_entry_count = (mmap_ent & 0xff) as u64; // Extract lower 8 bits
-    let page_table_start = &__page_table_start as *const _ as u64;
-    let page_table_end = &__page_table_end as *const _ as u64;
-    let bootloader_start = &__bootloader_start as *const _ as u64;
-    let bootloader_end = &__bootloader_end as *const _ as u64;
-    let p4_physical = &_p4 as *const _ as u64;
 
     bootloader_main(
-        IdentityMappedAddr(PhysAddr::new(kernel_start)),
+        PhysAddr::new(kernel_start),
         kernel_size,
         VirtAddr::new(memory_map_addr),
         memory_map_entry_count,
-        PhysAddr::new(page_table_start),
-        PhysAddr::new(page_table_end),
-        PhysAddr::new(bootloader_start),
-        PhysAddr::new(bootloader_end),
-        PhysAddr::new(p4_physical),
     )
 }
 
 fn bootloader_main(
-    kernel_start: IdentityMappedAddr,
+    kernel_start: PhysAddr,
     kernel_size: u64,
     memory_map_addr: VirtAddr,
     memory_map_entry_count: u64,
-    page_table_start: PhysAddr,
-    page_table_end: PhysAddr,
-    bootloader_start: PhysAddr,
-    bootloader_end: PhysAddr,
-    p4_physical: PhysAddr,
 ) -> ! {
-    use bootloader::bootinfo::{MemoryRegion, MemoryRegionType};
-    use fixedvec::FixedVec;
-    use xmas_elf::program::{ProgramHeader, ProgramHeader64};
+    use bootloader::binary::{bios::E820MemoryRegion, legacy_memory_region::LegacyFrameAllocator};
 
-    printer::Printer.clear_screen();
+    let framebuffer_addr = PhysAddr::new(0xa0000);
+    let framebuffer_size = 320 * 200;
+    init_logger(framebuffer_addr, framebuffer_size);
 
-    let mut memory_map = boot_info::create_from(memory_map_addr, memory_map_entry_count);
-
-    let max_phys_addr = memory_map
+    let e820_memory_map = {
+        let ptr = usize_from(memory_map_addr.as_u64()) as *const E820MemoryRegion;
+        unsafe { slice::from_raw_parts(ptr, usize_from(memory_map_entry_count)) }
+    };
+    let max_phys_addr = e820_memory_map
         .iter()
-        .map(|r| r.range.end_addr())
+        .map(|r| r.start_addr + r.len)
         .max()
         .expect("no physical memory regions found");
 
-    // Extract required information from the ELF file.
-    let mut preallocated_space = alloc_stack!([ProgramHeader64; 32]);
-    let mut segments = FixedVec::new(&mut preallocated_space);
-    let entry_point;
+    let mut frame_allocator = {
+        let kernel_end = PhysFrame::containing_address(kernel_start.phys() + kernel_size - 1u64);
+        let next_free = kernel_end + 1;
+        LegacyFrameAllocator::new_starting_at(next_free, e820_memory_map.iter().copied())
+    };
+
+    // We identity-map all memory, so the offset between physical and virtual addresses is 0
+    let phys_offset = VirtAddr::new(0);
+
+    let mut bootloader_page_table = {
+        let frame = x86_64::registers::control::Cr3::read().0;
+        let table: *mut PageTable = (phys_offset + frame.start_address().as_u64()).as_mut_ptr();
+        unsafe { OffsetPageTable::new(&mut *table, phys_offset) }
+    };
+    // identity-map remaining physical memory (first gigabyte is already identity-mapped)
     {
-        let kernel_start_ptr = usize_from(kernel_start.as_u64()) as *const u8;
-        let kernel = unsafe { slice::from_raw_parts(kernel_start_ptr, usize_from(kernel_size)) };
-        let elf_file = xmas_elf::ElfFile::new(kernel).unwrap();
-        xmas_elf::header::sanity_check(&elf_file).unwrap();
-
-        entry_point = elf_file.header.pt2.entry_point();
-
-        for program_header in elf_file.program_iter() {
-            match program_header {
-                ProgramHeader::Ph64(header) => segments
-                    .push(*header)
-                    .expect("does not support more than 32 program segments"),
-                ProgramHeader::Ph32(_) => panic!("does not support 32 bit elf files"),
-            }
+        let start_frame: PhysFrame<Size2MiB> =
+            PhysFrame::containing_address(PhysAddr::new(4096 * 512 * 512));
+        let end_frame = PhysFrame::containing_address(PhysAddr::new(max_phys_addr - 1));
+        for frame in PhysFrame::range_inclusive(start_frame, end_frame) {
+            unsafe {
+                bootloader_page_table
+                    .identity_map(
+                        frame,
+                        PageTableFlags::PRESENT | PageTableFlags::WRITABLE,
+                        &mut frame_allocator,
+                    )
+                    .unwrap()
+                    .flush()
+            };
         }
     }
 
+    let page_tables = create_page_tables(&mut frame_allocator);
+
+    let kernel = {
+        let ptr = kernel_start.as_u64() as *const u8;
+        unsafe { slice::from_raw_parts(ptr, usize_from(kernel_size)) }
+    };
+
+    bootloader::binary::load_and_switch_to_kernel(
+        kernel,
+        frame_allocator,
+        page_tables,
+        framebuffer_addr,
+        usize_from(framebuffer_size),
+    );
+
+    /*
     // Mark used virtual addresses
     let mut level4_entries = level4_entries::UsedLevel4Entries::new(&segments);
 
     // Enable support for the no-execute bit in page tables.
     enable_nxe_bit();
-
-    // Create a recursive page table entry
-    let recursive_index = PageTableIndex::new(level4_entries.get_free_entry().try_into().unwrap());
-    let mut entry = PageTableEntry::new();
-    entry.set_addr(
-        p4_physical,
-        PageTableFlags::PRESENT | PageTableFlags::WRITABLE,
-    );
-
-    // Write the recursive entry into the page table
-    let page_table = unsafe { &mut *(p4_physical.as_u64() as *mut PageTable) };
-    page_table[recursive_index] = entry;
-    tlb::flush_all();
-
-    let recursive_page_table_addr = Page::from_page_table_indices(
-        recursive_index,
-        recursive_index,
-        recursive_index,
-        recursive_index,
-    )
-    .start_address();
-    let page_table = unsafe { &mut *(recursive_page_table_addr.as_mut_ptr()) };
-    let mut rec_page_table =
-        RecursivePageTable::new(page_table).expect("recursive page table creation failed");
-
-    // Create a frame allocator, which marks allocated frames as used in the memory map.
-    let mut frame_allocator = frame_allocator::FrameAllocator {
-        memory_map: &mut memory_map,
-    };
-
-    // Mark already used memory areas in frame allocator.
-    {
-        let zero_frame: PhysFrame = PhysFrame::from_start_address(PhysAddr::new(0)).unwrap();
-        frame_allocator.mark_allocated_region(MemoryRegion {
-            range: frame_range(PhysFrame::range(zero_frame, zero_frame + 1)),
-            region_type: MemoryRegionType::FrameZero,
-        });
-        let bootloader_start_frame = PhysFrame::containing_address(bootloader_start);
-        let bootloader_end_frame = PhysFrame::containing_address(bootloader_end - 1u64);
-        let bootloader_memory_area =
-            PhysFrame::range(bootloader_start_frame, bootloader_end_frame + 1);
-        frame_allocator.mark_allocated_region(MemoryRegion {
-            range: frame_range(bootloader_memory_area),
-            region_type: MemoryRegionType::Bootloader,
-        });
-        let kernel_start_frame = PhysFrame::containing_address(kernel_start.phys());
-        let kernel_end_frame =
-            PhysFrame::containing_address(kernel_start.phys() + kernel_size - 1u64);
-        let kernel_memory_area = PhysFrame::range(kernel_start_frame, kernel_end_frame + 1);
-        frame_allocator.mark_allocated_region(MemoryRegion {
-            range: frame_range(kernel_memory_area),
-            region_type: MemoryRegionType::Kernel,
-        });
-        let page_table_start_frame = PhysFrame::containing_address(page_table_start);
-        let page_table_end_frame = PhysFrame::containing_address(page_table_end - 1u64);
-        let page_table_memory_area =
-            PhysFrame::range(page_table_start_frame, page_table_end_frame + 1);
-        frame_allocator.mark_allocated_region(MemoryRegion {
-            range: frame_range(page_table_memory_area),
-            region_type: MemoryRegionType::PageTable,
-        });
-    }
-
-    // Unmap the ELF file.
-    let kernel_start_page: Page<Size2MiB> = Page::containing_address(kernel_start.virt());
-    let kernel_end_page: Page<Size2MiB> =
-        Page::containing_address(kernel_start.virt() + kernel_size - 1u64);
-    for page in Page::range_inclusive(kernel_start_page, kernel_end_page) {
-        rec_page_table.unmap(page).expect("dealloc error").1.flush();
-    }
-
-    // Map a page for the boot info structure
-    let boot_info_page = {
-        let page: Page = match BOOT_INFO_ADDRESS {
-            Some(addr) => Page::containing_address(VirtAddr::new(addr)),
-            None => Page::from_page_table_indices(
-                level4_entries.get_free_entry(),
-                PageTableIndex::new(0),
-                PageTableIndex::new(0),
-                PageTableIndex::new(0),
-            ),
-        };
-        let frame = frame_allocator
-            .allocate_frame(MemoryRegionType::BootInfo)
-            .expect("frame allocation failed");
-        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
-        unsafe {
-            page_table::map_page(
-                page,
-                frame,
-                flags,
-                &mut rec_page_table,
-                &mut frame_allocator,
-            )
-        }
-        .expect("Mapping of bootinfo page failed")
-        .flush();
-        page
-    };
 
     // If no kernel stack address is provided, map the kernel stack after the boot info page
     let kernel_stack_address = match KERNEL_STACK_ADDRESS {
@@ -267,16 +150,6 @@ fn bootloader_main(
         None => boot_info_page + 1,
     };
 
-    // Map kernel segments.
-    let kernel_memory_info = page_table::map_kernel(
-        kernel_start.phys(),
-        kernel_stack_address,
-        KERNEL_STACK_SIZE,
-        &segments,
-        &mut rec_page_table,
-        &mut frame_allocator,
-    )
-    .expect("kernel mapping failed");
 
     let physical_memory_offset = if cfg!(feature = "map_physical_memory") {
         let physical_memory_offset = PHYSICAL_MEMORY_OFFSET.unwrap_or_else(|| {
@@ -318,18 +191,6 @@ fn bootloader_main(
         0 // Value is unused by BootInfo::new, so this doesn't matter
     };
 
-    // Construct boot info structure.
-    let mut boot_info = BootInfo::new(
-        memory_map,
-        kernel_memory_info.tls_segment,
-        recursive_page_table_addr.as_u64(),
-        physical_memory_offset,
-    );
-    boot_info.memory_map.sort();
-
-    // Write boot info to boot info page.
-    let boot_info_addr = boot_info_page.start_address();
-    unsafe { boot_info_addr.as_mut_ptr::<BootInfo>().write(boot_info) };
 
     // Make sure that the kernel respects the write-protection bits, even when in ring 0.
     enable_write_protect_bit();
@@ -349,8 +210,59 @@ fn bootloader_main(
     #[cfg(feature = "sse")]
     sse::enable_sse();
 
-    let entry_point = VirtAddr::new(entry_point);
-    unsafe { context_switch(boot_info_addr, entry_point, kernel_memory_info.stack_end) };
+    */
+}
+
+fn init_logger(framebuffer_start: PhysAddr, framebuffer_size: u64) {
+    let ptr = framebuffer_start.as_u64() as *mut u8;
+    let slice = unsafe { slice::from_raw_parts_mut(ptr, usize_from(framebuffer_size)) };
+    slice.fill(0x4);
+    let info = bootloader::binary::logger::FrameBufferInfo {
+        horizontal_resolution: 320,
+        vertical_resolution: 200,
+        pixel_format: bootloader::binary::logger::PixelFormat::U8,
+        stride: 320,
+    };
+
+    bootloader::binary::init_logger(slice, info);
+}
+
+/// Creates page table abstraction types for both the bootloader and kernel page tables.
+fn create_page_tables(
+    frame_allocator: &mut impl FrameAllocator<Size4KiB>,
+) -> bootloader::binary::PageTables {
+    // We identity-mapped all memory, so the offset between physical and virtual addresses is 0
+    let phys_offset = VirtAddr::new(0);
+
+    // copy the currently active level 4 page table, because it might be read-only
+    let bootloader_page_table = {
+        let frame = x86_64::registers::control::Cr3::read().0;
+        let table: *mut PageTable = (phys_offset + frame.start_address().as_u64()).as_mut_ptr();
+        unsafe { OffsetPageTable::new(&mut *table, phys_offset) }
+    };
+
+    // create a new page table hierarchy for the kernel
+    let (kernel_page_table, kernel_level_4_frame) = {
+        // get an unused frame for new level 4 page table
+        let frame: PhysFrame = frame_allocator.allocate_frame().expect("no unused frames");
+        log::info!("New page table at: {:#?}", &frame);
+        // get the corresponding virtual address
+        let addr = phys_offset + frame.start_address().as_u64();
+        // initialize a new page table
+        let ptr = addr.as_mut_ptr();
+        unsafe { *ptr = PageTable::new() };
+        let level_4_table = unsafe { &mut *ptr };
+        (
+            unsafe { OffsetPageTable::new(level_4_table, phys_offset) },
+            frame,
+        )
+    };
+
+    bootloader::binary::PageTables {
+        bootloader: bootloader_page_table,
+        kernel: kernel_page_table,
+        kernel_level_4_frame,
+    }
 }
 
 fn enable_nxe_bit() {
@@ -364,20 +276,14 @@ fn enable_write_protect_bit() {
 }
 
 #[panic_handler]
-#[no_mangle]
-pub fn panic(info: &PanicInfo) -> ! {
-    use core::fmt::Write;
-    write!(printer::Printer, "{}", info).unwrap();
-    loop {}
-}
-
-#[lang = "eh_personality"]
-#[no_mangle]
-pub extern "C" fn eh_personality() {
-    loop {}
-}
-
-#[no_mangle]
-pub extern "C" fn _Unwind_Resume() {
-    loop {}
+fn panic(info: &PanicInfo) -> ! {
+    unsafe {
+        bootloader::binary::logger::LOGGER
+            .get()
+            .map(|l| l.force_unlock())
+    };
+    log::error!("{}", info);
+    loop {
+        unsafe { asm!("cli; hlt") };
+    }
 }

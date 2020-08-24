@@ -11,6 +11,7 @@
 #![feature(asm)]
 #![feature(unsafe_block_in_unsafe_fn)]
 #![feature(maybe_uninit_slice_assume_init)]
+#![feature(maybe_uninit_extra)]
 #![deny(unsafe_op_in_unsafe_fn)]
 //#![warn(missing_docs)]
 
@@ -21,15 +22,10 @@ use x86_64::{
     structures::paging::{frame::PhysFrameRange, PhysFrame},
     PhysAddr,
 };
-#[cfg(feature = "uefi_bin")]
-use x86_64::{
-    structures::paging::{FrameAllocator, MapperAllSizes, Size4KiB},
-    VirtAddr,
-};
 
 pub mod bootinfo;
 
-pub mod boot_info_uefi;
+pub mod boot_info;
 pub mod memory_map;
 
 #[cfg(feature = "binary")]
@@ -39,18 +35,7 @@ pub mod binary;
 pub mod disk_image;
 
 #[cfg(feature = "bios_bin")]
-pub mod boot_info;
-#[cfg(feature = "bios_bin")]
-pub mod frame_allocator;
-#[cfg(feature = "bios_bin")]
 pub mod level4_entries;
-#[cfg(feature = "bios_bin")]
-pub mod page_table;
-#[cfg(feature = "bios_bin")]
-pub mod printer;
-
-#[cfg(all(feature = "bios_bin", feature = "sse"))]
-pub mod sse;
 
 #[cfg(target_arch = "x86")]
 compile_error!(
