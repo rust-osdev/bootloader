@@ -11,9 +11,9 @@ pub static LOGGER: OnceCell<LockedLogger> = OnceCell::uninit();
 pub struct LockedLogger(Spinlock<Logger>);
 
 /// Additional vertical space between lines
-const LINE_SPACING: usize = 2;
+const LINE_SPACING: usize = 0;
 /// Additional vertical space between separate log messages
-const LOG_SPACING: usize = 6;
+const LOG_SPACING: usize = 2;
 
 impl LockedLogger {
     pub fn new(framebuffer: &'static mut [u8], info: FrameBufferInfo) -> Self {
@@ -120,6 +120,7 @@ impl Logger {
         let (bytes_per_pixel, color) = match self.info.pixel_format {
             PixelFormat::RGB => (4, [intensity, intensity, intensity / 2, 0]),
             PixelFormat::BGR => (4, [intensity / 2, intensity, intensity, 0]),
+            PixelFormat::U8 => (1, [if intensity > 200 { 0xf } else { 0 }, 0, 0, 0]),
         };
         let byte_offset = pixel_offset * bytes_per_pixel;
         self.framebuffer[byte_offset..(byte_offset + bytes_per_pixel)]
@@ -152,4 +153,5 @@ pub struct FrameBufferInfo {
 pub enum PixelFormat {
     RGB,
     BGR,
+    U8,
 }

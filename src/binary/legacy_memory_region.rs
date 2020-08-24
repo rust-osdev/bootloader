@@ -5,12 +5,7 @@ use x86_64::{
     PhysAddr,
 };
 
-const PAGE_SIZE: u64 = 4096;
-
-
-
-
-pub trait LegacyMemoryRegion: Copy {
+pub trait LegacyMemoryRegion: Copy + core::fmt::Debug {
     fn start(&self) -> PhysAddr;
     fn len(&self) -> u64;
     fn usable(&self) -> bool;
@@ -108,7 +103,7 @@ where
                 end: end.as_u64(),
                 kind,
             };
-            Self::add_region(region, regions, &mut next_index);
+            Self::add_region(region, regions, &mut next_index).unwrap();
         }
 
         let initialized = &mut regions[..next_index];

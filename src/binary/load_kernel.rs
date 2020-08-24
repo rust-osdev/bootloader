@@ -210,7 +210,9 @@ where
             let last_page = Page::containing_address(virt_start_addr + file_size - 1u64);
             self.page_table
                 .unmap(last_page.clone())
-                .map_err(|_err| "Failed to unmap last segment page because of bss memory")?;
+                .map_err(|_err| "Failed to unmap last segment page because of bss memory")?
+                .1
+                .ignore();
             let flusher = unsafe {
                 self.page_table
                     .map_to(last_page, new_frame, segment_flags, self.frame_allocator)
