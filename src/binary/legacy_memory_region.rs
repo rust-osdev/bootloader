@@ -1,6 +1,9 @@
-use x86_64::{PhysAddr, structures::paging::{FrameAllocator, PhysFrame, Size4KiB}};
 use crate::memory_map::MemoryRegion;
 use core::mem::MaybeUninit;
+use x86_64::{
+    structures::paging::{FrameAllocator, PhysFrame, Size4KiB},
+    PhysAddr,
+};
 
 const PAGE_SIZE: u64 = 4096;
 
@@ -15,7 +18,6 @@ pub trait LegacyMemoryRegion: Copy {
     fn set_start(&mut self, new_start: PhysAddr);
 }
 
-
 pub struct LegacyFrameAllocator<I, D> {
     original: I,
     memory_map: I,
@@ -25,7 +27,8 @@ pub struct LegacyFrameAllocator<I, D> {
 
 impl<I, D> LegacyFrameAllocator<I, D>
 where
-    I: ExactSizeIterator<Item = D> + Clone, I::Item: LegacyMemoryRegion,
+    I: ExactSizeIterator<Item = D> + Clone,
+    I::Item: LegacyMemoryRegion,
 {
     pub fn new(memory_map: I) -> Self {
         // skip frame 0 because the rust core library does not see 0 as a valid address
@@ -42,10 +45,7 @@ where
         }
     }
 
-    fn allocate_frame_from_descriptor(
-        &mut self,
-        descriptor: D,
-    ) -> Option<PhysFrame> {
+    fn allocate_frame_from_descriptor(&mut self, descriptor: D) -> Option<PhysFrame> {
         let start_addr = descriptor.start();
         let end_addr = start_addr + descriptor.len();
         let start_frame: PhysFrame = PhysFrame::containing_address(start_addr.align_up(PAGE_SIZE));
@@ -80,8 +80,8 @@ where
                 } else if descriptor.start() >= next_free {
                     MemoryRegionKind::Usable
                 } else {
-                     // part of the region is used -> add is separately
-                     let used_region = MemoryRegion {
+                    // part of the region is used -> add is separately
+                    let used_region = MemoryRegion {
                         start: descriptor.start().as_u64(),
                         end: next_free.as_u64(),
                         kind: MemoryRegionKind::Bootloader,
@@ -128,7 +128,8 @@ where
 
 unsafe impl<I, D> FrameAllocator<Size4KiB> for LegacyFrameAllocator<I, D>
 where
-    I: ExactSizeIterator<Item = D> + Clone, I::Item: LegacyMemoryRegion,
+    I: ExactSizeIterator<Item = D> + Clone,
+    I::Item: LegacyMemoryRegion,
 {
     fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KiB>> {
         if let Some(current_descriptor) = self.current_descriptor {

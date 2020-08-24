@@ -1,5 +1,5 @@
-use x86_64::PhysAddr;
 use crate::binary::legacy_memory_region::LegacyMemoryRegion;
+use x86_64::PhysAddr;
 
 impl LegacyMemoryRegion for E820MemoryRegion {
     fn start(&self) -> PhysAddr {
@@ -18,7 +18,6 @@ impl LegacyMemoryRegion for E820MemoryRegion {
         self.start_addr = new_start.as_u64();
     }
 }
-
 
 #[doc(hidden)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
