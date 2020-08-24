@@ -11,7 +11,8 @@ use usize_conversions::FromUsize;
 use x86_64::{
     registers,
     structures::paging::{
-        FrameAllocator, Mapper, OffsetPageTable, Page, PageTableFlags, PhysFrame, Size4KiB,
+        FrameAllocator, Mapper, OffsetPageTable, Page, PageTableFlags, PhysFrame, Size2MiB,
+        Size4KiB,
     },
     PhysAddr, VirtAddr,
 };
@@ -75,15 +76,20 @@ where
 }
 
 /// Sets up mappings for a kernel stack and the framebuffer
-pub fn set_up_mappings(
+pub fn set_up_mappings<I, D>(
     kernel_bytes: &[u8],
-    frame_allocator: &mut impl FrameAllocator<Size4KiB>,
+    frame_allocator: &mut LegacyFrameAllocator<I, D>,
     kernel_page_table: &mut OffsetPageTable,
     framebuffer_addr: PhysAddr,
     framebuffer_size: usize,
-) -> Mappings {
-    let (entry_point, mut used_entries) = load_kernel::load_kernel(kernel_bytes, kernel_page_table, frame_allocator)
-        .expect("no entry point");
+) -> Mappings
+where
+    I: ExactSizeIterator<Item = D> + Clone,
+    D: LegacyMemoryRegion,
+{
+    let (entry_point, mut used_entries) =
+        load_kernel::load_kernel(kernel_bytes, kernel_page_table, frame_allocator)
+            .expect("no entry point");
     log::info!("Entry point at: {:#x}", entry_point.as_u64());
 
     // create a stack
@@ -120,6 +126,24 @@ pub fn set_up_mappings(
             .flush();
     }
     let framebuffer_virt_addr = start_page.start_address();
+
+    if CONFIG.map_physical_memory {
+        let offset = CONFIG
+            .physical_memory_offset
+            .map(VirtAddr::new)
+            .unwrap_or_else(|| used_entries.get_free_address());
+
+        let start_frame = PhysFrame::containing_address(PhysAddr::new(0));
+        let max_phys = frame_allocator.max_phys_addr();
+        let end_frame: PhysFrame<Size2MiB> = PhysFrame::containing_address(max_phys - 1u64);
+        for frame in PhysFrame::range_inclusive(start_frame, end_frame) {
+            let page = Page::containing_address(offset + frame.start_address().as_u64());
+            let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+            unsafe { kernel_page_table.map_to(page, frame, flags, frame_allocator) }
+                .unwrap()
+                .ignore();
+        }
+    }
 
     Mappings {
         framebuffer: framebuffer_virt_addr,

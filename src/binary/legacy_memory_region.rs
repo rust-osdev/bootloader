@@ -64,6 +64,14 @@ where
         self.original.len()
     }
 
+    pub fn max_phys_addr(&self) -> PhysAddr {
+        self.original
+            .clone()
+            .map(|r| r.start() + r.len())
+            .max()
+            .unwrap()
+    }
+
     pub fn construct_memory_map(
         self,
         regions: &mut [MaybeUninit<MemoryRegion>],
