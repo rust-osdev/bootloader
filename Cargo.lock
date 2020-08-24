@@ -62,7 +62,6 @@ dependencies = [
  "bit_field 0.10.0",
  "conquer-once",
  "displaydoc",
- "fixedvec",
  "font8x8",
  "json",
  "llvm-tools",
@@ -108,12 +107,6 @@ dependencies = [
  "quote",
  "syn",
 ]
-
-[[package]]
-name = "fixedvec"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b395ef2adf62bdeefcd1b59ad0dd2225c6c333ec79656ea79ac5285c46d051ea"
 
 [[package]]
 name = "font8x8"

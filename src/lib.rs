@@ -35,9 +35,6 @@ pub mod binary;
 #[cfg(feature = "builder")]
 pub mod disk_image;
 
-#[cfg(feature = "bios_bin")]
-pub mod level4_entries;
-
 #[cfg(target_arch = "x86")]
 compile_error!(
     "This crate currently does not support 32-bit protected mode. \

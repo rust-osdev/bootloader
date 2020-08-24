@@ -11,8 +11,7 @@ use xmas_elf::{
     program::{self, ProgramHeader, Type},
     ElfFile,
 };
-
-const PAGE_SIZE: u64 = 4096;
+use crate::binary::{PAGE_SIZE, level_4_entries::UsedLevel4Entries};
 
 struct Loader<'a, M, F> {
     elf_file: ElfFile<'a>,
@@ -77,6 +76,10 @@ where
 
     fn entry_point(&self) -> VirtAddr {
         VirtAddr::new(self.elf_file.header.pt2.entry_point())
+    }
+
+    fn used_level_4_entries(&self) -> UsedLevel4Entries {
+        UsedLevel4Entries::new(self.elf_file.program_iter())
     }
 }
 
@@ -256,9 +259,10 @@ pub fn load_kernel(
     bytes: &[u8],
     page_table: &mut impl MapperAllSizes,
     frame_allocator: &mut impl FrameAllocator<Size4KiB>,
-) -> Result<VirtAddr, &'static str> {
+) -> Result<(VirtAddr, UsedLevel4Entries), &'static str> {
     let mut loader = Loader::new(bytes, page_table, frame_allocator)?;
     loader.load_segments()?;
+    let used_entries = loader.used_level_4_entries();
 
-    Ok(loader.entry_point())
+    Ok((loader.entry_point(), used_entries))
 }

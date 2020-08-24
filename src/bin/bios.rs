@@ -20,15 +20,6 @@ use x86_64::structures::paging::{
 };
 use x86_64::{PhysAddr, VirtAddr};
 
-// The bootloader_config.rs file contains some configuration constants set by the build script:
-// PHYSICAL_MEMORY_OFFSET: The offset into the virtual address space where the physical memory
-// is mapped if the `map_physical_memory` feature is activated.
-//
-// KERNEL_STACK_ADDRESS: The virtual address of the kernel stack.
-//
-// KERNEL_STACK_SIZE: The number of pages in the kernel stack.
-include!(concat!(env!("OUT_DIR"), "/bootloader_config.rs"));
-
 global_asm!(include_str!("../asm/stage_1.s"));
 global_asm!(include_str!("../asm/stage_2.s"));
 global_asm!(include_str!("../asm/e820.s"));
@@ -90,7 +81,7 @@ fn bootloader_main(
         .expect("no physical memory regions found");
 
     let mut frame_allocator = {
-        let kernel_end = PhysFrame::containing_address(kernel_start.phys() + kernel_size - 1u64);
+        let kernel_end = PhysFrame::containing_address(kernel_start + kernel_size - 1u64);
         let next_free = kernel_end + 1;
         LegacyFrameAllocator::new_starting_at(next_free, e820_memory_map.iter().copied())
     };
@@ -138,17 +129,8 @@ fn bootloader_main(
     );
 
     /*
-    // Mark used virtual addresses
-    let mut level4_entries = level4_entries::UsedLevel4Entries::new(&segments);
-
     // Enable support for the no-execute bit in page tables.
     enable_nxe_bit();
-
-    // If no kernel stack address is provided, map the kernel stack after the boot info page
-    let kernel_stack_address = match KERNEL_STACK_ADDRESS {
-        Some(addr) => Page::containing_address(VirtAddr::new(addr)),
-        None => boot_info_page + 1,
-    };
 
 
     let physical_memory_offset = if cfg!(feature = "map_physical_memory") {

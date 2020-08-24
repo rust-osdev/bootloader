@@ -13,6 +13,8 @@ use x86_64::{
     },
     PhysAddr, VirtAddr,
 };
+use parsed_config::CONFIG;
+use level_4_entries::UsedLevel4Entries;
 
 #[cfg(feature = "bios_bin")]
 pub mod bios;
@@ -22,6 +24,22 @@ pub mod uefi;
 pub mod legacy_memory_region;
 pub mod load_kernel;
 pub mod logger;
+pub mod level_4_entries;
+
+// Contains the parsed configuration table from the kernel's Cargo.toml.
+//
+// The layout of the file is the following:
+//
+// ```
+// mod parsed_config {
+//    pub const CONFIG: Config = Config { … };
+// }
+// ```
+//
+// The module file is created by the build script.
+include!(concat!(env!("OUT_DIR"), "/bootloader_config.rs"));
+
+const PAGE_SIZE: u64 = 4096;
 
 pub fn init_logger(framebuffer: &'static mut [u8], info: logger::FrameBufferInfo) {
     let logger = logger::LOGGER.get_or_init(move || logger::LockedLogger::new(framebuffer, info));
@@ -40,7 +58,7 @@ where
     I: ExactSizeIterator<Item = D> + Clone,
     D: LegacyMemoryRegion,
 {
-    let mappings = set_up_mappings(
+    let mut mappings = set_up_mappings(
         kernel_bytes,
         &mut frame_allocator,
         &mut page_tables.kernel,
@@ -50,7 +68,7 @@ where
     let (boot_info, two_frames) = create_boot_info(
         frame_allocator,
         &mut page_tables,
-        mappings.framebuffer,
+        &mut mappings,
         framebuffer_size,
     );
     switch_to_kernel(page_tables, mappings, boot_info, two_frames);
@@ -64,14 +82,18 @@ pub fn set_up_mappings(
     framebuffer_addr: PhysAddr,
     framebuffer_size: usize,
 ) -> Mappings {
-    let entry_point = load_kernel::load_kernel(kernel_bytes, kernel_page_table, frame_allocator)
+    let (entry_point, mut used_entries) = load_kernel::load_kernel(kernel_bytes, kernel_page_table, frame_allocator)
         .expect("no entry point");
     log::info!("Entry point at: {:#x}", entry_point.as_u64());
 
     // create a stack
-    let stack_start: Page = kernel_stack_start_location();
-    let stack_end = stack_start + 20;
-    for page in Page::range(stack_start, stack_end) {
+    let stack_start_addr = kernel_stack_start_location(&mut used_entries);
+    let stack_start: Page = Page::containing_address(stack_start_addr);
+    let stack_end = {
+        let end_addr = stack_start_addr + CONFIG.kernel_stack_size.unwrap_or(20 * PAGE_SIZE);
+        Page::containing_address(end_addr - 1u64)
+    };
+    for page in Page::range_inclusive(stack_start, stack_end) {
         let frame = frame_allocator
             .allocate_frame()
             .expect("frame allocation failed when mapping a kernel stack");
@@ -87,7 +109,7 @@ pub fn set_up_mappings(
     let framebuffer_start_frame: PhysFrame = PhysFrame::containing_address(framebuffer_addr);
     let framebuffer_end_frame =
         PhysFrame::containing_address(framebuffer_addr + framebuffer_size - 1u64);
-    let start_page = frame_buffer_location();
+    let start_page = Page::containing_address(frame_buffer_location(&mut used_entries));
     for (i, frame) in
         PhysFrame::range_inclusive(framebuffer_start_frame, framebuffer_end_frame).enumerate()
     {
@@ -103,6 +125,7 @@ pub fn set_up_mappings(
         framebuffer: framebuffer_virt_addr,
         entry_point,
         stack_end,
+        used_entries,
     }
 }
 
@@ -110,13 +133,14 @@ pub struct Mappings {
     pub entry_point: VirtAddr,
     pub framebuffer: VirtAddr,
     pub stack_end: Page,
+    pub used_entries: UsedLevel4Entries,
 }
 
 /// Allocates and initializes the boot info struct and the memory map
 pub fn create_boot_info<I, D>(
     mut frame_allocator: LegacyFrameAllocator<I, D>,
     page_tables: &mut PageTables,
-    framebuffer_virt_addr: VirtAddr,
+    mappings: &mut Mappings,
     framebuffer_size: usize,
 ) -> (&'static mut BootInfo, TwoFrames)
 where
@@ -127,7 +151,7 @@ where
 
     // allocate and map space for the boot info
     let (boot_info, memory_regions) = {
-        let boot_info_addr = boot_info_location();
+        let boot_info_addr = boot_info_location(&mut mappings.used_entries);
         let boot_info_end = boot_info_addr + mem::size_of::<BootInfo>();
         let memory_map_regions_addr =
             boot_info_end.align_up(u64::from_usize(mem::align_of::<MemoryRegion>()));
@@ -184,7 +208,7 @@ where
     let boot_info = boot_info.write(BootInfo {
         memory_regions,
         framebuffer: FrameBufferInfo {
-            start_addr: framebuffer_virt_addr.as_u64(),
+            start_addr: mappings.framebuffer.as_u64(),
             len: framebuffer_size,
         },
     });
@@ -291,14 +315,20 @@ unsafe impl FrameAllocator<Size4KiB> for TwoFrames {
     }
 }
 
-fn boot_info_location() -> VirtAddr {
-    VirtAddr::new(0x_0000_00bb_bbbb_0000)
+fn boot_info_location(used_entries: &mut UsedLevel4Entries) -> VirtAddr {
+    CONFIG.boot_info_address.map(VirtAddr::new).unwrap_or_else(|| {
+        used_entries.get_free_address()
+    })
 }
 
-fn frame_buffer_location() -> Page {
-    Page::containing_address(VirtAddr::new(0x_0000_00cc_cccc_0000))
+fn frame_buffer_location(used_entries: &mut UsedLevel4Entries) -> VirtAddr {
+    CONFIG.framebuffer_address.map(VirtAddr::new).unwrap_or_else(|| {
+        used_entries.get_free_address()
+    })
 }
 
-fn kernel_stack_start_location() -> Page {
-    Page::containing_address(VirtAddr::new(0x_0000_0fff_0000_0000))
+fn kernel_stack_start_location(used_entries: &mut UsedLevel4Entries) -> VirtAddr {
+    CONFIG.kernel_stack_address.map(VirtAddr::new).unwrap_or_else(|| {
+        used_entries.get_free_address()
+    })
 }
