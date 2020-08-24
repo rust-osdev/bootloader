@@ -16,8 +16,6 @@
 
 pub use crate::bootinfo::BootInfo;
 
-#[cfg(feature = "uefi_bin")]
-pub use logger::{FrameBufferInfo, PixelFormat};
 #[cfg(feature = "bios_bin")]
 use x86_64::{
     structures::paging::{frame::PhysFrameRange, PhysFrame},
@@ -34,13 +32,11 @@ pub mod bootinfo;
 pub mod boot_info_uefi;
 pub mod memory_map;
 
+#[cfg(feature = "binary")]
+pub mod binary;
+
 #[cfg(feature = "builder")]
 pub mod disk_image;
-
-#[cfg(feature = "uefi_bin")]
-mod load_kernel;
-#[cfg(feature = "uefi_bin")]
-pub mod logger;
 
 #[cfg(feature = "bios_bin")]
 pub mod boot_info;
@@ -52,9 +48,6 @@ pub mod level4_entries;
 pub mod page_table;
 #[cfg(feature = "bios_bin")]
 pub mod printer;
-
-#[cfg(feature = "binary")]
-pub mod legacy_memory_region;
 
 #[cfg(all(feature = "bios_bin", feature = "sse"))]
 pub mod sse;
@@ -86,22 +79,6 @@ macro_rules! entry_point {
             f(boot_info)
         }
     };
-}
-
-#[cfg(feature = "uefi_bin")]
-pub fn init_logger(framebuffer: &'static mut [u8], info: FrameBufferInfo) {
-    let logger = logger::LOGGER.get_or_init(move || logger::LockedLogger::new(framebuffer, info));
-    log::set_logger(logger).expect("logger already set");
-    log::set_max_level(log::LevelFilter::Trace);
-}
-
-#[cfg(feature = "uefi_bin")]
-pub fn load_kernel(
-    kernel: &'static [u8],
-    page_table: &mut impl MapperAllSizes,
-    frame_allocator: &mut impl FrameAllocator<Size4KiB>,
-) -> VirtAddr {
-    load_kernel::load_kernel(kernel, page_table, frame_allocator).expect("Failed to parse kernel")
 }
 
 #[cfg(feature = "bios_bin")]

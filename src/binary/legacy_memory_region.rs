@@ -4,10 +4,8 @@ use core::mem::MaybeUninit;
 
 const PAGE_SIZE: u64 = 4096;
 
-#[cfg(feature = "bios_bin")]
-pub mod bios;
-#[cfg(feature = "uefi_bin")]
-pub mod uefi;
+
+
 
 pub trait LegacyMemoryRegion: Copy {
     fn start(&self) -> PhysAddr;
@@ -30,11 +28,17 @@ where
     I: ExactSizeIterator<Item = D> + Clone, I::Item: LegacyMemoryRegion,
 {
     pub fn new(memory_map: I) -> Self {
+        // skip frame 0 because the rust core library does not see 0 as a valid address
+        let start_frame = PhysFrame::containing_address(PhysAddr::new(0x1000));
+        Self::new_starting_at(start_frame, memory_map)
+    }
+
+    pub fn new_starting_at(frame: PhysFrame, memory_map: I) -> Self {
         Self {
             original: memory_map.clone(),
             memory_map,
             current_descriptor: None,
-            next_frame: PhysFrame::containing_address(PhysAddr::new(0x1000)),
+            next_frame: frame,
         }
     }
 
