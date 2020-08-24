@@ -44,40 +44,14 @@ set_up_page_tables:
     or eax, (1 | 2)
     mov [_p3], eax
     # p2
-    lea eax, [_p1]
-    or eax, (1 | 2)
-    mov [_p2], eax
-    mov eax, (0x400000 | 1 | 2 | (1 << 7))
-    mov ecx, 2
-    lea edx, _kernel_size
-    add edx, 0x400000 # start address
-    add edx, 0x200000 - 1 # align up
-    shr edx, 12 + 9 # end huge page number
+    mov eax, (1 | 2 | (1 << 7))
+    mov ecx, 0
     map_p2_table:
     mov [_p2 + ecx * 8], eax
     add eax, 0x200000
     add ecx, 1
-    cmp ecx, edx
+    cmp ecx, 512
     jb map_p2_table
-    # p1
-    # start mapping from __page_table_start, as we need to be able to access
-    # the p4 table from rust. stop mapping at __bootloader_end
-    lea eax, __page_table_start
-    and eax, 0xfffff000
-    or eax, (1 | 2)
-    lea ecx, __page_table_start
-    shr ecx, 12 # start page number
-    lea edx, __bootloader_end
-    add edx, 4096 - 1 # align up
-    shr edx, 12 # end page number
-    map_p1_table:
-    mov [_p1 + ecx * 8], eax
-    add eax, 4096
-    add ecx, 1
-    cmp ecx, edx
-    jb map_p1_table
-    map_framebuffer:
-    call vga_map_frame_buffer
 
 enable_paging:
     # Write back cache and add a memory fence. I'm not sure if this is
