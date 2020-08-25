@@ -8,16 +8,26 @@ use lazy_static::lazy_static;
 
 mod panic;
 
+#[no_mangle]
+pub fn v8086_test() {
+    loop {};
+    println!("v8086 mode! Yayyyy");
+    loop {};
+}
+
 extern "C" {
     fn protected_mode_switch() -> !;
 }
 
 lazy_static! {
     static ref TSS: TaskStateSegment = {
+        use core::mem::size_of;
+
         let mut tss = TaskStateSegment::new();
 
         tss.privilege_stack_table[0].esp = linker_symbol!(_protected_mode_stack_end);
         tss.privilege_stack_table[0].ss = 2 * 8; // Kernel data segment is 2nd segment (null, code, data)
+        tss.iomap_base = size_of::<TaskStateSegment>() as u16; 
 
         tss
     };

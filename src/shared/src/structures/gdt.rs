@@ -49,6 +49,17 @@ impl GlobalDescriptorTable {
             limit: (self.table.len() * size_of::<u64>() - 1) as u16,
         };
 
+        use crate::println;
+        println!("GDT -");
+        println!("    {:#08x}", self.table[0]);
+        println!("    {:#08x}", self.table[1]);
+        println!("    {:#08x}", self.table[2]);
+        println!("    {:#08x}", self.table[3]);
+        println!("    {:#08x}", self.table[4]);
+        println!("    {:#08x}", self.table[5]);
+        println!("    {:#08x}", self.table[6]);
+        println!("    {:#08x}", self.table[7]);
+
         asm!("lgdt [{}]",
              in(reg) &ptr,
              options(nostack)
@@ -95,6 +106,9 @@ bitflags! {
         /// The DPL for this descriptor is Ring 3
         const DPL_RING_3        = 3 << 45;
 
+        /// Is this segment available for use
+        const AVAILABLE         = 1 << 52;
+
         /// If set, this page is a 32 bit descriptor
         const SIZE              = 1 << 54;
 
@@ -116,7 +130,7 @@ impl Descriptor {
         use self::DescriptorFlags as Flags;
 
         let flags =
-            Flags::USER_SEGMENT | Flags::PRESENT | Flags::EXECUTABLE | Flags::READABLE_WRITABLE | Flags::SIZE;
+            Flags::USER_SEGMENT | Flags::PRESENT | Flags::READABLE_WRITABLE | Flags::ACCESSED | Flags::SIZE | Flags::EXECUTABLE;
 
         Descriptor(flags.bits()).with_flat_limit()
     }
@@ -126,7 +140,8 @@ impl Descriptor {
     pub fn kernel_data_segment() -> Descriptor {
         use self::DescriptorFlags as Flags;
 
-        let flags = Flags::USER_SEGMENT | Flags::PRESENT | Flags::READABLE_WRITABLE | Flags::SIZE;
+        let flags = 
+            Flags::USER_SEGMENT | Flags::PRESENT | Flags::READABLE_WRITABLE | Flags::ACCESSED | Flags::SIZE;
         Descriptor(flags.bits()).with_flat_limit()
     }
 
@@ -136,7 +151,7 @@ impl Descriptor {
         use self::DescriptorFlags as Flags;
 
         let flags =
-            Flags::USER_SEGMENT | Flags::PRESENT | Flags::READABLE_WRITABLE | Flags::DPL_RING_3;
+            Flags::USER_SEGMENT | Flags::PRESENT | Flags::READABLE_WRITABLE | Flags::ACCESSED | Flags::SIZE | Flags::DPL_RING_3;
         Descriptor(flags.bits()).with_flat_limit()
     }
 
@@ -145,11 +160,8 @@ impl Descriptor {
     pub fn user_code_segment() -> Descriptor {
         use self::DescriptorFlags as Flags;
 
-        let flags = Flags::USER_SEGMENT
-            | Flags::PRESENT
-            | Flags::EXECUTABLE
-            | Flags::DPL_RING_3
-            | Flags::READABLE_WRITABLE;
+        let flags =
+            Flags::USER_SEGMENT | Flags::PRESENT | Flags::READABLE_WRITABLE | Flags::ACCESSED | Flags::SIZE | Flags::EXECUTABLE | Flags::DPL_RING_3;
         Descriptor(flags.bits()).with_flat_limit()
     }
 
@@ -162,7 +174,7 @@ impl Descriptor {
         let ptr = tss as *const _ as u64;
 
 
-        let mut val: u64 = (Flags::PRESENT | Flags::EXECUTABLE | Flags::ACCESSED | Flags::SIZE).bits();
+        let mut val: u64 = (Flags::PRESENT | Flags::EXECUTABLE | Flags::ACCESSED | Flags::SIZE | Flags::DPL_RING_3).bits();
 
         // base
         val.set_bits(16..40, ptr.get_bits(0..24));

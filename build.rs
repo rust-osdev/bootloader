@@ -29,7 +29,7 @@ fn main() {
     // Build stage 3
     build_subproject(
         Path::new("src/protected/stage_3"),
-        &["third_stage"],
+        &["third_stage", "iret_test"],
         "../i386-unknown-none.json",
         &target_dir,
         &objcopy,
@@ -55,7 +55,7 @@ fn main() {
     // Build stage 2
     build_subproject(
         Path::new("src/real/stage_2"),
-        &["second_stage"],
+        &["second_stage", "v8086_test"],
         "../i386-unknown-none-code16.json",
         &target_dir,
         &objcopy,

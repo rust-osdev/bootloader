@@ -9,6 +9,7 @@ lazy_static! {
         idt.divide_error.set_handler_fn(divide_handler);
         idt.breakpoint.set_handler_fn(breakpoint_handler);
 
+        idt.general_protection_fault.set_handler_fn(general_protection_fault_handler);
         idt.double_fault.set_handler_fn(double_fault_handler);
 
         idt
@@ -38,4 +39,11 @@ extern "x86-interrupt" fn double_fault_handler(
     stack_frame: &mut InterruptStackFrame, _error_code: u32) -> !
 {
     panic!("[Bootloader] [IDT] Double Fault!");
+}
+
+extern "x86-interrupt" fn general_protection_fault_handler(
+	stack_frame: &mut InterruptStackFrame, error_code: u32)
+{
+    println!("[Bootloader] [IDT] GPF {} ({})", stack_frame.eip, error_code);
+    loop {};
 }
