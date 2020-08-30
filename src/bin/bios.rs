@@ -64,7 +64,9 @@ fn bootloader_main(
     memory_map_addr: VirtAddr,
     memory_map_entry_count: u64,
 ) -> ! {
-    use bootloader::binary::{bios::E820MemoryRegion, legacy_memory_region::LegacyFrameAllocator};
+    use bootloader::binary::{
+        bios::memory_descriptor::E820MemoryRegion, legacy_memory_region::LegacyFrameAllocator,
+    };
 
     let e820_memory_map = {
         let ptr = usize_from(memory_map_addr.as_u64()) as *const E820MemoryRegion;
