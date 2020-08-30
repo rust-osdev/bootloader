@@ -87,6 +87,9 @@ where
     I: ExactSizeIterator<Item = D> + Clone,
     D: LegacyMemoryRegion,
 {
+    // Enable support for the no-execute bit in page tables.
+    enable_nxe_bit();
+
     let (entry_point, mut used_entries) =
         load_kernel::load_kernel(kernel_bytes, kernel_page_table, frame_allocator)
             .expect("no entry point");
@@ -358,4 +361,9 @@ fn kernel_stack_start_location(used_entries: &mut UsedLevel4Entries) -> VirtAddr
         .kernel_stack_address
         .map(VirtAddr::new)
         .unwrap_or_else(|| used_entries.get_free_address())
+}
+
+fn enable_nxe_bit() {
+    use x86_64::registers::control::{Efer, EferFlags};
+    unsafe { Efer::update(|efer| *efer |= EferFlags::NO_EXECUTE_ENABLE) }
 }

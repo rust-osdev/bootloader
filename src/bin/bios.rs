@@ -250,11 +250,6 @@ fn create_page_tables(
     }
 }
 
-fn enable_nxe_bit() {
-    use x86_64::registers::control::{Efer, EferFlags};
-    unsafe { Efer::update(|efer| *efer |= EferFlags::NO_EXECUTE_ENABLE) }
-}
-
 fn enable_write_protect_bit() {
     use x86_64::registers::control::{Cr0, Cr0Flags};
     unsafe { Cr0::update(|cr0| *cr0 |= Cr0Flags::WRITE_PROTECT) };
