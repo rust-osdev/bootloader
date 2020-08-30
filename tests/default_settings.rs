@@ -5,7 +5,6 @@ fn basic_boot() {
     run_test_binary("basic_boot");
 }
 
-
 #[test]
 fn should_panic() {
     run_test_binary("should_panic");
