@@ -117,11 +117,12 @@ impl Logger {
 
     fn write_pixel(&mut self, x: usize, y: usize, intensity: u8) {
         let pixel_offset = y * self.info.stride + x;
-        let (bytes_per_pixel, color) = match self.info.pixel_format {
-            PixelFormat::RGB => (4, [intensity, intensity, intensity / 2, 0]),
-            PixelFormat::BGR => (4, [intensity / 2, intensity, intensity, 0]),
-            PixelFormat::U8 => (1, [if intensity > 200 { 0xf } else { 0 }, 0, 0, 0]),
+        let color = match self.info.pixel_format {
+            PixelFormat::RGB => [intensity, intensity, intensity / 2, 0],
+            PixelFormat::BGR => [intensity / 2, intensity, intensity, 0],
+            PixelFormat::U8 => [if intensity > 200 { 0xf } else { 0 }, 0, 0, 0],
         };
+        let bytes_per_pixel = self.info.bytes_per_pixel;
         let byte_offset = pixel_offset * bytes_per_pixel;
         self.framebuffer[byte_offset..(byte_offset + bytes_per_pixel)]
             .copy_from_slice(&color[..bytes_per_pixel]);
@@ -146,6 +147,7 @@ pub struct FrameBufferInfo {
     pub horizontal_resolution: usize,
     pub vertical_resolution: usize,
     pub pixel_format: PixelFormat,
+    pub bytes_per_pixel: usize,
     pub stride: usize,
 }
 

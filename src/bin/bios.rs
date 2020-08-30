@@ -66,10 +66,6 @@ fn bootloader_main(
 ) -> ! {
     use bootloader::binary::{bios::E820MemoryRegion, legacy_memory_region::LegacyFrameAllocator};
 
-    let framebuffer_addr = PhysAddr::new(0xa0000);
-    let framebuffer_size = 320 * 200;
-    init_logger(framebuffer_addr, framebuffer_size);
-
     let e820_memory_map = {
         let ptr = usize_from(memory_map_addr.as_u64()) as *const E820MemoryRegion;
         unsafe { slice::from_raw_parts(ptr, usize_from(memory_map_entry_count)) }
@@ -112,6 +108,10 @@ fn bootloader_main(
             };
         }
     }
+
+    let framebuffer_addr = PhysAddr::new(0xfd000000);
+    let framebuffer_size = 1024 * 768;
+    init_logger(framebuffer_addr, framebuffer_size);
 
     let page_tables = create_page_tables(&mut frame_allocator);
 
@@ -200,10 +200,11 @@ fn init_logger(framebuffer_start: PhysAddr, framebuffer_size: u64) {
     let slice = unsafe { slice::from_raw_parts_mut(ptr, usize_from(framebuffer_size)) };
     slice.fill(0x4);
     let info = bootloader::binary::logger::FrameBufferInfo {
-        horizontal_resolution: 320,
-        vertical_resolution: 200,
-        pixel_format: bootloader::binary::logger::PixelFormat::U8,
-        stride: 320,
+        horizontal_resolution: 1024,
+        vertical_resolution: 768,
+        pixel_format: bootloader::binary::logger::PixelFormat::RGB,
+        bytes_per_pixel: 3,
+        stride: 1024,
     };
 
     bootloader::binary::init_logger(slice, info);

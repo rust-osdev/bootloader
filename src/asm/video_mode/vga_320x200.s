@@ -3,9 +3,13 @@
 .code16
 
 config_video_mode:
-    mov ah, 0
-    mov al, 0x13 # 320x200 256 color graphics
+    push bx
+    push ax
+    mov ax, 0x4F02
+    mov bx, 0x0118
     int 0x10
+    pop bx
+    pop ax
     ret
 
 .code32
