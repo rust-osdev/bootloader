@@ -8,6 +8,12 @@ repository = "https://github.com/rust-osdev/bootloader"
 edition = "2018"
 build = "build.rs"
 
+[workspace]
+members = [
+    "tests/test_kernel",
+    "tests/runner",
+]
+
 [[bin]]
 name = "builder"
 required-features = ["builder"]

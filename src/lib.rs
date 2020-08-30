@@ -15,7 +15,7 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 //#![warn(missing_docs)]
 
-pub use crate::bootinfo::BootInfo;
+pub use crate::boot_info::BootInfo;
 
 #[cfg(feature = "bios_bin")]
 use x86_64::{
@@ -55,9 +55,9 @@ compile_error!("This crate only supports the x86_64 architecture.");
 macro_rules! entry_point {
     ($path:path) => {
         #[export_name = "_start"]
-        pub extern "C" fn __impl_start(boot_info: &'static $crate::bootinfo::BootInfo) -> ! {
+        pub extern "C" fn __impl_start(boot_info: &'static $crate::boot_info::BootInfo) -> ! {
             // validate the signature of the program entry point
-            let f: fn(&'static $crate::bootinfo::BootInfo) -> ! = $path;
+            let f: fn(&'static $crate::boot_info::BootInfo) -> ! = $path;
 
             f(boot_info)
         }
