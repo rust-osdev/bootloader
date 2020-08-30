@@ -26,6 +26,7 @@ fn main() {
         .arg("-drive")
         .arg(format!("format=raw,file={}", disk_image.display()));
     run_cmd.args(QEMU_ARGS);
+    run_cmd.args(std::env::args().skip(2).collect::<Vec<_>>());
 
     let exit_status = run_cmd.status().unwrap();
     match exit_status.code() {
