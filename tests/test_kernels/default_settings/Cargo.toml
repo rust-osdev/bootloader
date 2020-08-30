@@ -1,0 +1,9 @@
+[package]
+name = "kernel"
+version = "0.1.0"
+authors = ["Philipp Oppermann <dev@phil-opp.com>"]
+edition = "2018"
+
+[dependencies]
+bootloader = { path = "../../.." }
+x86_64 = { git = "https://github.com/rust-osdev/x86_64.git", branch = "nop" }
