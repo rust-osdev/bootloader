@@ -19,7 +19,7 @@ fn main() {
         path.canonicalize().unwrap()
     };
 
-    let disk_image = create_disk_image(&kernel_binary_path, true);
+    let disk_image = create_disk_image(&kernel_binary_path, false);
 
     let mut run_cmd = Command::new("qemu-system-x86_64");
     run_cmd
