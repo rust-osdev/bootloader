@@ -138,6 +138,7 @@ fn init_logger(st: &SystemTable<Boot>) -> (PhysAddr, usize) {
                 panic!("Bitmask and BltOnly framebuffers are not supported")
             }
         },
+        bytes_per_pixel: 4,
         stride: mode_info.stride(),
     };
 
