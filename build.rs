@@ -123,7 +123,7 @@ mod binary {
                 .len();
             file.write_all(
                 format!(
-                    "const KERNEL_SIZE: usize = {}; const KERNEL_BYTES: [u8; KERNEL_SIZE] = *include_bytes!(\"{}\");",
+                    "const KERNEL_SIZE: usize = {}; const KERNEL_BYTES: [u8; KERNEL_SIZE] = *include_bytes!(r\"{}\");",
                     kernel_size,
                     stripped_kernel.display(),
                 )
