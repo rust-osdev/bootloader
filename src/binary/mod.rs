@@ -112,10 +112,10 @@ where
             .flush();
     }
 
-    log::info!("Map framebuffer");
-
     // map framebuffer
     let framebuffer_virt_addr = if CONFIG.map_framebuffer {
+        log::info!("Map framebuffer");
+
         let framebuffer_start_frame: PhysFrame = PhysFrame::containing_address(framebuffer_addr);
         let framebuffer_end_frame =
             PhysFrame::containing_address(framebuffer_addr + framebuffer_size - 1u64);
@@ -136,6 +136,7 @@ where
     };
 
     let physical_memory_offset = if CONFIG.map_physical_memory {
+        log::info!("Map physical memory");
         let offset = CONFIG
             .physical_memory_offset
             .map(VirtAddr::new)
@@ -200,12 +201,10 @@ where
         let start_page = Page::containing_address(boot_info_addr);
         let end_page = Page::containing_address(memory_map_regions_end - 1u64);
         for page in Page::range_inclusive(start_page, end_page) {
-            log::info!("Mapping page {:?}", page);
             let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
             let frame = frame_allocator
                 .allocate_frame()
                 .expect("frame allocation for boot info failed");
-            log::info!("1 {:?}", page);
             unsafe {
                 page_tables
                     .kernel
@@ -213,7 +212,6 @@ where
             }
             .unwrap()
             .flush();
-            log::info!("2 {:?}", page);
             // we need to be able to access it too
             unsafe {
                 page_tables
@@ -222,7 +220,6 @@ where
             }
             .unwrap()
             .flush();
-            log::info!("Finished mapping page {:?}", page);
         }
 
         let boot_info: &'static mut MaybeUninit<BootInfo> =
