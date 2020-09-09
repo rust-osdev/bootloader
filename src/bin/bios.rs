@@ -113,7 +113,7 @@ fn bootloader_main(
     }
 
     let framebuffer_addr = PhysAddr::new(0xfd000000);
-    let framebuffer_size = 1024 * 768;
+    let framebuffer_size = 1024 * 768 * 3;
     let framebuffer_info = init_logger(framebuffer_addr, framebuffer_size);
 
     let page_tables = create_page_tables(&mut frame_allocator);
