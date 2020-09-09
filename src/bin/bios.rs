@@ -11,6 +11,7 @@ compile_error!("The bootloader crate must be compiled for the `x86_64-bootloader
 
 extern crate rlibc;
 
+use bootloader::boot_info::FrameBufferInfo;
 use core::panic::PanicInfo;
 use core::slice;
 use usize_conversions::usize_from;
@@ -113,7 +114,7 @@ fn bootloader_main(
 
     let framebuffer_addr = PhysAddr::new(0xfd000000);
     let framebuffer_size = 1024 * 768;
-    init_logger(framebuffer_addr, framebuffer_size);
+    let framebuffer_info = init_logger(framebuffer_addr, framebuffer_size);
 
     let page_tables = create_page_tables(&mut frame_allocator);
 
@@ -127,7 +128,7 @@ fn bootloader_main(
         frame_allocator,
         page_tables,
         framebuffer_addr,
-        usize_from(framebuffer_size),
+        framebuffer_info,
     );
 
     /*
@@ -197,19 +198,22 @@ fn bootloader_main(
     */
 }
 
-fn init_logger(framebuffer_start: PhysAddr, framebuffer_size: u64) {
+fn init_logger(framebuffer_start: PhysAddr, framebuffer_size: usize) -> FrameBufferInfo {
     let ptr = framebuffer_start.as_u64() as *mut u8;
-    let slice = unsafe { slice::from_raw_parts_mut(ptr, usize_from(framebuffer_size)) };
+    let slice = unsafe { slice::from_raw_parts_mut(ptr, framebuffer_size) };
     slice.fill(0x4);
-    let info = bootloader::binary::logger::FrameBufferInfo {
+    let info = bootloader::boot_info::FrameBufferInfo {
+        byte_len: framebuffer_size,
         horizontal_resolution: 1024,
         vertical_resolution: 768,
-        pixel_format: bootloader::binary::logger::PixelFormat::RGB,
+        pixel_format: bootloader::boot_info::PixelFormat::RGB,
         bytes_per_pixel: 3,
         stride: 1024,
     };
 
     bootloader::binary::init_logger(slice, info);
+
+    info
 }
 
 /// Creates page table abstraction types for both the bootloader and kernel page tables.

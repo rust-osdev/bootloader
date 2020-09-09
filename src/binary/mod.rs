@@ -1,5 +1,5 @@
 use crate::binary::legacy_memory_region::{LegacyFrameAllocator, LegacyMemoryRegion};
-use crate::boot_info::{BootInfo, FrameBufferInfo};
+use crate::boot_info::{BootInfo, FrameBuffer, FrameBufferInfo};
 use crate::memory_map::MemoryRegion;
 use core::{
     mem::{self, MaybeUninit},
@@ -42,7 +42,7 @@ include!(concat!(env!("OUT_DIR"), "/bootloader_config.rs"));
 
 const PAGE_SIZE: u64 = 4096;
 
-pub fn init_logger(framebuffer: &'static mut [u8], info: logger::FrameBufferInfo) {
+pub fn init_logger(framebuffer: &'static mut [u8], info: FrameBufferInfo) {
     let logger = logger::LOGGER.get_or_init(move || logger::LockedLogger::new(framebuffer, info));
     log::set_logger(logger).expect("logger already set");
     log::set_max_level(log::LevelFilter::Trace);
@@ -53,7 +53,7 @@ pub fn load_and_switch_to_kernel<I, D>(
     mut frame_allocator: LegacyFrameAllocator<I, D>,
     mut page_tables: PageTables,
     framebuffer_addr: PhysAddr,
-    framebuffer_size: usize,
+    framebuffer_info: FrameBufferInfo,
 ) -> !
 where
     I: ExactSizeIterator<Item = D> + Clone,
@@ -64,13 +64,13 @@ where
         &mut frame_allocator,
         &mut page_tables.kernel,
         framebuffer_addr,
-        framebuffer_size,
+        framebuffer_info.byte_len,
     );
     let (boot_info, two_frames) = create_boot_info(
         frame_allocator,
         &mut page_tables,
         &mut mappings,
-        framebuffer_size,
+        framebuffer_info,
     );
     switch_to_kernel(page_tables, mappings, boot_info, two_frames);
 }
@@ -115,22 +115,27 @@ where
     log::info!("Map framebuffer");
 
     // map framebuffer
-    let framebuffer_start_frame: PhysFrame = PhysFrame::containing_address(framebuffer_addr);
-    let framebuffer_end_frame =
-        PhysFrame::containing_address(framebuffer_addr + framebuffer_size - 1u64);
-    let start_page = Page::containing_address(frame_buffer_location(&mut used_entries));
-    for (i, frame) in
-        PhysFrame::range_inclusive(framebuffer_start_frame, framebuffer_end_frame).enumerate()
-    {
-        let page = start_page + u64::from_usize(i);
-        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
-        unsafe { kernel_page_table.map_to(page, frame, flags, frame_allocator) }
-            .unwrap()
-            .flush();
-    }
-    let framebuffer_virt_addr = start_page.start_address();
+    let framebuffer_virt_addr = if CONFIG.map_framebuffer {
+        let framebuffer_start_frame: PhysFrame = PhysFrame::containing_address(framebuffer_addr);
+        let framebuffer_end_frame =
+            PhysFrame::containing_address(framebuffer_addr + framebuffer_size - 1u64);
+        let start_page = Page::containing_address(frame_buffer_location(&mut used_entries));
+        for (i, frame) in
+            PhysFrame::range_inclusive(framebuffer_start_frame, framebuffer_end_frame).enumerate()
+        {
+            let page = start_page + u64::from_usize(i);
+            let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+            unsafe { kernel_page_table.map_to(page, frame, flags, frame_allocator) }
+                .unwrap()
+                .flush();
+        }
+        let framebuffer_virt_addr = start_page.start_address();
+        Some(framebuffer_virt_addr)
+    } else {
+        None
+    };
 
-    if CONFIG.map_physical_memory {
+    let physical_memory_offset = if CONFIG.map_physical_memory {
         let offset = CONFIG
             .physical_memory_offset
             .map(VirtAddr::new)
@@ -146,21 +151,27 @@ where
                 .unwrap()
                 .ignore();
         }
-    }
+
+        Some(offset)
+    } else {
+        None
+    };
 
     Mappings {
         framebuffer: framebuffer_virt_addr,
         entry_point,
         stack_end,
         used_entries,
+        physical_memory_offset,
     }
 }
 
 pub struct Mappings {
     pub entry_point: VirtAddr,
-    pub framebuffer: VirtAddr,
     pub stack_end: Page,
     pub used_entries: UsedLevel4Entries,
+    pub framebuffer: Option<VirtAddr>,
+    pub physical_memory_offset: Option<VirtAddr>,
 }
 
 /// Allocates and initializes the boot info struct and the memory map
@@ -168,7 +179,7 @@ pub fn create_boot_info<I, D>(
     mut frame_allocator: LegacyFrameAllocator<I, D>,
     page_tables: &mut PageTables,
     mappings: &mut Mappings,
-    framebuffer_size: usize,
+    framebuffer_info: FrameBufferInfo,
 ) -> (&'static mut BootInfo, TwoFrames)
 where
     I: ExactSizeIterator<Item = D> + Clone,
@@ -234,10 +245,13 @@ where
     // create boot info
     let boot_info = boot_info.write(BootInfo {
         memory_regions,
-        framebuffer: FrameBufferInfo {
-            start_addr: mappings.framebuffer.as_u64(),
-            len: framebuffer_size,
-        },
+        framebuffer: mappings.framebuffer.map(|addr| FrameBuffer {
+            buffer_start: addr.as_u64(),
+            buffer_byte_len: framebuffer_info.byte_len,
+            info: framebuffer_info,
+        }),
+        physical_memory_offset: mappings.physical_memory_offset.map(VirtAddr::as_u64),
+        _non_exhaustive: (),
     });
 
     (boot_info, two_frames)

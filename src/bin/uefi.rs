@@ -18,7 +18,7 @@ struct PageAligned<T>(T);
 
 extern crate rlibc;
 
-use bootloader::binary::legacy_memory_region::LegacyFrameAllocator;
+use bootloader::{binary::legacy_memory_region::LegacyFrameAllocator, boot_info::FrameBufferInfo};
 use core::{mem, panic::PanicInfo, slice};
 use uefi::{
     prelude::{entry, Boot, Handle, ResultExt, Status, SystemTable},
@@ -32,7 +32,7 @@ use x86_64::{
 
 #[entry]
 fn efi_main(image: Handle, st: SystemTable<Boot>) -> Status {
-    let (framebuffer_addr, framebuffer_size) = init_logger(&st);
+    let (framebuffer_addr, framebuffer_info) = init_logger(&st);
     log::info!("Hello World from UEFI bootloader!");
     log::info!("Using framebuffer at {:#x}", framebuffer_addr);
 
@@ -60,7 +60,7 @@ fn efi_main(image: Handle, st: SystemTable<Boot>) -> Status {
         frame_allocator,
         page_tables,
         framebuffer_addr,
-        framebuffer_size,
+        framebuffer_info,
     );
 }
 
@@ -118,7 +118,7 @@ fn create_page_tables(
     }
 }
 
-fn init_logger(st: &SystemTable<Boot>) -> (PhysAddr, usize) {
+fn init_logger(st: &SystemTable<Boot>) -> (PhysAddr, FrameBufferInfo) {
     let gop = st
         .boot_services()
         .locate_protocol::<GraphicsOutput>()
@@ -128,12 +128,13 @@ fn init_logger(st: &SystemTable<Boot>) -> (PhysAddr, usize) {
     let mode_info = gop.current_mode_info();
     let mut framebuffer = gop.frame_buffer();
     let slice = unsafe { slice::from_raw_parts_mut(framebuffer.as_mut_ptr(), framebuffer.size()) };
-    let info = bootloader::binary::logger::FrameBufferInfo {
+    let info = FrameBufferInfo {
+        byte_len: framebuffer.size(),
         horizontal_resolution: mode_info.resolution().0,
         vertical_resolution: mode_info.resolution().1,
         pixel_format: match mode_info.pixel_format() {
-            PixelFormat::RGB => bootloader::binary::logger::PixelFormat::BGR,
-            PixelFormat::BGR => bootloader::binary::logger::PixelFormat::BGR,
+            PixelFormat::RGB => bootloader::boot_info::PixelFormat::BGR,
+            PixelFormat::BGR => bootloader::boot_info::PixelFormat::BGR,
             PixelFormat::Bitmask | PixelFormat::BltOnly => {
                 panic!("Bitmask and BltOnly framebuffers are not supported")
             }
@@ -144,10 +145,7 @@ fn init_logger(st: &SystemTable<Boot>) -> (PhysAddr, usize) {
 
     bootloader::binary::init_logger(slice, info);
 
-    (
-        PhysAddr::new(framebuffer.as_mut_ptr() as u64),
-        framebuffer.size(),
-    )
+    (PhysAddr::new(framebuffer.as_mut_ptr() as u64), info)
 }
 
 #[panic_handler]

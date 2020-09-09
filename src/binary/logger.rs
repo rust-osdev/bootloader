@@ -1,3 +1,4 @@
+use crate::boot_info::{FrameBufferInfo, PixelFormat};
 use conquer_once::spin::OnceCell;
 use core::{
     fmt::{self, Write},
@@ -140,20 +141,4 @@ impl fmt::Write for Logger {
         }
         Ok(())
     }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct FrameBufferInfo {
-    pub horizontal_resolution: usize,
-    pub vertical_resolution: usize,
-    pub pixel_format: PixelFormat,
-    pub bytes_per_pixel: usize,
-    pub stride: usize,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum PixelFormat {
-    RGB,
-    BGR,
-    U8,
 }

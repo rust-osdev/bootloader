@@ -6,6 +6,7 @@ pub struct Config {
     pub physical_memory_offset: Option<u64>,
     pub kernel_stack_address: Option<u64>,
     pub boot_info_address: Option<u64>,
+    pub map_framebuffer: bool,
     pub framebuffer_address: Option<u64>,
 }
 
@@ -18,6 +19,7 @@ impl Default for Config {
             kernel_stack_address: None,
             kernel_stack_size: None,
             boot_info_address: None,
+            map_framebuffer: true,
             framebuffer_address: None,
         }
     }
