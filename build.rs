@@ -260,6 +260,9 @@ mod binary {
                     ("map-page-table-recursively", Value::Boolean(b)) => {
                         config.map_page_table_recursively = b;
                     }
+                    ("map-framebuffer", Value::Boolean(b)) => {
+                        config.map_framebuffer = b;
+                    }
                     ("kernel-stack-size", Value::Integer(i)) => {
                         if i <= 0 {
                             panic!("`kernel-stack-size` in kernel manifest must be positive");
