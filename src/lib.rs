@@ -55,27 +55,11 @@ compile_error!("This crate only supports the x86_64 architecture.");
 macro_rules! entry_point {
     ($path:path) => {
         #[export_name = "_start"]
-        pub extern "C" fn __impl_start(boot_info: &'static $crate::boot_info::BootInfo) -> ! {
+        pub extern "C" fn __impl_start(boot_info: &'static mut $crate::boot_info::BootInfo) -> ! {
             // validate the signature of the program entry point
-            let f: fn(&'static $crate::boot_info::BootInfo) -> ! = $path;
+            let f: fn(&'static mut $crate::boot_info::BootInfo) -> ! = $path;
 
             f(boot_info)
         }
     };
-}
-
-#[cfg(feature = "bios_bin")]
-pub fn phys_frame_range(range: bootinfo::FrameRange) -> PhysFrameRange {
-    PhysFrameRange {
-        start: PhysFrame::from_start_address(PhysAddr::new(range.start_addr())).unwrap(),
-        end: PhysFrame::from_start_address(PhysAddr::new(range.end_addr())).unwrap(),
-    }
-}
-
-#[cfg(feature = "bios_bin")]
-pub fn frame_range(range: PhysFrameRange) -> bootinfo::FrameRange {
-    bootinfo::FrameRange::new(
-        range.start.start_address().as_u64(),
-        range.end.start_address().as_u64(),
-    )
 }
