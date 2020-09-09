@@ -10,8 +10,8 @@
 #![feature(slice_fill)]
 #![feature(asm)]
 #![feature(unsafe_block_in_unsafe_fn)]
-#![feature(maybe_uninit_slice_assume_init)]
 #![feature(maybe_uninit_extra)]
+#![feature(maybe_uninit_slice)]
 #![deny(unsafe_op_in_unsafe_fn)]
 //#![warn(missing_docs)]
 

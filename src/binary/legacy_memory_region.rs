@@ -115,7 +115,7 @@ where
         }
 
         let initialized = &mut regions[..next_index];
-        unsafe { MaybeUninit::slice_get_mut(initialized) }
+        unsafe { MaybeUninit::slice_assume_init_mut(initialized) }
     }
 
     fn add_region(
