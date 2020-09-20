@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.9.9 – 2020-09-20
+
 - Run `cargo update` to fix build errors of `x86_64` on latest nightly
 
 # 0.9.8 – 2020-07-17
