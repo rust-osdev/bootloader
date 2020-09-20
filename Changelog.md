@@ -1,5 +1,7 @@
 # Unreleased
 
+- Run `cargo update` for `test-kernel` and `example-kernel` too
+
 # 0.9.9 – 2020-09-20
 
 - Run `cargo update` to fix build errors of `x86_64` on latest nightly
