@@ -48,12 +48,18 @@ pub fn init_logger(framebuffer: &'static mut [u8], info: FrameBufferInfo) {
     log::set_max_level(log::LevelFilter::Trace);
 }
 
+#[derive(Debug, Copy, Clone)]
+pub struct SystemInfo {
+    pub framebuffer_addr: PhysAddr,
+    pub framebuffer_info: FrameBufferInfo,
+    pub rsdp_addr: Option<PhysAddr>,
+}
+
 pub fn load_and_switch_to_kernel<I, D>(
     kernel_bytes: &[u8],
     mut frame_allocator: LegacyFrameAllocator<I, D>,
     mut page_tables: PageTables,
-    framebuffer_addr: PhysAddr,
-    framebuffer_info: FrameBufferInfo,
+    system_info: SystemInfo,
 ) -> !
 where
     I: ExactSizeIterator<Item = D> + Clone,
@@ -63,14 +69,14 @@ where
         kernel_bytes,
         &mut frame_allocator,
         &mut page_tables.kernel,
-        framebuffer_addr,
-        framebuffer_info.byte_len,
+        system_info.framebuffer_addr,
+        system_info.framebuffer_info.byte_len,
     );
     let (boot_info, two_frames) = create_boot_info(
         frame_allocator,
         &mut page_tables,
         &mut mappings,
-        framebuffer_info,
+        system_info,
     );
     switch_to_kernel(page_tables, mappings, boot_info, two_frames);
 }
@@ -180,7 +186,7 @@ pub fn create_boot_info<I, D>(
     mut frame_allocator: LegacyFrameAllocator<I, D>,
     page_tables: &mut PageTables,
     mappings: &mut Mappings,
-    framebuffer_info: FrameBufferInfo,
+    system_info: SystemInfo,
 ) -> (&'static mut BootInfo, TwoFrames)
 where
     I: ExactSizeIterator<Item = D> + Clone,
@@ -244,10 +250,11 @@ where
         memory_regions,
         framebuffer: mappings.framebuffer.map(|addr| FrameBuffer {
             buffer_start: addr.as_u64(),
-            buffer_byte_len: framebuffer_info.byte_len,
-            info: framebuffer_info,
+            buffer_byte_len: system_info.framebuffer_info.byte_len,
+            info: system_info.framebuffer_info,
         }),
         physical_memory_offset: mappings.physical_memory_offset.map(VirtAddr::as_u64),
+        rsdp_addr: system_info.rsdp_addr.map(|addr| addr.as_u64()),
         _non_exhaustive: (),
     });
 

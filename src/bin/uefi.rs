@@ -17,7 +17,10 @@ struct PageAligned<T>(T);
 
 extern crate rlibc;
 
-use bootloader::{binary::legacy_memory_region::LegacyFrameAllocator, boot_info::FrameBufferInfo};
+use bootloader::{
+    binary::{legacy_memory_region::LegacyFrameAllocator, SystemInfo},
+    boot_info::FrameBufferInfo,
+};
 use core::{mem, panic::PanicInfo, slice};
 use uefi::{
     prelude::{entry, Boot, Handle, ResultExt, Status, SystemTable},
@@ -46,7 +49,7 @@ fn efi_main(image: Handle, st: SystemTable<Boot>) -> Status {
     };
 
     log::trace!("exiting boot services");
-    let (_st, memory_map) = st
+    let (system_table, memory_map) = st
         .exit_boot_services(image, mmap_storage)
         .expect_success("Failed to exit boot services");
 
@@ -54,12 +57,23 @@ fn efi_main(image: Handle, st: SystemTable<Boot>) -> Status {
 
     let page_tables = create_page_tables(&mut frame_allocator);
 
+    let system_info = SystemInfo {
+        framebuffer_addr,
+        framebuffer_info,
+        rsdp_addr: {
+            use uefi::table::cfg;
+            let mut config_entries = system_table.config_table().iter();
+            config_entries
+                .find(|entry| matches!(entry.guid, cfg::ACPI_GUID | cfg::ACPI2_GUID))
+                .map(|entry| PhysAddr::new(entry.address as u64))
+        },
+    };
+
     bootloader::binary::load_and_switch_to_kernel(
         &KERNEL.0,
         frame_allocator,
         page_tables,
-        framebuffer_addr,
-        framebuffer_info,
+        system_info,
     );
 }
 

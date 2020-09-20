@@ -11,7 +11,7 @@ compile_error!("The bootloader crate must be compiled for the `x86_64-bootloader
 
 extern crate rlibc;
 
-use bootloader::boot_info::FrameBufferInfo;
+use bootloader::{binary::SystemInfo, boot_info::FrameBufferInfo};
 use core::panic::PanicInfo;
 use core::slice;
 use usize_conversions::usize_from;
@@ -123,12 +123,17 @@ fn bootloader_main(
         unsafe { slice::from_raw_parts(ptr, usize_from(kernel_size)) }
     };
 
+    let system_info = SystemInfo {
+        framebuffer_addr,
+        framebuffer_info,
+        rsdp_addr: detect_rsdp(),
+    };
+
     bootloader::binary::load_and_switch_to_kernel(
         kernel,
         frame_allocator,
         page_tables,
-        framebuffer_addr,
-        framebuffer_info,
+        system_info,
     );
 
     /*
@@ -257,6 +262,39 @@ fn create_page_tables(
 fn enable_write_protect_bit() {
     use x86_64::registers::control::{Cr0, Cr0Flags};
     unsafe { Cr0::update(|cr0| *cr0 |= Cr0Flags::WRITE_PROTECT) };
+}
+
+fn detect_rsdp() -> Option<PhysAddr> {
+    use core::ptr::NonNull;
+    use rsdp_search::{
+        handler::{AcpiHandler, PhysicalMapping},
+        Rsdp,
+    };
+
+    struct IdentityMapped;
+    impl AcpiHandler for IdentityMapped {
+        unsafe fn map_physical_region<T>(
+            &self,
+            physical_address: usize,
+            size: usize,
+        ) -> PhysicalMapping<Self, T> {
+            PhysicalMapping {
+                physical_start: physical_address,
+                virtual_start: NonNull::new(physical_address as *mut _).unwrap(),
+                region_length: size,
+                mapped_length: size,
+                handler: Self,
+            }
+        }
+
+        fn unmap_physical_region<T>(&self, _region: &PhysicalMapping<Self, T>) {}
+    }
+
+    unsafe {
+        Rsdp::search_for_on_bios(IdentityMapped)
+            .ok()
+            .map(|mapping| PhysAddr::new(mapping.physical_start as u64))
+    }
 }
 
 #[panic_handler]
