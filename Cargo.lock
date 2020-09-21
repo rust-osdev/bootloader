@@ -73,7 +73,7 @@ dependencies = [
  "toml",
  "uefi",
  "usize_conversions",
- "x86_64 0.11.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "x86_64 0.11.7",
  "xmas-elf",
 ]
 
@@ -144,7 +144,7 @@ name = "kernel"
 version = "0.1.0"
 dependencies = [
  "bootloader",
- "x86_64 0.11.2 (git+https://github.com/rust-osdev/x86_64.git?branch=nop)",
+ "x86_64 0.11.2",
 ]
 
 [[package]]
@@ -155,9 +155,9 @@ checksum = "955be5d0ca0465caf127165acb47964f911e2bc26073e865deb8be7189302faf"
 
 [[package]]
 name = "locate-cargo-manifest"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0bf4c572ea735347f84c196204b41411e1c266006297043db6cf7c6235d3edff"
+checksum = "db985b63431fe09e8d71f50aeceffcc31e720cb86be8dad2f38d084c5a328466"
 dependencies = [
  "json",
 ]
@@ -182,9 +182,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.19"
+version = "1.0.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04f5f085b5d71e2188cb8271e5da0161ad52c3f227a661a3c135fdf28e258b12"
+checksum = "36e28516df94f3dd551a587da5357459d9b36d945a7c37c3557928c1c2ff2a2c"
 dependencies = [
  "unicode-xid",
 ]
@@ -228,9 +228,9 @@ checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
 
 [[package]]
 name = "serde"
-version = "1.0.115"
+version = "1.0.116"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e54c9a88f2da7238af84b5101443f0c0d0a3bbdc455e34a5c9497b1903ed55d5"
+checksum = "96fe57af81d28386a513cbc6858332abc6117cfdb5999647c6444b8f43a370a5"
 
 [[package]]
 name = "spinning_top"
@@ -243,9 +243,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "1.0.39"
+version = "1.0.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "891d8d6567fe7c7f8835a3a98af4208f3846fba258c1bc3c31d6e506239f11f9"
+checksum = "6690e3e9f692504b941dc6c3b188fd28df054f7fb8469ab40680df52fdcc842b"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -293,7 +293,7 @@ dependencies = [
 [[package]]
 name = "uefi"
 version = "0.5.0"
-source = "git+https://github.com/rust-osdev/uefi-rs.git#e482874f3d92e258eb9d7caa9782ecc679417287"
+source = "git+https://github.com/rust-osdev/uefi-rs.git#b5dbb720e7460ca94f465745ce24f9e2aa2347df"
 dependencies = [
  "bitflags",
  "log",
@@ -333,8 +333,7 @@ checksum = "f70329e2cbe45d6c97a5112daad40c34cd9a4e18edb5a2a18fefeb584d8d25e5"
 [[package]]
 name = "x86_64"
 version = "0.11.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88ca13fe418403c0df903ee7eb3bf1a51a742bb339b42a329642f386224b8e64"
+source = "git+https://github.com/rust-osdev/x86_64.git?branch=nop#0b2bf80eeb22f9e8452b604624704e52d895b6d0"
 dependencies = [
  "bit_field 0.9.0",
  "bitflags",
@@ -342,8 +341,9 @@ dependencies = [
 
 [[package]]
 name = "x86_64"
-version = "0.11.2"
-source = "git+https://github.com/rust-osdev/x86_64.git?branch=nop#0b2bf80eeb22f9e8452b604624704e52d895b6d0"
+version = "0.11.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aa580d2cf2a6a8c55f6283d6d06271b1ccab4d93cb3741edab290d5408d848c4"
 dependencies = [
  "bit_field 0.9.0",
  "bitflags",
