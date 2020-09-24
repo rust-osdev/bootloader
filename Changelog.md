@@ -1,6 +1,6 @@
 # Unreleased
 
-- Run `cargo update` for `test-kernel` and `example-kernel` too
+- Update `x86_64` again to version 0.12.1 to fix `const fn`-related build errors on latest nightly
 
 # 0.9.9 – 2020-09-20
 
