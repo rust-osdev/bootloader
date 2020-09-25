@@ -266,11 +266,12 @@ fn enable_write_protect_bit() {
 
 fn detect_rsdp() -> Option<PhysAddr> {
     use core::ptr::NonNull;
-    use rsdp_search::{
+    use rsdp::{
         handler::{AcpiHandler, PhysicalMapping},
         Rsdp,
     };
 
+    #[derive(Clone)]
     struct IdentityMapped;
     impl AcpiHandler for IdentityMapped {
         unsafe fn map_physical_region<T>(

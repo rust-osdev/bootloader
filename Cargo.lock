@@ -67,7 +67,7 @@ dependencies = [
  "llvm-tools",
  "log",
  "rlibc",
- "rsdp_search",
+ "rsdp",
  "spinning_top",
  "thiserror",
  "toml",
@@ -205,9 +205,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc874b127765f014d792f16763a81245ab80500e2ad921ed4ee9e82481ee08fe"
 
 [[package]]
-name = "rsdp_search"
-version = "0.1.0"
-source = "git+https://github.com/IsaacWoods/acpi.git?branch=new#72b87e55da3a386ecb313d9c7b1b41a82ff9d704"
+name = "rsdp"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "49b26cb0132c85db7152fc291c9680a9240d4ef482287667819dbaec1d665dbd"
 dependencies = [
  "log",
 ]
