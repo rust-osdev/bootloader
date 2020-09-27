@@ -137,23 +137,8 @@ fn bootloader_main(
     );
 
     /*
-    // Enable support for the no-execute bit in page tables.
-    enable_nxe_bit();
-
     // Make sure that the kernel respects the write-protection bits, even when in ring 0.
     enable_write_protect_bit();
-
-    if cfg!(not(feature = "recursive_page_table")) {
-        // unmap recursive entry
-        rec_page_table
-            .unmap(Page::<Size4KiB>::containing_address(
-                recursive_page_table_addr,
-            ))
-            .expect("error deallocating recursive entry")
-            .1
-            .flush();
-        mem::drop(rec_page_table);
-    }
 
     #[cfg(feature = "sse")]
     sse::enable_sse();
