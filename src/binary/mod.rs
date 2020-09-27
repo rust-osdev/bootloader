@@ -11,8 +11,8 @@ use usize_conversions::FromUsize;
 use x86_64::{
     registers,
     structures::paging::{
-        FrameAllocator, Mapper, OffsetPageTable, Page, PageTableFlags, PhysFrame, Size2MiB,
-        Size4KiB,
+        FrameAllocator, Mapper, OffsetPageTable, Page, PageTableFlags, PageTableIndex, PhysFrame,
+        Size2MiB, Size4KiB,
     },
     PhysAddr, VirtAddr,
 };
@@ -68,7 +68,7 @@ where
     let mut mappings = set_up_mappings(
         kernel_bytes,
         &mut frame_allocator,
-        &mut page_tables.kernel,
+        &mut page_tables,
         system_info.framebuffer_addr,
         system_info.framebuffer_info.byte_len,
     );
@@ -85,7 +85,7 @@ where
 pub fn set_up_mappings<I, D>(
     kernel_bytes: &[u8],
     frame_allocator: &mut LegacyFrameAllocator<I, D>,
-    kernel_page_table: &mut OffsetPageTable,
+    page_tables: &mut PageTables,
     framebuffer_addr: PhysAddr,
     framebuffer_size: usize,
 ) -> Mappings
@@ -93,6 +93,8 @@ where
     I: ExactSizeIterator<Item = D> + Clone,
     D: LegacyMemoryRegion,
 {
+    let kernel_page_table = &mut page_tables.kernel;
+
     // Enable support for the no-execute bit in page tables.
     enable_nxe_bit();
 
@@ -164,12 +166,35 @@ where
         None
     };
 
+    let recursive_index = if CONFIG.map_page_table_recursively {
+        log::info!("Map page table recursively");
+        let index = CONFIG
+            .recursive_index
+            .map(PageTableIndex::new)
+            .unwrap_or_else(|| used_entries.get_free_entry());
+
+        let entry = &mut kernel_page_table.level_4_table()[index];
+        if !entry.is_unused() {
+            panic!(
+                "Could not set up recursive mapping: index {} already in use",
+                u16::from(index)
+            );
+        }
+        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+        entry.set_frame(page_tables.kernel_level_4_frame, flags);
+
+        Some(index)
+    } else {
+        None
+    };
+
     Mappings {
         framebuffer: framebuffer_virt_addr,
         entry_point,
         stack_end,
         used_entries,
         physical_memory_offset,
+        recursive_index,
     }
 }
 
@@ -179,6 +204,7 @@ pub struct Mappings {
     pub used_entries: UsedLevel4Entries,
     pub framebuffer: Option<VirtAddr>,
     pub physical_memory_offset: Option<VirtAddr>,
+    pub recursive_index: Option<PageTableIndex>,
 }
 
 /// Allocates and initializes the boot info struct and the memory map
@@ -254,6 +280,7 @@ where
             info: system_info.framebuffer_info,
         }),
         physical_memory_offset: mappings.physical_memory_offset.map(VirtAddr::as_u64),
+        recursive_index: mappings.recursive_index.map(Into::into),
         rsdp_addr: system_info.rsdp_addr.map(|addr| addr.as_u64()),
         _non_exhaustive: (),
     });

@@ -7,6 +7,7 @@ pub struct BootInfo {
     pub memory_regions: &'static mut [MemoryRegion],
     pub framebuffer: Option<FrameBuffer>,
     pub physical_memory_offset: Option<u64>,
+    pub recursive_index: Option<u16>,
     pub rsdp_addr: Option<u64>,
     pub(crate) _non_exhaustive: (),
 }

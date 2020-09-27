@@ -248,6 +248,7 @@ mod binary {
 
     impl Config {
         fn parse(table: &toml::value::Table) -> Self {
+            use std::convert::TryFrom;
             use toml::Value;
 
             let mut config = Self::default();
@@ -269,6 +270,16 @@ mod binary {
                         } else {
                             config.kernel_stack_size = Some(i as u64);
                         }
+                    }
+
+                    ("recursive-page-table-index", Value::Integer(i)) => {
+                        let index = match u16::try_from(i) {
+                            Ok(index) if index >= 0 && index < 512 => index,
+                            _other => panic!(
+                                "`recursive-page-table-index` must be a number between 0 and 512"
+                            ),
+                        };
+                        config.recursive_index = Some(index);
                     }
 
                     ("physical-memory-offset", Value::Integer(i))
