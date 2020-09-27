@@ -140,48 +140,6 @@ fn bootloader_main(
     // Enable support for the no-execute bit in page tables.
     enable_nxe_bit();
 
-
-    let physical_memory_offset = if cfg!(feature = "map_physical_memory") {
-        let physical_memory_offset = PHYSICAL_MEMORY_OFFSET.unwrap_or_else(|| {
-            // If offset not manually provided, find a free p4 entry and map memory here.
-            // One level 4 entry spans 2^48/512 bytes (over 500gib) so this should suffice.
-            assert!(max_phys_addr < (1 << 48) / 512);
-            Page::from_page_table_indices_1gib(
-                level4_entries.get_free_entry(),
-                PageTableIndex::new(0),
-            )
-            .start_address()
-            .as_u64()
-        });
-
-        let virt_for_phys =
-            |phys: PhysAddr| -> VirtAddr { VirtAddr::new(phys.as_u64() + physical_memory_offset) };
-
-        let start_frame = PhysFrame::<Size2MiB>::containing_address(PhysAddr::new(0));
-        let end_frame = PhysFrame::<Size2MiB>::containing_address(PhysAddr::new(max_phys_addr));
-
-        for frame in PhysFrame::range_inclusive(start_frame, end_frame) {
-            let page = Page::containing_address(virt_for_phys(frame.start_address()));
-            let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
-            unsafe {
-                page_table::map_page(
-                    page,
-                    frame,
-                    flags,
-                    &mut rec_page_table,
-                    &mut frame_allocator,
-                )
-            }
-            .expect("Mapping of bootinfo page failed")
-            .flush();
-        }
-
-        physical_memory_offset
-    } else {
-        0 // Value is unused by BootInfo::new, so this doesn't matter
-    };
-
-
     // Make sure that the kernel respects the write-protection bits, even when in ring 0.
     enable_write_protect_bit();
 
