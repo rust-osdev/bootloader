@@ -1,5 +1,7 @@
 # Unreleased
 
+- Update `Cargo.lock` to fix nightly breakage ([#129](https://github.com/rust-osdev/bootloader/pull/129))
+
 # 0.9.10 – 2020-09-24
 
 - Update `x86_64` again to version 0.12.1 to fix `const fn`-related build errors on latest nightly
