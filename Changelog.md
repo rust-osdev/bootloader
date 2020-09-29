@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.9.11 – 2020-09-29
+
 - Update `Cargo.lock` to fix nightly breakage ([#129](https://github.com/rust-osdev/bootloader/pull/129))
 
 # 0.9.10 – 2020-09-24
