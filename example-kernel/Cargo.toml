@@ -5,4 +5,4 @@ authors = ["Philipp Oppermann <dev@phil-opp.com>"]
 edition = "2018"
 
 [dependencies]
-x86_64 = "0.12.1"
+x86_64 = "0.12.2"
