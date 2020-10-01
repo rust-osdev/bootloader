@@ -15,8 +15,6 @@ static KERNEL: PageAligned<[u8; KERNEL_SIZE]> = PageAligned(KERNEL_BYTES);
 #[repr(align(4096))]
 struct PageAligned<T>(T);
 
-extern crate rlibc;
-
 use bootloader::{
     binary::{legacy_memory_region::LegacyFrameAllocator, SystemInfo},
     boot_info::FrameBufferInfo,

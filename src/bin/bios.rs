@@ -9,8 +9,6 @@
 #[cfg(not(target_os = "none"))]
 compile_error!("The bootloader crate must be compiled for the `x86_64-bootloader.json` target");
 
-extern crate rlibc;
-
 use bootloader::{binary::SystemInfo, boot_info::FrameBufferInfo};
 use core::panic::PanicInfo;
 use core::slice;

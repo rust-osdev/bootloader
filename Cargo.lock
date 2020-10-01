@@ -66,14 +66,13 @@ dependencies = [
  "json",
  "llvm-tools",
  "log",
- "rlibc",
  "rsdp",
  "spinning_top",
  "thiserror",
  "toml",
  "uefi",
  "usize_conversions",
- "x86_64 0.12.1",
+ "x86_64 0.12.2",
  "xmas-elf",
 ]
 
@@ -182,9 +181,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.21"
+version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36e28516df94f3dd551a587da5357459d9b36d945a7c37c3557928c1c2ff2a2c"
+checksum = "1e0704ee1a7e00d7bb417d0770ea303c1bccbabf0ef1667dae92b5967f5f8a71"
 dependencies = [
  "unicode-xid",
 ]
@@ -197,12 +196,6 @@ checksum = "aa563d17ecb180e500da1cfd2b028310ac758de548efdd203e18f283af693f37"
 dependencies = [
  "proc-macro2",
 ]
-
-[[package]]
-name = "rlibc"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc874b127765f014d792f16763a81245ab80500e2ad921ed4ee9e82481ee08fe"
 
 [[package]]
 name = "rsdp"
@@ -244,9 +237,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "1.0.41"
+version = "1.0.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6690e3e9f692504b941dc6c3b188fd28df054f7fb8469ab40680df52fdcc842b"
+checksum = "9c51d92969d209b54a98397e1b91c8ae82d8c87a7bb87df0b29aa2ad81454228"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -343,8 +336,8 @@ dependencies = [
 
 [[package]]
 name = "x86_64"
-version = "0.12.1"
-source = "git+https://github.com/rust-osdev/x86_64.git?branch=access-level-4-table#b2868c966547fab1469ddd86e85f5611bc18797e"
+version = "0.12.2"
+source = "git+https://github.com/rust-osdev/x86_64.git?branch=access-level-4-table#4f42c9bf723b7a738e03e8a496420c26c11ba8e2"
 dependencies = [
  "bit_field 0.9.0",
  "bitflags",

@@ -81,6 +81,7 @@ fn main() -> anyhow::Result<()> {
         cmd.arg("--features")
             .arg(args.features.join(" ") + " uefi_bin");
         cmd.arg("-Zbuild-std=core");
+        cmd.arg("-Zbuild-std-features=compiler-builtins-mem");
         if let Some(target_dir) = &args.target_dir {
             cmd.arg("--target-dir").arg(target_dir);
         }
@@ -101,6 +102,7 @@ fn main() -> anyhow::Result<()> {
         cmd.arg("--features")
             .arg(args.features.join(" ") + " bios_bin");
         cmd.arg("-Zbuild-std=core");
+        cmd.arg("-Zbuild-std-features=compiler-builtins-mem");
         if let Some(target_dir) = &args.target_dir {
             cmd.arg("--target-dir").arg(target_dir);
         }
