@@ -274,7 +274,7 @@ mod binary {
 
                     ("recursive-page-table-index", Value::Integer(i)) => {
                         let index = match u16::try_from(i) {
-                            Ok(index) if index >= 0 && index < 512 => index,
+                            Ok(index) if index < 512 => index,
                             _other => panic!(
                                 "`recursive-page-table-index` must be a number between 0 and 512"
                             ),
