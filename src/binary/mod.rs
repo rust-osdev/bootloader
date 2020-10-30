@@ -97,6 +97,8 @@ where
 
     // Enable support for the no-execute bit in page tables.
     enable_nxe_bit();
+    // Make the kernel respect the write-protection bits even when in ring 0 by default
+    enable_write_protect_bit();
 
     let (entry_point, mut used_entries) =
         load_kernel::load_kernel(kernel_bytes, kernel_page_table, frame_allocator)
@@ -411,4 +413,9 @@ fn kernel_stack_start_location(used_entries: &mut UsedLevel4Entries) -> VirtAddr
 fn enable_nxe_bit() {
     use x86_64::registers::control::{Efer, EferFlags};
     unsafe { Efer::update(|efer| *efer |= EferFlags::NO_EXECUTE_ENABLE) }
+}
+
+fn enable_write_protect_bit() {
+    use x86_64::registers::control::{Cr0, Cr0Flags};
+    unsafe { Cr0::update(|cr0| *cr0 |= Cr0Flags::WRITE_PROTECT) };
 }

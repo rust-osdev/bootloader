@@ -133,12 +133,6 @@ fn bootloader_main(
         page_tables,
         system_info,
     );
-
-    /*
-    // Make sure that the kernel respects the write-protection bits, even when in ring 0.
-    enable_write_protect_bit();
-
-    */
 }
 
 fn init_logger(framebuffer_start: PhysAddr, framebuffer_size: usize) -> FrameBufferInfo {
@@ -195,11 +189,6 @@ fn create_page_tables(
         kernel: kernel_page_table,
         kernel_level_4_frame,
     }
-}
-
-fn enable_write_protect_bit() {
-    use x86_64::registers::control::{Cr0, Cr0Flags};
-    unsafe { Cr0::update(|cr0| *cr0 |= Cr0Flags::WRITE_PROTECT) };
 }
 
 fn detect_rsdp() -> Option<PhysAddr> {
