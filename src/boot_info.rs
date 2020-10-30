@@ -1,4 +1,4 @@
-use crate::memory_map::MemoryRegion;
+use crate::memory_region::MemoryRegion;
 use core::slice;
 
 /// This structure represents the information that the bootloader passes to the kernel.

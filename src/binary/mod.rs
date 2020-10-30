@@ -1,6 +1,6 @@
 use crate::binary::legacy_memory_region::{LegacyFrameAllocator, LegacyMemoryRegion};
 use crate::boot_info::{BootInfo, FrameBuffer, FrameBufferInfo, TlsTemplate};
-use crate::memory_map::MemoryRegion;
+use crate::memory_region::MemoryRegion;
 use core::{
     mem::{self, MaybeUninit},
     slice,

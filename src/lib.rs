@@ -20,7 +20,7 @@ pub use crate::boot_info::BootInfo;
 pub mod config;
 
 pub mod boot_info;
-pub mod memory_map;
+pub mod memory_region;
 
 #[cfg(feature = "binary")]
 pub mod binary;
