@@ -1,5 +1,17 @@
 # Unreleased
 
+# 0.9.11 – 2020-09-29
+
+- Update `Cargo.lock` to fix nightly breakage ([#129](https://github.com/rust-osdev/bootloader/pull/129))
+
+# 0.9.10 – 2020-09-24
+
+- Update `x86_64` again to version 0.12.1 to fix `const fn`-related build errors on latest nightly
+
+# 0.9.9 – 2020-09-20
+
+- Run `cargo update` to fix build errors of `x86_64` on latest nightly
+
 # 0.9.8 – 2020-07-17
 
 - Enable rlibc dependency only with `binary` feature ([#126](https://github.com/rust-osdev/bootloader/pull/126))
