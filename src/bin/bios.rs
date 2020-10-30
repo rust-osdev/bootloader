@@ -138,9 +138,6 @@ fn bootloader_main(
     // Make sure that the kernel respects the write-protection bits, even when in ring 0.
     enable_write_protect_bit();
 
-    #[cfg(feature = "sse")]
-    sse::enable_sse();
-
     */
 }
 

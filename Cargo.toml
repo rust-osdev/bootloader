@@ -67,7 +67,6 @@ binary = ["llvm-tools-build", "x86_64", "toml", "xmas-elf", "usize_conversions",
 vga_320x200 = ["font8x8"]
 recursive_page_table = []
 map_physical_memory = []
-sse = ["bit_field"]
 
 [profile.dev]
 panic = "abort"
