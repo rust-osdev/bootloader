@@ -16,12 +16,12 @@ impl Default for Config {
         Config {
             map_physical_memory: false,
             map_page_table_recursively: false,
+            map_framebuffer: true,
             physical_memory_offset: None,
             recursive_index: None,
             kernel_stack_address: None,
             kernel_stack_size: None,
             boot_info_address: None,
-            map_framebuffer: true,
             framebuffer_address: None,
         }
     }

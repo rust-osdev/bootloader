@@ -8,6 +8,8 @@ fn main() {
 
 #[cfg(feature = "binary")]
 mod binary {
+    use std::fmt;
+
     pub fn main() {
         use llvm_tools_build as llvm_tools;
         use std::{
@@ -193,7 +195,7 @@ mod binary {
         }
 
         // Parse configuration from the kernel's Cargo.toml
-        let config = match env::var("KERNEL_MANIFEST") {
+        let config: Config = match env::var("KERNEL_MANIFEST") {
             Err(env::VarError::NotPresent) => {
                 panic!("The KERNEL_MANIFEST environment variable must be set for building the bootloader.\n\n\
                  Please use `cargo builder` for building.");
@@ -213,13 +215,14 @@ mod binary {
                     .parse::<Value>()
                     .expect("failed to parse kernel's Cargo.toml");
 
-                let table = manifest
+                let config_table = manifest
                     .get("package")
                     .and_then(|table| table.get("metadata"))
                     .and_then(|table| table.get("bootloader"))
-                    .and_then(|table| table.as_table());
+                    .cloned()
+                    .unwrap_or_else(|| toml::Value::Table(toml::map::Map::new()));
 
-                table.map(|t| Config::parse(t)).unwrap_or_default()
+                config_table.try_into().expect("failed to parse config")
             }
         };
 
@@ -244,105 +247,92 @@ mod binary {
         println!("cargo:rerun-if-changed=build.rs");
     }
 
-    include!("src/config.rs");
+    fn val_true() -> bool {
+        true
+    }
 
-    impl Config {
-        fn parse(table: &toml::value::Table) -> Self {
-            use std::convert::TryFrom;
-            use toml::Value;
+    /// Must be always identical with the struct in `src/config.rs`
+    ///
+    /// This copy is needed because we can't derive Deserialize in the `src/config.rs`
+    /// module itself, since cargo currently unifies dependencies (the `toml` crate enables
+    /// serde's standard feature).
+    #[derive(Debug, serde::Deserialize)]
+    #[serde(rename_all = "kebab-case", deny_unknown_fields)]
+    struct Config {
+        #[serde(default)]
+        pub map_physical_memory: bool,
+        #[serde(default)]
+        pub map_page_table_recursively: bool,
+        #[serde(default = "val_true")]
+        pub map_framebuffer: bool,
+        pub kernel_stack_size: Option<AlignedAddress>,
+        pub physical_memory_offset: Option<AlignedAddress>,
+        pub recursive_index: Option<u16>,
+        pub kernel_stack_address: Option<AlignedAddress>,
+        pub boot_info_address: Option<AlignedAddress>,
+        pub framebuffer_address: Option<AlignedAddress>,
+    }
 
-            let mut config = Self::default();
+    struct AlignedAddress(u64);
 
-            for (key, value) in table {
-                match (key.as_str(), value.clone()) {
-                    ("map-physical-memory", Value::Boolean(b)) => {
-                        config.map_physical_memory = b;
-                    }
-                    ("map-page-table-recursively", Value::Boolean(b)) => {
-                        config.map_page_table_recursively = b;
-                    }
-                    ("map-framebuffer", Value::Boolean(b)) => {
-                        config.map_framebuffer = b;
-                    }
-                    ("kernel-stack-size", Value::Integer(i)) => {
-                        if i <= 0 {
-                            panic!("`kernel-stack-size` in kernel manifest must be positive");
-                        } else {
-                            config.kernel_stack_size = Some(i as u64);
-                        }
-                    }
+    impl fmt::Debug for AlignedAddress {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(f, "{}", self.0)
+        }
+    }
 
-                    ("recursive-page-table-index", Value::Integer(i)) => {
-                        let index = match u16::try_from(i) {
-                            Ok(index) if index < 512 => index,
-                            _other => panic!(
-                                "`recursive-page-table-index` must be a number between 0 and 512"
-                            ),
-                        };
-                        config.recursive_index = Some(index);
-                    }
+    impl<'de> serde::Deserialize<'de> for AlignedAddress {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: serde::Deserializer<'de>,
+        {
+            deserializer.deserialize_str(AlignedAddressVisitor)
+        }
+    }
 
-                    ("physical-memory-offset", Value::Integer(i))
-                    | ("kernel-stack-address", Value::Integer(i))
-                    | ("boot-info-address", Value::Integer(i))
-                    | ("framebuffer-address", Value::Integer(i)) => {
-                        panic!(
-                            "`{0}` in the kernel manifest must be given as a string, \
-                     as toml does not support unsigned 64-bit integers (try `{0} = \"{1}\"`)",
-                            key.as_str(),
-                            i
-                        );
-                    }
-                    ("physical-memory-offset", Value::String(s)) => {
-                        config.physical_memory_offset =
-                            Some(Self::parse_aligned_addr(key.as_str(), &s));
-                    }
-                    ("kernel-stack-address", Value::String(s)) => {
-                        config.kernel_stack_address =
-                            Some(Self::parse_aligned_addr(key.as_str(), &s));
-                    }
-                    ("boot-info-address", Value::String(s)) => {
-                        config.boot_info_address = Some(Self::parse_aligned_addr(key.as_str(), &s));
-                    }
-                    ("framebuffer-address", Value::String(s)) => {
-                        config.framebuffer_address =
-                            Some(Self::parse_aligned_addr(key.as_str(), &s));
-                    }
+    /// Helper struct for implementing the `optional_version_deserialize` function.
+    struct AlignedAddressVisitor;
 
-                    (s, _) => {
-                        let help = if s.contains("_") {
-                            "\nkeys use `-` instead of `_`"
-                        } else {
-                            ""
-                        };
-                        panic!("unknown bootloader configuration key '{}'{}", s, help);
-                    }
-                }
-            }
+    impl serde::de::Visitor<'_> for AlignedAddressVisitor {
+        type Value = AlignedAddress;
 
-            config
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            write!(
+                formatter,
+                "a page-aligned memory address, either as integer or as decimal or hexadecimal \
+                string (e.g. \"0xffff0000\"); large addresses must be given as string because \
+                TOML does not support unsigned 64-bit integers"
+            )
         }
 
-        fn parse_aligned_addr(key: &str, value: &str) -> u64 {
+        fn visit_u64<E>(self, num: u64) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            if num % 0x1000 == 0 {
+                Ok(AlignedAddress(num))
+            } else {
+                Err(serde::de::Error::invalid_value(
+                    serde::de::Unexpected::Unsigned(num),
+                    &self,
+                ))
+            }
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
             let num = if value.starts_with("0x") {
                 u64::from_str_radix(&value[2..], 16)
             } else {
                 u64::from_str_radix(&value, 10)
-            };
-
-            let num = num.expect(&format!(
-                "`{}` in the kernel manifest must be an integer (is `{}`)",
-                key, value
-            ));
-
-            if num % 0x1000 != 0 {
-                panic!(
-                    "`{}` in the kernel manifest must be aligned to 4KiB (is `{}`)",
-                    key, value
-                );
-            } else {
-                num
             }
+            .map_err(|_err| {
+                serde::de::Error::invalid_value(serde::de::Unexpected::Str(value), &self)
+            })?;
+
+            self.visit_u64(num)
         }
     }
 }
