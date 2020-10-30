@@ -1,4 +1,4 @@
-use crate::binary::legacy_memory_region::LegacyMemoryRegion;
+use crate::{binary::legacy_memory_region::LegacyMemoryRegion, memory_map::MemoryRegionKind};
 use uefi::table::boot::{MemoryDescriptor, MemoryType};
 use x86_64::PhysAddr;
 
@@ -13,8 +13,11 @@ impl<'a> LegacyMemoryRegion for MemoryDescriptor {
         self.page_count * PAGE_SIZE
     }
 
-    fn usable(&self) -> bool {
-        self.ty == MemoryType::CONVENTIONAL
+    fn kind(&self) -> MemoryRegionKind {
+        match self.ty {
+            MemoryType::CONVENTIONAL => MemoryRegionKind::Usable,
+            other => MemoryRegionKind::UnknownUefi(other.0),
+        }
     }
 
     fn set_start(&mut self, new_start: PhysAddr) {

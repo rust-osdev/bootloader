@@ -1,4 +1,4 @@
-use crate::memory_map::MemoryRegion;
+use crate::memory_map::{MemoryRegion, MemoryRegionKind};
 use core::mem::MaybeUninit;
 use x86_64::{
     structures::paging::{FrameAllocator, PhysFrame, Size4KiB},
@@ -8,7 +8,7 @@ use x86_64::{
 pub trait LegacyMemoryRegion: Copy + core::fmt::Debug {
     fn start(&self) -> PhysAddr;
     fn len(&self) -> u64;
-    fn usable(&self) -> bool;
+    fn kind(&self) -> MemoryRegionKind;
 
     fn set_start(&mut self, new_start: PhysAddr);
 }
@@ -76,34 +76,47 @@ where
         self,
         regions: &mut [MaybeUninit<MemoryRegion>],
     ) -> &mut [MemoryRegion] {
-        use crate::memory_map::MemoryRegionKind;
-
         let mut next_index = 0;
 
         for mut descriptor in self.original {
             let end = descriptor.start() + descriptor.len();
             let next_free = self.next_frame.start_address();
-            let kind = if descriptor.usable() {
-                if end <= next_free {
-                    MemoryRegionKind::Bootloader
-                } else if descriptor.start() >= next_free {
-                    MemoryRegionKind::Usable
-                } else {
-                    // part of the region is used -> add is separately
-                    let used_region = MemoryRegion {
-                        start: descriptor.start().as_u64(),
-                        end: next_free.as_u64(),
-                        kind: MemoryRegionKind::Bootloader,
-                    };
-                    Self::add_region(used_region, regions, &mut next_index)
-                        .expect("Failed to add memory region");
+            let kind = match descriptor.kind() {
+                MemoryRegionKind::Usable => {
+                    if end <= next_free {
+                        MemoryRegionKind::Bootloader
+                    } else if descriptor.start() >= next_free {
+                        MemoryRegionKind::Usable
+                    } else {
+                        // part of the region is used -> add is separately
+                        let used_region = MemoryRegion {
+                            start: descriptor.start().as_u64(),
+                            end: next_free.as_u64(),
+                            kind: MemoryRegionKind::Bootloader,
+                        };
+                        Self::add_region(used_region, regions, &mut next_index)
+                            .expect("Failed to add memory region");
 
-                    // add unused part normally
-                    descriptor.set_start(next_free);
-                    MemoryRegionKind::Usable
+                        // add unused part normally
+                        descriptor.set_start(next_free);
+                        MemoryRegionKind::Usable
+                    }
                 }
-            } else {
-                MemoryRegionKind::Reserved // FIXME more types
+                // some mappings created by the UEFI firmware become usable again at this point
+                #[cfg(feature = "uefi_bin")]
+                MemoryRegionKind::UnknownUefi(other) => {
+                    use uefi::table::boot::MemoryType as M;
+                    match M::custom(other) {
+                        M::LOADER_CODE
+                        | M::LOADER_DATA
+                        | M::BOOT_SERVICES_CODE
+                        | M::BOOT_SERVICES_DATA
+                        | M::RUNTIME_SERVICES_CODE
+                        | M::RUNTIME_SERVICES_DATA => MemoryRegionKind::Usable,
+                        other => MemoryRegionKind::UnknownUefi(other.0),
+                    }
+                }
+                other => other,
             };
 
             let region = MemoryRegion {
@@ -152,7 +165,7 @@ where
 
         // find next suitable descriptor
         while let Some(descriptor) = self.memory_map.next() {
-            if !descriptor.usable() {
+            if descriptor.kind() != MemoryRegionKind::Usable {
                 continue;
             }
             if let Some(frame) = self.allocate_frame_from_descriptor(descriptor) {

@@ -1,4 +1,4 @@
-use crate::binary::legacy_memory_region::LegacyMemoryRegion;
+use crate::{binary::legacy_memory_region::LegacyMemoryRegion, memory_map::MemoryRegionKind};
 use x86_64::PhysAddr;
 
 impl LegacyMemoryRegion for E820MemoryRegion {
@@ -10,8 +10,11 @@ impl LegacyMemoryRegion for E820MemoryRegion {
         self.len
     }
 
-    fn usable(&self) -> bool {
-        self.region_type == 1
+    fn kind(&self) -> MemoryRegionKind {
+        match self.region_type {
+            1 => MemoryRegionKind::Usable,
+            other => MemoryRegionKind::UnknownBios(other),
+        }
     }
 
     fn set_start(&mut self, new_start: PhysAddr) {
@@ -28,22 +31,3 @@ pub struct E820MemoryRegion {
     pub region_type: u32,
     pub acpi_extended_attributes: u32,
 }
-
-/*
-impl From<E820MemoryRegion> for MemoryRegion {
-    fn from(region: E820MemoryRegion) -> MemoryRegion {
-        let region_type = match region.region_type {
-            1 => MemoryRegionType::Usable,
-            2 => MemoryRegionType::Reserved,
-            3 => MemoryRegionType::AcpiReclaimable,
-            4 => MemoryRegionType::AcpiNvs,
-            5 => MemoryRegionType::BadMemory,
-            t => panic!("invalid region type {}", t),
-        };
-        MemoryRegion {
-            range: FrameRange::new(region.start_addr, region.start_addr + region.len),
-            region_type,
-        }
-    }
-}
-*/
