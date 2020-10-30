@@ -72,7 +72,7 @@ dependencies = [
  "toml",
  "uefi",
  "usize_conversions",
- "x86_64 0.12.2 (git+https://github.com/rust-osdev/x86_64.git?branch=access-level-4-table)",
+ "x86_64 0.12.2 (git+https://github.com/rust-osdev/x86_64.git)",
  "xmas-elf",
 ]
 
@@ -338,7 +338,7 @@ dependencies = [
 [[package]]
 name = "x86_64"
 version = "0.12.2"
-source = "git+https://github.com/rust-osdev/x86_64.git?branch=access-level-4-table#4f42c9bf723b7a738e03e8a496420c26c11ba8e2"
+source = "git+https://github.com/rust-osdev/x86_64.git#b6ad4d63408b0a2779e1dd9f236a8bf43fc92fd5"
 dependencies = [
  "bit_field 0.9.0",
  "bitflags",
