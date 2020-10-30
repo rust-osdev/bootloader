@@ -1,5 +1,5 @@
 use crate::binary::legacy_memory_region::{LegacyFrameAllocator, LegacyMemoryRegion};
-use crate::boot_info::{BootInfo, FrameBuffer, FrameBufferInfo};
+use crate::boot_info::{BootInfo, FrameBuffer, FrameBufferInfo, TlsTemplate};
 use crate::memory_map::MemoryRegion;
 use core::{
     mem::{self, MaybeUninit},
@@ -100,7 +100,7 @@ where
     // Make the kernel respect the write-protection bits even when in ring 0 by default
     enable_write_protect_bit();
 
-    let (entry_point, mut used_entries) =
+    let (entry_point, tls_template, mut used_entries) =
         load_kernel::load_kernel(kernel_bytes, kernel_page_table, frame_allocator)
             .expect("no entry point");
     log::info!("Entry point at: {:#x}", entry_point.as_u64());
@@ -197,6 +197,7 @@ where
         used_entries,
         physical_memory_offset,
         recursive_index,
+        tls_template,
     }
 }
 
@@ -207,6 +208,7 @@ pub struct Mappings {
     pub framebuffer: Option<VirtAddr>,
     pub physical_memory_offset: Option<VirtAddr>,
     pub recursive_index: Option<PageTableIndex>,
+    pub tls_template: Option<TlsTemplate>,
 }
 
 /// Allocates and initializes the boot info struct and the memory map
@@ -284,6 +286,7 @@ where
         physical_memory_offset: mappings.physical_memory_offset.map(VirtAddr::as_u64),
         recursive_index: mappings.recursive_index.map(Into::into),
         rsdp_addr: system_info.rsdp_addr.map(|addr| addr.as_u64()),
+        tls_template: mappings.tls_template,
         _non_exhaustive: (),
     });
 

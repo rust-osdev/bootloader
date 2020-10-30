@@ -1,4 +1,7 @@
-use crate::binary::{level_4_entries::UsedLevel4Entries, PAGE_SIZE};
+use crate::{
+    binary::{level_4_entries::UsedLevel4Entries, PAGE_SIZE},
+    boot_info::TlsTemplate,
+};
 use x86_64::{
     align_up,
     structures::paging::{
@@ -54,12 +57,19 @@ where
         Ok(loader)
     }
 
-    fn load_segments(&mut self) -> Result<(), &'static str> {
+    fn load_segments(&mut self) -> Result<Option<TlsTemplate>, &'static str> {
+        let mut tls_template = None;
         for program_header in self.elf_file.program_iter() {
             program::sanity_check(program_header, &self.elf_file)?;
             match program_header.get_type()? {
                 Type::Load => self.inner.handle_load_segment(program_header)?,
-                Type::Tls => self.inner.handle_tls_segment(program_header)?,
+                Type::Tls => {
+                    if tls_template.is_none() {
+                        tls_template = Some(self.inner.handle_tls_segment(program_header)?);
+                    } else {
+                        return Err("multiple TLS segments not supported");
+                    }
+                }
                 Type::Null
                 | Type::Dynamic
                 | Type::Interp
@@ -71,7 +81,7 @@ where
                 | Type::ProcessorSpecific(_) => {}
             }
         }
-        Ok(())
+        Ok(tls_template)
     }
 
     fn entry_point(&self) -> VirtAddr {
@@ -250,8 +260,12 @@ where
         Ok(())
     }
 
-    fn handle_tls_segment(&mut self, segment: ProgramHeader) -> Result<(), &'static str> {
-        todo!()
+    fn handle_tls_segment(&mut self, segment: ProgramHeader) -> Result<TlsTemplate, &'static str> {
+        Ok(TlsTemplate {
+            start_addr: segment.virtual_addr(),
+            mem_size: segment.mem_size(),
+            file_size: segment.file_size(),
+        })
     }
 }
 
@@ -259,10 +273,10 @@ pub fn load_kernel(
     bytes: &[u8],
     page_table: &mut impl MapperAllSizes,
     frame_allocator: &mut impl FrameAllocator<Size4KiB>,
-) -> Result<(VirtAddr, UsedLevel4Entries), &'static str> {
+) -> Result<(VirtAddr, Option<TlsTemplate>, UsedLevel4Entries), &'static str> {
     let mut loader = Loader::new(bytes, page_table, frame_allocator)?;
-    loader.load_segments()?;
+    let tls_template = loader.load_segments()?;
     let used_entries = loader.used_level_4_entries();
 
-    Ok((loader.entry_point(), used_entries))
+    Ok((loader.entry_point(), tls_template, used_entries))
 }
