@@ -6,4 +6,4 @@ edition = "2018"
 
 [dependencies]
 bootloader = { path = "../../.." }
-x86_64 = { git = "https://github.com/rust-osdev/x86_64.git", branch = "nop" }
+x86_64 = "0.12.2"
