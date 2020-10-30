@@ -2,7 +2,6 @@ use crate::memory_map::MemoryRegion;
 use core::slice;
 
 #[derive(Debug)]
-#[repr(C)]
 pub struct BootInfo {
     pub memory_regions: &'static mut [MemoryRegion],
     pub framebuffer: Option<FrameBuffer>,
@@ -13,7 +12,6 @@ pub struct BootInfo {
 }
 
 #[derive(Debug)]
-#[repr(C)]
 pub struct FrameBuffer {
     pub(crate) buffer_start: u64,
     pub(crate) buffer_byte_len: usize,
@@ -35,7 +33,6 @@ impl FrameBuffer {
 }
 
 #[derive(Debug, Clone, Copy)]
-#[repr(C)]
 pub struct FrameBufferInfo {
     pub byte_len: usize,
     pub horizontal_resolution: usize,
@@ -46,7 +43,6 @@ pub struct FrameBufferInfo {
 }
 
 #[derive(Debug, Clone, Copy)]
-#[repr(C)]
 #[non_exhaustive]
 pub enum PixelFormat {
     RGB,
@@ -54,4 +50,8 @@ pub enum PixelFormat {
     U8,
 }
 
+/// Check that the _pointer_ is FFI-safe.
+///
+/// Note that the `BootInfo` struct is not FFI-safe, so it needs to be compiled by the same Rust
+/// compiler as the kernel in order to be safely accessed.
 extern "C" fn _assert_ffi(_boot_info: &'static mut BootInfo) {}
