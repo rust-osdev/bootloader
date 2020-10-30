@@ -1,13 +1,49 @@
 use crate::memory_map::MemoryRegion;
 use core::slice;
 
+/// This structure represents the information that the bootloader passes to the kernel.
+///
+/// The information is passed as an argument to the entry point. The entry point function must
+/// have the following signature:
+///
+/// ```ignore
+/// pub extern "C" fn(boot_info: &'static BootInfo) -> !;
+/// ```
+///
+/// Note that no type checking occurs for the entry point function, so be careful to
+/// use the correct argument types. To ensure that the entry point function has the correct
+/// signature, use the [`entry_point`] macro.
 #[derive(Debug)]
 pub struct BootInfo {
+    /// A map of the physical memory regions of the underlying machine.
+    ///
+    /// The bootloader queries this information from the BIOS/UEFI firmware and translates this
+    /// information to Rust types. It also marks any memory regions that the bootloader uses in
+    /// the memory map before passing it to the kernel. Regions marked as usable can be freely
+    /// used by the kernel.
     pub memory_regions: &'static mut [MemoryRegion],
+    /// Information about the framebuffer for screen output if available.
     pub framebuffer: Option<FrameBuffer>,
+    /// The virtual address at which the mapping of the physical memory starts.
+    ///
+    /// Physical addresses can be converted to virtual addresses by adding this offset to them.
+    ///
+    /// The mapping of the physical memory allows to access arbitrary physical frames. Accessing
+    /// frames that are also mapped at other virtual addresses can easily break memory safety and
+    /// cause undefined behavior. Only frames reported as `USABLE` by the memory map in the `BootInfo`
+    /// can be safely accessed.
+    ///
+    /// Only available if the `map-physical-memory` config option is enabled.
     pub physical_memory_offset: Option<u64>,
+    /// The virtual address of the recursively mapped level 4 page table.
+    ///
+    /// Only available if the `map-page-table-recursively` config option is enabled.
     pub recursive_index: Option<u16>,
+    /// The address of the `RSDP` data structure, which can be use to find the ACPI tables.
+    ///
+    /// This field is `None` if no `RSDP` was found (for BIOS) or reported (for UEFI).
     pub rsdp_addr: Option<u64>,
+    /// The thread local storage (TLS) template of the kernel executable, if present.
     pub tls_template: Option<TlsTemplate>,
     pub(crate) _non_exhaustive: (),
 }

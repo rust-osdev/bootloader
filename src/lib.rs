@@ -17,7 +17,6 @@
 
 pub use crate::boot_info::BootInfo;
 
-pub mod bootinfo;
 pub mod config;
 
 pub mod boot_info;
