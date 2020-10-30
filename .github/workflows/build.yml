@@ -37,9 +37,7 @@ jobs:
         with:
           profile: minimal
           override: true
-
-      - name: "Install Rustup Components"
-        run: rustup component add rust-src llvm-tools-preview
+          components: rust-src, llvm-tools-preview
 
       # install QEMU
       - name: Install QEMU (Linux)
@@ -79,7 +77,7 @@ jobs:
         with:
           profile: minimal
           override: true
-      - run: rustup component add rustfmt
+          components: rustfmt
       - name: Run `cargo fmt --all -- --check`
         uses: actions-rs/cargo@v1
         with:
@@ -95,7 +93,7 @@ jobs:
         with:
           profile: minimal
           override: true
-      - run: rustup component add clippy
+          components: clippy
       - name: Run `cargo clippy`
         uses: actions-rs/cargo@v1
         with:
