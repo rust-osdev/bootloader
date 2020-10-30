@@ -17,12 +17,6 @@
 
 pub use crate::boot_info::BootInfo;
 
-#[cfg(feature = "bios_bin")]
-use x86_64::{
-    structures::paging::{frame::PhysFrameRange, PhysFrame},
-    PhysAddr,
-};
-
 pub mod bootinfo;
 pub mod config;
 
