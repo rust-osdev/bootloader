@@ -28,12 +28,6 @@ jobs:
     - name: "Checkout Repository"
       uses: actions/checkout@v1
 
-    - name: Install Rustup
-      run: |
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
-        echo ::add-path::$HOME/.cargo/bin
-      if: runner.os == 'macOS'
-
     - name: "Print Rust Version"
       run: |
         rustc -Vv
@@ -104,11 +98,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
-    - name: Install Rustup
-      run: |
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
-        echo ::add-path::$HOME/.cargo/bin
-      if: runner.os == 'macOS'
     - name: "Install Rustup Components"
       run: rustup component add rust-src llvm-tools-preview
     - name: "Install cargo-xbuild"
