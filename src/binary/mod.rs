@@ -281,17 +281,16 @@ where
         version_minor: env!("CARGO_PKG_VERSION_MINOR").parse().unwrap(),
         version_patch: env!("CARGO_PKG_VERSION_PATCH").parse().unwrap(),
         pre_release: !env!("CARGO_PKG_VERSION_PRE").is_empty(),
-        memory_regions,
+        memory_regions: memory_regions.into(),
         framebuffer: mappings.framebuffer.map(|addr| FrameBuffer {
             buffer_start: addr.as_u64(),
             buffer_byte_len: system_info.framebuffer_info.byte_len,
             info: system_info.framebuffer_info,
-        }),
-        physical_memory_offset: mappings.physical_memory_offset.map(VirtAddr::as_u64),
-        recursive_index: mappings.recursive_index.map(Into::into),
-        rsdp_addr: system_info.rsdp_addr.map(|addr| addr.as_u64()),
-        tls_template: mappings.tls_template,
-        _non_exhaustive: (),
+        }).into(),
+        physical_memory_offset: mappings.physical_memory_offset.map(VirtAddr::as_u64).into(),
+        recursive_index: mappings.recursive_index.map(Into::into).into(),
+        rsdp_addr: system_info.rsdp_addr.map(|addr| addr.as_u64()).into(),
+        tls_template: mappings.tls_template.into(),
     });
 
     (boot_info, two_frames)

@@ -1,5 +1,5 @@
 use crate::memory_region::MemoryRegion;
-use core::slice;
+use core::{ops, slice};
 
 /// This structure represents the information that the bootloader passes to the kernel.
 ///
@@ -14,6 +14,8 @@ use core::slice;
 /// use the correct argument types. To ensure that the entry point function has the correct
 /// signature, use the [`entry_point`] macro.
 #[derive(Debug)]
+#[repr(C)]
+#[non_exhaustive]
 pub struct BootInfo {
     /// Bootloader version (major).
     pub version_major: u16,
@@ -32,9 +34,9 @@ pub struct BootInfo {
     /// information to Rust types. It also marks any memory regions that the bootloader uses in
     /// the memory map before passing it to the kernel. Regions marked as usable can be freely
     /// used by the kernel.
-    pub memory_regions: &'static mut [MemoryRegion],
+    pub memory_regions: MemoryRegions,
     /// Information about the framebuffer for screen output if available.
-    pub framebuffer: Option<FrameBuffer>,
+    pub framebuffer: Optional<FrameBuffer>,
     /// The virtual address at which the mapping of the physical memory starts.
     ///
     /// Physical addresses can be converted to virtual addresses by adding this offset to them.
@@ -45,21 +47,63 @@ pub struct BootInfo {
     /// can be safely accessed.
     ///
     /// Only available if the `map-physical-memory` config option is enabled.
-    pub physical_memory_offset: Option<u64>,
+    pub physical_memory_offset: Optional<u64>,
     /// The virtual address of the recursively mapped level 4 page table.
     ///
     /// Only available if the `map-page-table-recursively` config option is enabled.
-    pub recursive_index: Option<u16>,
+    pub recursive_index: Optional<u16>,
     /// The address of the `RSDP` data structure, which can be use to find the ACPI tables.
     ///
     /// This field is `None` if no `RSDP` was found (for BIOS) or reported (for UEFI).
-    pub rsdp_addr: Option<u64>,
+    pub rsdp_addr: Optional<u64>,
     /// The thread local storage (TLS) template of the kernel executable, if present.
-    pub tls_template: Option<TlsTemplate>,
-    pub(crate) _non_exhaustive: (),
+    pub tls_template: Optional<TlsTemplate>,
+}
+
+/// FFI-safe slice of [`MemoryRegion`] structs, semantically equivalent to
+/// `&'static mut [MemoryRegion]`.
+///
+/// This type implements the [`Deref`][core::ops::Deref] and [`DerefMut`][core::ops::DerefMut]
+/// traits, so it can be used like a `&mut [MemoryRegion]` slice. It also implements [`From`]
+/// and [`Into`] for easy conversions from and to `&'static mut [MemoryRegion]`.
+#[derive(Debug)]
+#[repr(C)]
+pub struct MemoryRegions {
+    pub(crate) ptr: *mut MemoryRegion,
+    pub(crate) len: usize,
+}
+
+impl ops::Deref for MemoryRegions {
+    type Target = [MemoryRegion];
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { slice::from_raw_parts(self.ptr, self.len) }
+    }
+}
+
+impl ops::DerefMut for MemoryRegions {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { slice::from_raw_parts_mut(self.ptr, self.len )}
+    }
+}
+
+impl From<&'static mut [MemoryRegion]> for MemoryRegions {
+    fn from(regions: &'static mut [MemoryRegion]) -> Self {
+        MemoryRegions {
+            ptr: regions.as_mut_ptr(),
+            len: regions.len(),
+        }
+    }
+}
+
+impl Into<&'static mut [MemoryRegion]> for MemoryRegions {
+    fn into(self) -> &'static mut [MemoryRegion] {
+        unsafe { slice::from_raw_parts_mut(self.ptr, self.len )}
+    }
 }
 
 #[derive(Debug)]
+#[repr(C)]
 pub struct FrameBuffer {
     pub(crate) buffer_start: u64,
     pub(crate) buffer_byte_len: usize,
@@ -81,6 +125,7 @@ impl FrameBuffer {
 }
 
 #[derive(Debug, Clone, Copy)]
+#[repr(C)]
 pub struct FrameBufferInfo {
     pub byte_len: usize,
     pub horizontal_resolution: usize,
@@ -92,6 +137,7 @@ pub struct FrameBufferInfo {
 
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
+#[repr(C)]
 pub enum PixelFormat {
     RGB,
     BGR,
@@ -106,6 +152,7 @@ pub enum PixelFormat {
 /// location. The additional `mem_size - file_size` bytes must be initialized with
 /// zero.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(C)]
 pub struct TlsTemplate {
     /// The virtual start address of the thread local storage template.
     pub start_addr: u64,
@@ -119,8 +166,33 @@ pub struct TlsTemplate {
     pub mem_size: u64,
 }
 
-/// Check that the _pointer_ is FFI-safe.
+/// FFI-safe variant of [`Option`].
 ///
-/// Note that the `BootInfo` struct is not FFI-safe, so it needs to be compiled by the same Rust
-/// compiler as the kernel in order to be safely accessed.
-extern "C" fn _assert_ffi(_boot_info: &'static mut BootInfo) {}
+/// Implements the [`From`] and [`Into`] traits for easy conversion to and from [`Option`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(C)]
+pub enum Optional<T> {
+    Some(T),
+    None,
+}
+
+impl<T> From<Option<T>> for Optional<T> {
+    fn from(v: Option<T>) -> Self {
+        match v {
+            Some(v) => Optional::Some(v),
+            None => Optional::None,
+        }
+    }
+}
+
+impl<T> Into<Option<T>> for Optional<T> {
+    fn into(self) -> Option<T> {
+        match self {
+            Optional::Some(v) => Some(v),
+            Optional::None => None,
+        }
+    }
+}
+
+/// Check that bootinfo is FFI-safe
+extern "C" fn _assert_ffi(_boot_info: BootInfo) {}

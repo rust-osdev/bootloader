@@ -1,4 +1,5 @@
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[repr(C)]
 pub struct MemoryRegion {
     pub start: u64,
     pub end: u64,
@@ -17,6 +18,7 @@ impl MemoryRegion {
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[non_exhaustive]
+#[repr(C)]
 pub enum MemoryRegionKind {
     /// Unused conventional memory, can be used by the kernel.
     Usable,
