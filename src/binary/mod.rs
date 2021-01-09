@@ -277,6 +277,10 @@ where
 
     // create boot info
     let boot_info = boot_info.write(BootInfo {
+        version_major: env!("CARGO_PKG_VERSION_MAJOR").parse().unwrap(),
+        version_minor: env!("CARGO_PKG_VERSION_MINOR").parse().unwrap(),
+        version_patch: env!("CARGO_PKG_VERSION_PATCH").parse().unwrap(),
+        pre_release: !env!("CARGO_PKG_VERSION_PRE").is_empty(),
         memory_regions,
         framebuffer: mappings.framebuffer.map(|addr| FrameBuffer {
             buffer_start: addr.as_u64(),

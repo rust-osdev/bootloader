@@ -15,6 +15,17 @@ use core::slice;
 /// signature, use the [`entry_point`] macro.
 #[derive(Debug)]
 pub struct BootInfo {
+    /// Bootloader version (major).
+    pub version_major: u16,
+    /// Bootloader version (minor).
+    pub version_minor: u16,
+    /// Bootloader version (patch).
+    pub version_patch: u16,
+    /// Whether the bootloader version is a pre-release.
+    ///
+    /// We can't store the full prerelease string of the version number since it could be
+    /// arbitrarily long.
+    pub pre_release: bool,
     /// A map of the physical memory regions of the underlying machine.
     ///
     /// The bootloader queries this information from the BIOS/UEFI firmware and translates this
