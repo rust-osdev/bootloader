@@ -6,8 +6,6 @@
 //! blog for an explanation.
 
 #![cfg_attr(not(feature = "builder"), no_std)]
-#![feature(min_const_generics)]
-#![feature(slice_fill)]
 #![feature(asm)]
 #![feature(unsafe_block_in_unsafe_fn)]
 #![feature(maybe_uninit_extra)]

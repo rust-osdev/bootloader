@@ -3,7 +3,6 @@
 #![feature(abi_efiapi)]
 #![feature(asm)]
 #![feature(unsafe_block_in_unsafe_fn)]
-#![feature(min_const_generics)]
 #![feature(maybe_uninit_extra)]
 #![deny(unsafe_op_in_unsafe_fn)]
 

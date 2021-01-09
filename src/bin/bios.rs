@@ -2,7 +2,6 @@
 #![feature(global_asm)]
 #![feature(llvm_asm)]
 #![feature(asm)]
-#![feature(slice_fill)]
 #![no_std]
 #![no_main]
 
