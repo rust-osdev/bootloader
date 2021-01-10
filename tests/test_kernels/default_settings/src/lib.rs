@@ -19,3 +19,9 @@ pub fn exit_qemu(exit_code: QemuExitCode) -> ! {
         nop();
     }
 }
+
+pub fn serial() -> uart_16550::SerialPort {
+    let mut port = unsafe { uart_16550::SerialPort::new(0x3F8) };
+    port.init();
+    port
+}

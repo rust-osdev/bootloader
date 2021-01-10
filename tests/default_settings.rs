@@ -17,5 +17,6 @@ fn run_test_binary(bin_name: &str) {
     cmd.arg("--bin").arg(bin_name);
     cmd.arg("--target").arg(" x86_64-example-kernel.json");
     cmd.arg("-Zbuild-std=core");
+    cmd.arg("-Zbuild-std-features=compiler-builtins-mem");
     assert!(cmd.status().unwrap().success());
 }

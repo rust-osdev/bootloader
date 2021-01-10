@@ -7,3 +7,4 @@ edition = "2018"
 [dependencies]
 bootloader = { path = "../../.." }
 x86_64 = "0.12.2"
+uart_16550 = "0.2.10"
