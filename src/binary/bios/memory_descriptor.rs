@@ -16,10 +16,6 @@ impl LegacyMemoryRegion for E820MemoryRegion {
             other => MemoryRegionKind::UnknownBios(other),
         }
     }
-
-    fn set_start(&mut self, new_start: PhysAddr) {
-        self.start_addr = new_start.as_u64();
-    }
 }
 
 #[doc(hidden)]

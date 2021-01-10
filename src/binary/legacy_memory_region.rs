@@ -13,8 +13,6 @@ pub trait LegacyMemoryRegion: Copy + core::fmt::Debug {
     fn len(&self) -> u64;
     /// Returns the type of the region, e.g. whether it is usable or reserved.
     fn kind(&self) -> MemoryRegionKind;
-
-    fn set_start(&mut self, new_start: PhysAddr);
 }
 
 pub struct LegacyFrameAllocator<I, D> {
@@ -97,8 +95,9 @@ where
     ) -> &mut [MemoryRegion] {
         let mut next_index = 0;
 
-        for mut descriptor in self.original {
-            let end = descriptor.start() + descriptor.len();
+        for descriptor in self.original {
+            let mut start = descriptor.start();
+            let end = start + descriptor.len();
             let next_free = self.next_frame.start_address();
             let kind = match descriptor.kind() {
                 MemoryRegionKind::Usable => {
@@ -107,7 +106,7 @@ where
                     } else if descriptor.start() >= next_free {
                         MemoryRegionKind::Usable
                     } else {
-                        // part of the region is used -> add is separately
+                        // part of the region is used -> add it separately
                         let used_region = MemoryRegion {
                             start: descriptor.start().as_u64(),
                             end: next_free.as_u64(),
@@ -117,7 +116,7 @@ where
                             .expect("Failed to add memory region");
 
                         // add unused part normally
-                        descriptor.set_start(next_free);
+                        start = next_free;
                         MemoryRegionKind::Usable
                     }
                 }
@@ -139,7 +138,7 @@ where
             };
 
             let region = MemoryRegion {
-                start: descriptor.start().as_u64(),
+                start: start.as_u64(),
                 end: end.as_u64(),
                 kind,
             };

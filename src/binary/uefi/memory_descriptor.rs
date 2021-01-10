@@ -19,8 +19,4 @@ impl<'a> LegacyMemoryRegion for MemoryDescriptor {
             other => MemoryRegionKind::UnknownUefi(other.0),
         }
     }
-
-    fn set_start(&mut self, new_start: PhysAddr) {
-        self.phys_start = new_start.as_u64();
-    }
 }
