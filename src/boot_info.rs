@@ -210,6 +210,35 @@ pub enum Optional<T> {
     None,
 }
 
+impl<T> Optional<T> {
+    /// Converts the `Optional` to an [`Option`].
+    pub fn into_option(self) -> Option<T> {
+        self.into()
+    }
+
+    /// Converts from `&Optional<T>` to `Option<&T>`.
+    ///
+    /// For convenience, this method directly performs the conversion to the standard
+    /// [`Option`] type.
+    pub const fn as_ref(&self) -> Option<&T> {
+        match self {
+            Self::Some(x) => Some(x),
+            Self::None => None,
+        }
+    }
+
+    /// Converts from `&mut Optional<T>` to `Option<&mut T>`.
+    ///
+    /// For convenience, this method directly performs the conversion to the standard
+    /// [`Option`] type.
+    pub fn as_mut(&mut self) -> Option<&mut T> {
+        match self {
+            Self::Some(x) => Some(x),
+            Self::None => None,
+        }
+    }
+}
+
 impl<T> From<Option<T>> for Optional<T> {
     fn from(v: Option<T>) -> Self {
         match v {
