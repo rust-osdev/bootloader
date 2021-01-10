@@ -112,8 +112,13 @@ pub struct FrameBuffer {
 }
 
 impl FrameBuffer {
-    /// Returns the raw bytes of the framebuffer.
-    pub fn buffer(&mut self) -> &mut [u8] {
+    /// Returns the raw bytes of the framebuffer as slice.
+    pub fn buffer(&self) -> &[u8] {
+        unsafe { self.create_buffer() }
+    }
+
+    /// Returns the raw bytes of the framebuffer as mutable slice.
+    pub fn buffer_mut(&mut self) -> &mut [u8] {
         unsafe { self.create_buffer() }
     }
 
