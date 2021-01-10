@@ -102,6 +102,7 @@ impl Into<&'static mut [MemoryRegion]> for MemoryRegions {
     }
 }
 
+/// A pixel-based framebuffer that controls the screen output.
 #[derive(Debug)]
 #[repr(C)]
 pub struct FrameBuffer {
@@ -111,6 +112,7 @@ pub struct FrameBuffer {
 }
 
 impl FrameBuffer {
+    /// Returns the raw bytes of the framebuffer.
     pub fn buffer(&mut self) -> &mut [u8] {
         unsafe { self.create_buffer() }
     }
@@ -119,28 +121,53 @@ impl FrameBuffer {
         unsafe { slice::from_raw_parts_mut(self.buffer_start as *mut u8, self.buffer_byte_len) }
     }
 
+    /// Returns layout and pixel format information of the framebuffer.
     pub fn info(&self) -> FrameBufferInfo {
         self.info
     }
 }
 
+/// Describes the layout and pixel format of a framebuffer.
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
 pub struct FrameBufferInfo {
+    /// The total size in bytes.
     pub byte_len: usize,
+    /// The width in pixels. 
     pub horizontal_resolution: usize,
+    /// The height in pixels.
     pub vertical_resolution: usize,
+    /// The color format of each pixel.
     pub pixel_format: PixelFormat,
+    /// The number of bytes per pixel.
     pub bytes_per_pixel: usize,
+    /// Number of bytes between the start of a line and the start of the next.
+    ///
+    /// Some framebuffers use additional padding bytes at the end of a line, so this
+    /// value might be larger than `horizontal_resolution * bytes_per_pixel`. It is
+    /// therefore recommended to use this field for calculating the start address of a line.
     pub stride: usize,
 }
 
+/// Color format of pixels in the framebuffer. 
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
 #[repr(C)]
 pub enum PixelFormat {
+    /// One byte red, then one byte green, then one byte blue.
+    ///
+    /// Length might be larger than 3, check [`bytes_per_pixel`][FrameBufferInfo::bytes_per_pixel]
+    /// for this.
     RGB,
+    /// One byte blue, then one byte green, then one byte red.
+    ///
+    /// Length might be larger than 3, check [`bytes_per_pixel`][FrameBufferInfo::bytes_per_pixel]
+    /// for this.
     BGR,
+    /// A single byte, representing the grayscale value.
+    ///
+    /// Length might be larger than 1, check [`bytes_per_pixel`][FrameBufferInfo::bytes_per_pixel]
+    /// for this.
     U8,
 }
 
@@ -172,7 +199,9 @@ pub struct TlsTemplate {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(C)]
 pub enum Optional<T> {
+    /// Some value `T`
     Some(T),
+    /// No value
     None,
 }
 

@@ -1,6 +1,7 @@
 use std::{io, path::Path, process::Command};
 use thiserror::Error;
 
+/// Creates a bootable disk image from the given bootloader executable.
 pub fn create_disk_image(
     bootloader_elf_path: &Path,
     output_bin_path: &Path,

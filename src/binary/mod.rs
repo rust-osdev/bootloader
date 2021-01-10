@@ -17,11 +17,14 @@ use x86_64::{
     PhysAddr, VirtAddr,
 };
 
+/// Provides BIOS-specific types and trait implementations.
 #[cfg(feature = "bios_bin")]
 pub mod bios;
+/// Provides UEFI-specific trait implementations.
 #[cfg(feature = "uefi_bin")]
-pub mod uefi;
+mod uefi;
 
+/// Provides a frame allocator based on a BIOS or UEFI memory map.
 pub mod legacy_memory_region;
 /// Provides a type to keep track of used entries in a level 4 page table.
 pub mod level_4_entries;

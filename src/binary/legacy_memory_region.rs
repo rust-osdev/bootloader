@@ -15,6 +15,7 @@ pub trait LegacyMemoryRegion: Copy + core::fmt::Debug {
     fn kind(&self) -> MemoryRegionKind;
 }
 
+/// A physical frame allocator based on a BIOS or UEFI provided memory map.
 pub struct LegacyFrameAllocator<I, D> {
     original: I,
     memory_map: I,
@@ -69,10 +70,17 @@ where
         }
     }
 
+    /// Returns the number of memory regions in the underlying memory map.
+    ///
+    /// The function always returns the same value, i.e. the length doesn't
+    /// change after calls to `allocate_frame`.
     pub fn len(&self) -> usize {
         self.original.len()
     }
 
+    /// Returns the largest detected physical memory address.
+    ///
+    /// Useful for creating a mapping for all physical memory.
     pub fn max_phys_addr(&self) -> PhysAddr {
         self.original
             .clone()
@@ -84,9 +92,7 @@ where
     /// Converts this type to a boot info memory map.
     ///
     /// The memory map is placed in the given `regions` slice. The length of the given slice
-    /// must be at least the value returned by [`len`]. Be aware that the value returned by
-    /// `len` might increase by 1 whenever [`allocate_frame`] is called, so the length should be
-    /// queried as late as possible.
+    /// must be at least the value returned by [`len`] pluse 1.
     ///
     /// The return slice is a subslice of `regions`, shortened to the actual number of regions.
     pub fn construct_memory_map(

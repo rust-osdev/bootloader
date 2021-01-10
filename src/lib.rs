@@ -15,14 +15,25 @@
 
 pub use crate::boot_info::BootInfo;
 
+/// Configuration options for the bootloader.
 pub mod config;
 
+/// Contains the boot information struct sent by the bootloader to the kernel on startup.
 pub mod boot_info;
+/// Provides a memory region type that is used in the memory map of the boot info structure.
 pub mod memory_region;
 
+/// Contains the actual bootloader implementation ("bootloader as a binary").
+///
+/// Useful for reusing part of the bootloader implementation for other crates.
+///
+/// Only available when the `binary` feature is enabled.
 #[cfg(feature = "binary")]
 pub mod binary;
 
+/// Provides a function to turn a bootloader executable into a disk image.
+///
+/// Used by the `builder` binary. Only available when the `builder` feature is enabled.
 #[cfg(feature = "builder")]
 pub mod disk_image;
 

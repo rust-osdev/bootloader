@@ -1,12 +1,19 @@
+/// Represent a physical memory region.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[repr(C)]
 pub struct MemoryRegion {
+    /// The physical start address of the region.
     pub start: u64,
+    /// The physical end address (exclusive) of the region.
     pub end: u64,
+    /// The memory type of the memory region.
+    ///
+    /// Only [`Usable`][MemoryRegionKind::Usable] regions can be freely used.
     pub kind: MemoryRegionKind,
 }
 
 impl MemoryRegion {
+    /// Creates a new empty memory region (with length 0).
     pub const fn empty() -> Self {
         MemoryRegion {
             start: 0,
@@ -16,6 +23,7 @@ impl MemoryRegion {
     }
 }
 
+/// Represents the different types of memory.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[non_exhaustive]
 #[repr(C)]

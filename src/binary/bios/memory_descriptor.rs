@@ -18,6 +18,9 @@ impl LegacyMemoryRegion for E820MemoryRegion {
     }
 }
 
+/// A physical memory region returned by an `e820` BIOS call.
+///
+/// See http://wiki.osdev.org/Detecting_Memory_(x86)#Getting_an_E820_Memory_Map for more info.
 #[doc(hidden)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
