@@ -30,7 +30,7 @@ pub mod legacy_memory_region;
 pub mod level_4_entries;
 /// Implements a loader for the kernel ELF binary.
 pub mod load_kernel;
-/// Provides a logger type that logs output as text to pixel-based framebuffers. 
+/// Provides a logger type that logs output as text to pixel-based framebuffers.
 pub mod logger;
 
 // Contains the parsed configuration table from the kernel's Cargo.toml.
@@ -55,12 +55,12 @@ pub fn init_logger(framebuffer: &'static mut [u8], info: FrameBufferInfo) {
     log::set_max_level(log::LevelFilter::Trace);
 }
 
-/// Required system information that should be queried from the BIOS or UEFI firmware. 
+/// Required system information that should be queried from the BIOS or UEFI firmware.
 #[derive(Debug, Copy, Clone)]
 pub struct SystemInfo {
     /// Start address of the pixel-based framebuffer.
     pub framebuffer_addr: PhysAddr,
-    /// Information about the framebuffer, including layout and pixel format. 
+    /// Information about the framebuffer, including layout and pixel format.
     pub framebuffer_info: FrameBufferInfo,
     /// Address of the _Root System Description Pointer_ structure of the ACPI standard.
     pub rsdp_addr: Option<PhysAddr>,
@@ -325,11 +325,14 @@ where
         version_patch: env!("CARGO_PKG_VERSION_PATCH").parse().unwrap(),
         pre_release: !env!("CARGO_PKG_VERSION_PRE").is_empty(),
         memory_regions: memory_regions.into(),
-        framebuffer: mappings.framebuffer.map(|addr| FrameBuffer {
-            buffer_start: addr.as_u64(),
-            buffer_byte_len: system_info.framebuffer_info.byte_len,
-            info: system_info.framebuffer_info,
-        }).into(),
+        framebuffer: mappings
+            .framebuffer
+            .map(|addr| FrameBuffer {
+                buffer_start: addr.as_u64(),
+                buffer_byte_len: system_info.framebuffer_info.byte_len,
+                info: system_info.framebuffer_info,
+            })
+            .into(),
         physical_memory_offset: mappings.physical_memory_offset.map(VirtAddr::as_u64).into(),
         recursive_index: mappings.recursive_index.map(Into::into).into(),
         rsdp_addr: system_info.rsdp_addr.map(|addr| addr.as_u64()).into(),
@@ -421,7 +424,7 @@ unsafe fn context_switch(
     unreachable!();
 }
 
-/// Memory addresses required for the context switch. 
+/// Memory addresses required for the context switch.
 struct Addresses {
     page_table: PhysFrame,
     stack_top: VirtAddr,

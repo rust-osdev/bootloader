@@ -19,7 +19,7 @@ pub struct Config {
     /// Defaults to `false`.
     pub map_page_table_recursively: bool,
     /// Create the recursive mapping in at the given entry of the level 4 page table.
-    /// 
+    ///
     /// If not given, the bootloader searches for a free level 4 entry dynamically.
     ///
     /// Only considered if `map_page_table_recursively` is `true`.

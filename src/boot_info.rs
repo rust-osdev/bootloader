@@ -83,7 +83,7 @@ impl ops::Deref for MemoryRegions {
 
 impl ops::DerefMut for MemoryRegions {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { slice::from_raw_parts_mut(self.ptr, self.len )}
+        unsafe { slice::from_raw_parts_mut(self.ptr, self.len) }
     }
 }
 
@@ -98,7 +98,7 @@ impl From<&'static mut [MemoryRegion]> for MemoryRegions {
 
 impl Into<&'static mut [MemoryRegion]> for MemoryRegions {
     fn into(self) -> &'static mut [MemoryRegion] {
-        unsafe { slice::from_raw_parts_mut(self.ptr, self.len )}
+        unsafe { slice::from_raw_parts_mut(self.ptr, self.len) }
     }
 }
 
@@ -133,7 +133,7 @@ impl FrameBuffer {
 pub struct FrameBufferInfo {
     /// The total size in bytes.
     pub byte_len: usize,
-    /// The width in pixels. 
+    /// The width in pixels.
     pub horizontal_resolution: usize,
     /// The height in pixels.
     pub vertical_resolution: usize,
@@ -149,7 +149,7 @@ pub struct FrameBufferInfo {
     pub stride: usize,
 }
 
-/// Color format of pixels in the framebuffer. 
+/// Color format of pixels in the framebuffer.
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
 #[repr(C)]
