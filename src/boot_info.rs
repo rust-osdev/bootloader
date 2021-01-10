@@ -155,7 +155,7 @@ pub struct FrameBufferInfo {
 }
 
 /// Color format of pixels in the framebuffer.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 #[repr(C)]
 pub enum PixelFormat {
