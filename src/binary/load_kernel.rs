@@ -269,6 +269,10 @@ where
     }
 }
 
+/// Loads the kernel ELF file given in `bytes` in the given `page_table`.
+///
+/// Returns the kernel entry point address, it's thread local storage template (if any),
+/// and a structure describing which level 4 page table entries are in use.  
 pub fn load_kernel(
     bytes: &[u8],
     page_table: &mut impl MapperAllSizes,

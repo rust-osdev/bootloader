@@ -23,8 +23,11 @@ pub mod bios;
 pub mod uefi;
 
 pub mod legacy_memory_region;
+/// Provides a type to keep track of used entries in a level 4 page table.
 pub mod level_4_entries;
+/// Implements a loader for the kernel ELF binary.
 pub mod load_kernel;
+/// Provides a logger type that logs output as text to pixel-based framebuffers. 
 pub mod logger;
 
 // Contains the parsed configuration table from the kernel's Cargo.toml.
@@ -42,19 +45,29 @@ include!(concat!(env!("OUT_DIR"), "/bootloader_config.rs"));
 
 const PAGE_SIZE: u64 = 4096;
 
+/// Initialize a text-based logger using the given pixel-based framebuffer as output.  
 pub fn init_logger(framebuffer: &'static mut [u8], info: FrameBufferInfo) {
     let logger = logger::LOGGER.get_or_init(move || logger::LockedLogger::new(framebuffer, info));
     log::set_logger(logger).expect("logger already set");
     log::set_max_level(log::LevelFilter::Trace);
 }
 
+/// Required system information that should be queried from the BIOS or UEFI firmware. 
 #[derive(Debug, Copy, Clone)]
 pub struct SystemInfo {
+    /// Start address of the pixel-based framebuffer.
     pub framebuffer_addr: PhysAddr,
+    /// Information about the framebuffer, including layout and pixel format. 
     pub framebuffer_info: FrameBufferInfo,
+    /// Address of the _Root System Description Pointer_ structure of the ACPI standard.
     pub rsdp_addr: Option<PhysAddr>,
 }
 
+/// Loads the kernel ELF executable into memory and switches to it.
+///
+/// This function is a convenience function that first calls [`set_up_mappings`], then
+/// [`create_boot_info`], and finally [`switch_to_kernel`]. The given arguments are passed
+/// directly to these functions, so see their docs for more info.
 pub fn load_and_switch_to_kernel<I, D>(
     kernel_bytes: &[u8],
     mut frame_allocator: LegacyFrameAllocator<I, D>,
@@ -81,7 +94,20 @@ where
     switch_to_kernel(page_tables, mappings, boot_info, two_frames);
 }
 
-/// Sets up mappings for a kernel stack and the framebuffer
+/// Sets up mappings for a kernel stack and the framebuffer.
+///
+/// The `kernel_bytes` slice should contain the raw bytes of the kernel ELF executable. The
+/// `frame_allocator` argument should be created from the memory map. The `page_tables`
+/// argument should point to the bootloader and kernel page tables. The function tries to parse
+/// the ELF file and create all specified mappings in the kernel-level page table.
+///
+/// The `framebuffer_addr` and `framebuffer_size` fields should be set to the start address and
+/// byte length the pixel-based framebuffer. These arguments are required because the functions
+/// maps this framebuffer in the kernel-level page table, unless the `map_framebuffer` config
+/// option is disabled.
+///
+/// This function reacts to unexpected situations (e.g. invalid kernel ELF file) with a panic, so
+/// errors are not recoverable.
 pub fn set_up_mappings<I, D>(
     kernel_bytes: &[u8],
     frame_allocator: &mut LegacyFrameAllocator<I, D>,
@@ -201,17 +227,31 @@ where
     }
 }
 
+/// Contains the addresses of all memory mappings set up by [`set_up_mappings`].
 pub struct Mappings {
+    /// The entry point address of the kernel.
     pub entry_point: VirtAddr,
+    /// The stack end page of the kernel.
     pub stack_end: Page,
+    /// Keeps track of used entries in the level 4 page table, useful for finding a free
+    /// virtual memory when needed.
     pub used_entries: UsedLevel4Entries,
+    /// The start address of the framebuffer, if any.
     pub framebuffer: Option<VirtAddr>,
+    /// The start address of the physical memory mapping, if enabled.
     pub physical_memory_offset: Option<VirtAddr>,
+    /// The level 4 page table index of the recursive mapping, if enabled.
     pub recursive_index: Option<PageTableIndex>,
+    /// The thread local storage template of the kernel executable, if it contains one.
     pub tls_template: Option<TlsTemplate>,
 }
 
-/// Allocates and initializes the boot info struct and the memory map
+/// Allocates and initializes the boot info struct and the memory map.
+///
+/// The boot info and memory map are mapped to both the kernel and bootloader
+/// address space at the same address. This makes it possible to return a Rust
+/// reference that is valid in both address spaces. The necessary physical frames
+/// are taken from the given `frame_allocator`.
 pub fn create_boot_info<I, D>(
     mut frame_allocator: LegacyFrameAllocator<I, D>,
     page_tables: &mut PageTables,
@@ -325,15 +365,26 @@ pub fn switch_to_kernel(
     }
 }
 
+/// Provides access to the page tables of the bootloader and kernel address space.
 pub struct PageTables {
+    /// Provides access to the page tables of the bootloader address space.
     pub bootloader: OffsetPageTable<'static>,
+    /// Provides access to the page tables of the kernel address space (not active).
     pub kernel: OffsetPageTable<'static>,
+    /// The physical frame where the level 4 page table of the kernel address space is stored.
+    ///
+    /// Must be the page table that the `kernel` field of this struct refers to.
+    ///
+    /// This frame is loaded into the `CR3` register on the final context switch to the kernel.  
     pub kernel_level_4_frame: PhysFrame,
 }
 
-/// Performs the actual context switch
+/// Performs the actual context switch.
 ///
-/// This function should stay small because it needs to be identity-mapped.
+/// This function uses the given `frame_allocator` to identity map itself in the kernel-level
+/// page table. This is required to avoid a page fault after the context switch. Since this
+/// function is relatively small, only up to two physical frames are required from the frame
+/// allocator, so the [`TwoFrames`] type can be used here.
 unsafe fn context_switch(
     addresses: Addresses,
     mut kernel_page_table: OffsetPageTable,
@@ -367,18 +418,28 @@ unsafe fn context_switch(
     unreachable!();
 }
 
-pub struct Addresses {
+/// Memory addresses required for the context switch. 
+struct Addresses {
     page_table: PhysFrame,
     stack_top: VirtAddr,
     entry_point: VirtAddr,
     boot_info: &'static mut crate::boot_info::BootInfo,
 }
 
+/// Used for reversing two physical frames for identity mapping the context switch function.
+///
+/// In order to prevent a page fault, the context switch function must be mapped identically in
+/// both address spaces. The context switch function is small, so this mapping requires only
+/// two physical frames (one frame is not enough because the linker might place the function
+/// directly before a page boundary). Since the frame allocator no longer exists when the
+/// context switch function is invoked, we use this type to reserve two physical frames
+/// beforehand.
 pub struct TwoFrames {
     frames: [Option<PhysFrame>; 2],
 }
 
 impl TwoFrames {
+    /// Creates a new instance by allocating two physical frames from the given frame allocator.
     pub fn new(frame_allocator: &mut impl FrameAllocator<Size4KiB>) -> Self {
         TwoFrames {
             frames: [

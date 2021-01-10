@@ -7,8 +7,10 @@ use core::{
 use font8x8::UnicodeFonts;
 use spinning_top::Spinlock;
 
+/// The global logger instance used for the `log` crate.
 pub static LOGGER: OnceCell<LockedLogger> = OnceCell::uninit();
 
+/// A [`Logger`] instance protected by a spinlock.
 pub struct LockedLogger(Spinlock<Logger>);
 
 /// Additional vertical space between lines
@@ -17,10 +19,14 @@ const LINE_SPACING: usize = 0;
 const LOG_SPACING: usize = 2;
 
 impl LockedLogger {
+    /// Create a new instance that logs to the given framebuffer.
     pub fn new(framebuffer: &'static mut [u8], info: FrameBufferInfo) -> Self {
         LockedLogger(Spinlock::new(Logger::new(framebuffer, info)))
     }
 
+    /// Force-unlocks the logger to prevent a deadlock.
+    ///
+    /// This method is not memory safe and should be only used when absolutely necessary.
     pub unsafe fn force_unlock(&self) {
         unsafe { self.0.force_unlock() };
     }
@@ -40,6 +46,7 @@ impl log::Log for LockedLogger {
     fn flush(&self) {}
 }
 
+/// Allows logging text to a pixel-based framebuffer.
 pub struct Logger {
     framebuffer: &'static mut [u8],
     info: FrameBufferInfo,
@@ -48,6 +55,7 @@ pub struct Logger {
 }
 
 impl Logger {
+    /// Creates a new logger that uses the given framebuffer.
     pub fn new(framebuffer: &'static mut [u8], info: FrameBufferInfo) -> Self {
         let mut logger = Self {
             framebuffer,
@@ -72,7 +80,7 @@ impl Logger {
         self.x_pos = 0;
     }
 
-    /// Erases all text on the screen
+    /// Erases all text on the screen.
     pub fn clear(&mut self) {
         self.x_pos = 0;
         self.y_pos = 0;

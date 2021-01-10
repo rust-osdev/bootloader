@@ -5,9 +5,13 @@ use x86_64::{
     PhysAddr,
 };
 
+/// Abstraction trait for a memory region returned by the UEFI or BIOS firmware.
 pub trait LegacyMemoryRegion: Copy + core::fmt::Debug {
+    /// Returns the physical start address of the region.
     fn start(&self) -> PhysAddr;
+    /// Returns the size of the region in bytes.
     fn len(&self) -> u64;
+    /// Returns the type of the region, e.g. whether it is usable or reserved.
     fn kind(&self) -> MemoryRegionKind;
 
     fn set_start(&mut self, new_start: PhysAddr);
@@ -25,12 +29,19 @@ where
     I: ExactSizeIterator<Item = D> + Clone,
     I::Item: LegacyMemoryRegion,
 {
+    /// Creates a new frame allocator based on the given legacy memory regions.
+    ///
+    /// Skips the frame at physical address zero to avoid potential problems. For example
+    /// identity-mapping the frame at address zero is not valid in Rust, because Rust's `core`
+    /// library assumes that references can never point to virtual address `0`.  
     pub fn new(memory_map: I) -> Self {
         // skip frame 0 because the rust core library does not see 0 as a valid address
         let start_frame = PhysFrame::containing_address(PhysAddr::new(0x1000));
         Self::new_starting_at(start_frame, memory_map)
     }
 
+    /// Creates a new frame allocator based on the given legacy memory regions. Skips any frames
+    /// before the given `frame`.
     pub fn new_starting_at(frame: PhysFrame, memory_map: I) -> Self {
         Self {
             original: memory_map.clone(),
@@ -72,6 +83,14 @@ where
             .unwrap()
     }
 
+    /// Converts this type to a boot info memory map.
+    ///
+    /// The memory map is placed in the given `regions` slice. The length of the given slice
+    /// must be at least the value returned by [`len`]. Be aware that the value returned by
+    /// `len` might increase by 1 whenever [`allocate_frame`] is called, so the length should be
+    /// queried as late as possible.
+    ///
+    /// The return slice is a subslice of `regions`, shortened to the actual number of regions.
     pub fn construct_memory_map(
         self,
         regions: &mut [MaybeUninit<MemoryRegion>],
