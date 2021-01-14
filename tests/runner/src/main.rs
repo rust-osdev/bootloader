@@ -66,7 +66,7 @@ pub fn create_disk_image(kernel_binary_path: &Path, bios_only: bool) -> PathBuf 
     let disk_image = kernel_binary_path
         .parent()
         .unwrap()
-        .join(format!("bootimage-bios-{}.bin", kernel_binary_name));
+        .join(format!("bootimage-bios-{}.img", kernel_binary_name));
     if !disk_image.exists() {
         panic!(
             "Disk image does not exist at {} after bootloader build",
