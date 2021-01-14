@@ -47,6 +47,7 @@ thiserror = { version = "1.0.20", optional = true }
 json = { version = "0.12.4", optional = true }
 rsdp = { version = "1.0.0", optional = true }
 fatfs = { version = "0.3.4", optional = true }
+gpt = { version = "2.0.0", optional = true }
 
 [dependencies.font8x8]
 version = "0.2.5"
@@ -61,7 +62,7 @@ serde = { version = "1.0", features = ["derive"], optional = true}
 
 [features]
 default = []
-builder = ["argh", "thiserror", "displaydoc", "anyhow", "llvm-tools", "json", "fatfs"]
+builder = ["argh", "thiserror", "displaydoc", "anyhow", "llvm-tools", "json", "fatfs", "gpt"]
 runner = ["anyhow"]
 bios_bin = ["binary", "vga_320x200", "rsdp"]
 uefi_bin = ["binary", "uefi", "font8x8"]
