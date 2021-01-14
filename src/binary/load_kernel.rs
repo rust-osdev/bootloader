@@ -5,7 +5,7 @@ use crate::{
 use x86_64::{
     align_up,
     structures::paging::{
-        FrameAllocator, MapperAllSizes, Page, PageSize, PageTableFlags as Flags, PhysFrame,
+        mapper::MapperAllSizes, FrameAllocator, Page, PageSize, PageTableFlags as Flags, PhysFrame,
         Size4KiB,
     },
     PhysAddr, VirtAddr,

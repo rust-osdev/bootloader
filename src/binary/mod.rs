@@ -398,7 +398,7 @@ unsafe fn context_switch(
 ) -> ! {
     // identity-map current and next frame, so that we don't get an immediate pagefault
     // after switching the active page table
-    let current_addr = PhysAddr::new(registers::read_rip());
+    let current_addr = PhysAddr::new(registers::read_rip().as_u64());
     let current_frame: PhysFrame = PhysFrame::containing_address(current_addr);
     for frame in PhysFrame::range_inclusive(current_frame, current_frame + 1) {
         unsafe {

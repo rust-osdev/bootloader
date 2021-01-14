@@ -81,7 +81,7 @@ dependencies = [
  "toml",
  "uefi",
  "usize_conversions",
- "x86_64 0.12.2 (git+https://github.com/rust-osdev/x86_64.git)",
+ "x86_64 0.13.1",
  "xmas-elf",
 ]
 
@@ -228,7 +228,7 @@ version = "0.1.0"
 dependencies = [
  "bootloader",
  "uart_16550",
- "x86_64 0.12.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "x86_64 0.13.1",
 ]
 
 [[package]]
@@ -417,7 +417,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "afb00b16a4c8acbfc4eb8cfeda1f9c0507c7e87c6563edce64a236af93acf70c"
 dependencies = [
  "bitflags",
- "x86_64 0.12.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "x86_64 0.12.2",
 ]
 
 [[package]]
@@ -519,8 +519,9 @@ dependencies = [
 
 [[package]]
 name = "x86_64"
-version = "0.12.2"
-source = "git+https://github.com/rust-osdev/x86_64.git#b6ad4d63408b0a2779e1dd9f236a8bf43fc92fd5"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5d74944372d63f31dd39fce1ef8036143484ff4cd4efcd743ef50135839de4e7"
 dependencies = [
  "bit_field 0.9.0",
  "bitflags",
