@@ -96,9 +96,9 @@ impl From<&'static mut [MemoryRegion]> for MemoryRegions {
     }
 }
 
-impl Into<&'static mut [MemoryRegion]> for MemoryRegions {
-    fn into(self) -> &'static mut [MemoryRegion] {
-        unsafe { slice::from_raw_parts_mut(self.ptr, self.len) }
+impl From<MemoryRegions> for &'static mut [MemoryRegion] {
+    fn from(regions: MemoryRegions) -> &'static mut [MemoryRegion] {
+        unsafe { slice::from_raw_parts_mut(regions.ptr, regions.len) }
     }
 }
 
@@ -248,9 +248,9 @@ impl<T> From<Option<T>> for Optional<T> {
     }
 }
 
-impl<T> Into<Option<T>> for Optional<T> {
-    fn into(self) -> Option<T> {
-        match self {
+impl<T> From<Optional<T>> for Option<T> {
+    fn from(optional: Optional<T>) -> Option<T> {
+        match optional {
             Optional::Some(v) => Some(v),
             Optional::None => None,
         }
