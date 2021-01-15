@@ -95,6 +95,7 @@ fn main() -> anyhow::Result<()> {
         let build_or_run = if args.run { "run" } else { "build" };
         let mut cmd = Command::new(env!("CARGO"));
         cmd.arg(build_or_run).arg("--bin").arg("uefi");
+        cmd.arg("--release");
         cmd.arg("--target").arg("x86_64-unknown-uefi");
         cmd.arg("--features")
             .arg(args.features.join(" ") + " uefi_bin");
