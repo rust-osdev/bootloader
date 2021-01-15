@@ -84,17 +84,29 @@ fn create_page_tables(
     // copy the currently active level 4 page table, because it might be read-only
     log::trace!("switching to new level 4 table");
     let bootloader_page_table = {
-        let old_frame = x86_64::registers::control::Cr3::read().0;
-        let old_table: *const PageTable =
-            (phys_offset + old_frame.start_address().as_u64()).as_ptr();
+        let old_table = {
+            let frame = x86_64::registers::control::Cr3::read().0;
+            let ptr: *const PageTable = (phys_offset + frame.start_address().as_u64()).as_ptr();
+            unsafe { &*ptr }
+        };
         let new_frame = frame_allocator
             .allocate_frame()
             .expect("Failed to allocate frame for new level 4 table");
-        let new_table: *mut PageTable =
-            (phys_offset + new_frame.start_address().as_u64()).as_mut_ptr();
-        // copy the table to the new frame
-        unsafe { core::ptr::copy_nonoverlapping(old_table, new_table, 1) };
-        // the tables are now identical, so we can just load the new one
+        let new_table: &mut PageTable = {
+            let ptr: *mut PageTable =
+                (phys_offset + new_frame.start_address().as_u64()).as_mut_ptr();
+            // create a new, empty page table
+            unsafe {
+                ptr.write(PageTable::new());
+                &mut *ptr
+            }
+        };
+
+        // copy the first entry (we don't need to access more than 512 GiB; also, some UEFI
+        // implementations seem to create an level 4 table entry 0 in all slots)
+        new_table[0] = old_table[0].clone();
+
+        // the first level 4 table entry is now identical, so we can just load the new one
         unsafe {
             x86_64::registers::control::Cr3::write(
                 new_frame,
