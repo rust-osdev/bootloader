@@ -130,7 +130,7 @@ where
                 #[cfg(feature = "uefi_bin")]
                 MemoryRegionKind::UnknownUefi(other) => {
                     use uefi::table::boot::MemoryType as M;
-                    match M::custom(other) {
+                    match M(other) {
                         M::LOADER_CODE
                         | M::LOADER_DATA
                         | M::BOOT_SERVICES_CODE
