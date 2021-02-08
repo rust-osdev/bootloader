@@ -1,5 +1,9 @@
 # Unreleased
 
+# 0.9.12 – 2021-02-02
+
+- Fix build on latest nightly by updating x86_64 to v0.13.2 ([#135](https://github.com/rust-osdev/bootloader/pull/135))
+
 # 0.9.11 – 2020-09-29
 
 - Update `Cargo.lock` to fix nightly breakage ([#129](https://github.com/rust-osdev/bootloader/pull/129))
