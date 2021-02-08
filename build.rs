@@ -63,7 +63,8 @@ mod binary {
         // check that the kernel file exists
         assert!(
             kernel.exists(),
-            "KERNEL does not exist: {}", kernel.display()
+            "KERNEL does not exist: {}",
+            kernel.display()
         );
 
         // get access to llvm tools shipped in the llvm-tools-preview rustup component
