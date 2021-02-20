@@ -6,14 +6,8 @@ use shared::println;
 use shared::structures::gdt::{Descriptor, GlobalDescriptorTable, TaskStateSegment};
 use lazy_static::lazy_static;
 
+mod v8086_code;
 mod panic;
-
-#[no_mangle]
-pub fn v8086_test() {
-    loop {};
-    println!("v8086 mode! Yayyyy");
-    loop {};
-}
 
 extern "C" {
     fn protected_mode_switch() -> !;
@@ -26,7 +20,7 @@ lazy_static! {
         let mut tss = TaskStateSegment::new();
 
         tss.privilege_stack_table[0].esp = linker_symbol!(_protected_mode_stack_end);
-        tss.privilege_stack_table[0].ss = 2 * 8; // Kernel data segment is 2nd segment (null, code, data)
+        tss.privilege_stack_table[0].ss = 2 * 8; // Kernel data segment is 3rd segment (null, code, data)
         tss.iomap_base = size_of::<TaskStateSegment>() as u16; 
 
         tss

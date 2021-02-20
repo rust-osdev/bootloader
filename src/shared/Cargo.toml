@@ -15,7 +15,12 @@ version = "1"
 features = ["spin_no_std"]
 
 [profile.release]
-debug = true
 opt-level = "z"
 panic = "abort"
 lto = true
+
+[profile.dev]
+opt-level = "z"
+panic = "abort"
+lto = true
+debug = true

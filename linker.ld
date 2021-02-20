@@ -24,7 +24,7 @@ SECTIONS {
     .rest_of_bootloader :
     {
         _rest_of_bootloader_start = .;
-        
+
         *(.text .text.*)
         *(.data .data.*)
         *(.rodata .rodata.*)
@@ -32,7 +32,7 @@ SECTIONS {
         *(.got .got.plt)
 
         . = ALIGN(512);
-    
+
         _rest_of_bootloader_end = .;
     }
 
@@ -44,13 +44,13 @@ SECTIONS {
     _protected_mode_stack_start = .;
     . += 0x1000;
     _protected_mode_stack_end = .;
-    
+
     /DISCARD/ :
     {
-        /* 
+        /*
           Weird section that always puts itself at the start and causes the binary to be non-bootable
           Only seems to appear on some platforms, and we can find no use of it in our circumstances
         */
-        *(.eh_frame)
+        *(.eh_frame*)
     }
 }

@@ -9,3 +9,5 @@ pub mod dap;
 pub mod macros;
 pub mod structures;
 pub mod instructions;
+
+pub mod memory_operations;

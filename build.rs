@@ -29,7 +29,7 @@ fn main() {
     // Build stage 3
     build_subproject(
         Path::new("src/protected/stage_3"),
-        &["third_stage", "iret_test"],
+        &["third_stage"],
         "../i386-unknown-none.json",
         &target_dir,
         &objcopy,
@@ -98,9 +98,14 @@ fn build_subproject(
 
     // Build inside the subproject
     build_cmd.current_dir(&subproject_dir);
+    build_cmd.arg("build");
 
-    // Build in release mode
-    build_cmd.arg("build").arg("--release");
+    // Build in release mode if we're built in release mode
+    let build_profile = env::var("PROFILE").expect("Couldn't get cargo build profile");
+
+    if build_profile == "release" {
+        build_cmd.arg("--release");
+    }
 
     // Very verbose (build script output only shows if you use `-vv` or it fails anyway)
     build_cmd.arg("-vv");

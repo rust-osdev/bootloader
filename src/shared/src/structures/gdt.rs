@@ -23,7 +23,7 @@ impl GlobalDescriptorTable {
     #[inline]
     pub fn add_entry(&mut self, entry: Descriptor) -> u16 {
         let index = self.push(entry.0);
-        
+
         index as u16
     }
 
@@ -140,7 +140,7 @@ impl Descriptor {
     pub fn kernel_data_segment() -> Descriptor {
         use self::DescriptorFlags as Flags;
 
-        let flags = 
+        let flags =
             Flags::USER_SEGMENT | Flags::PRESENT | Flags::READABLE_WRITABLE | Flags::ACCESSED | Flags::SIZE;
         Descriptor(flags.bits()).with_flat_limit()
     }
@@ -151,7 +151,8 @@ impl Descriptor {
         use self::DescriptorFlags as Flags;
 
         let flags =
-            Flags::USER_SEGMENT | Flags::PRESENT | Flags::READABLE_WRITABLE | Flags::ACCESSED | Flags::SIZE | Flags::DPL_RING_3;
+            Flags::USER_SEGMENT | Flags::PRESENT | Flags::READABLE_WRITABLE | Flags::ACCESSED | Flags::DPL_RING_3;
+
         Descriptor(flags.bits()).with_flat_limit()
     }
 
@@ -161,7 +162,8 @@ impl Descriptor {
         use self::DescriptorFlags as Flags;
 
         let flags =
-            Flags::USER_SEGMENT | Flags::PRESENT | Flags::READABLE_WRITABLE | Flags::ACCESSED | Flags::SIZE | Flags::EXECUTABLE | Flags::DPL_RING_3;
+            Flags::USER_SEGMENT | Flags::PRESENT | Flags::READABLE_WRITABLE | Flags::ACCESSED | Flags::EXECUTABLE | Flags::DPL_RING_3;
+
         Descriptor(flags.bits()).with_flat_limit()
     }
 
@@ -196,7 +198,7 @@ impl Descriptor {
         self.0.set_bit(49, true);
         self.0.set_bit(50, true);
         self.0.set_bit(51, true);
- 
+
         // granularity
         self.0 |= DescriptorFlags::GRANULARITY.bits();
 

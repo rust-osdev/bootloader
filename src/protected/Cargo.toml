@@ -7,4 +7,9 @@ members = [
 opt-level = "z"
 panic = "abort"
 lto = true
+
+[profile.dev]
+opt-level = "z"
+panic = "abort"
+lto = true
 debug = true

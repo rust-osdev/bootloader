@@ -7,13 +7,10 @@ use shared::linker_symbol;
 
 mod interrupts;
 mod panic;
+mod ivt;
+mod v8086;
 
-global_asm!(include_str!("iret.s"));
-
-extern "C" {
-    fn v8086_test();
-    fn iret_asm_test();
-}
+use v8086::{Monitor, Stack};
 
 #[no_mangle]
 pub extern "C" fn third_stage() -> ! {
@@ -37,21 +34,18 @@ pub extern "C" fn third_stage() -> ! {
 
     println!("[Bootloader] [32] Loaded IDT");
 
+    let stack = Stack::new(linker_symbol!(_stack_start), 0x2B);
+    let monitor = Monitor::new(stack);
+    let function_address = linker_symbol!(v8086_test);
+
+    println!("Entering V8086");
+
     unsafe {
-        let eflags = instructions::read_eflags() ;//| (1 << 17);
-        let fn_addr = &iret_test as *const _ as u32;
-
-        println!("fn @ {}", fn_addr);
-
-        iret_asm_test();
+        //enter_v8086();
+        monitor.start(function_address);
     }
 
     println!("User mode returned");
 
     loop {};
-}
-
-#[no_mangle]
-pub extern "C" fn iret_test() {
-    println!("User mode");
 }

@@ -2,9 +2,9 @@
 # It is not intended for manual editing.
 [[package]]
 name = "bit_field"
-version = "0.10.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a165d606cf084741d4ac3a28fb6e9b1eb0bd31f6cd999098cfddb0b2ab381dc0"
+checksum = "dcb6dd1c2376d2e096796e234a70e17e94cc2d5d54ff8ce42b28cef1d0d359a4"
 
 [[package]]
 name = "bitflags"
@@ -17,7 +17,6 @@ name = "bootloader"
 version = "0.1.0"
 dependencies = [
  "llvm-tools",
- "rlibc",
  "shared",
 ]
 
@@ -35,12 +34,6 @@ name = "llvm-tools"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "955be5d0ca0465caf127165acb47964f911e2bc26073e865deb8be7189302faf"
-
-[[package]]
-name = "rlibc"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc874b127765f014d792f16763a81245ab80500e2ad921ed4ee9e82481ee08fe"
 
 [[package]]
 name = "shared"
@@ -61,6 +54,6 @@ checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
 
 [[package]]
 name = "volatile"
-version = "0.2.6"
+version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6af0edf5b4faacc31fc51159244d78d65ec580f021afcef7bd53c04aeabc7f29"
+checksum = "f6b06ad3ed06fef1713569d547cdbdb439eafed76341820fb0e0344f29a41945"

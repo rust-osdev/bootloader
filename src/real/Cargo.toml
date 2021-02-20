@@ -9,9 +9,13 @@ opt-level = "z"
 panic = "abort"
 lto = true
 
+[profile.dev]
+opt-level = "z"
+panic = "abort"
+lto = true
+debug = true
+
 [profile.release.package.bootsector]
 opt-level = "s"
+debug = false
 codegen-units = 1
-
-[profile.release.package.stage_2]
-debug = true
