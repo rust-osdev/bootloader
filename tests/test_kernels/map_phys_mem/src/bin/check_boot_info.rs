@@ -3,7 +3,7 @@
 
 use bootloader::{boot_info::PixelFormat, entry_point, BootInfo};
 use core::panic::PanicInfo;
-use test_kernel_map_phys_mem::{QemuExitCode, exit_qemu, serial};
+use test_kernel_map_phys_mem::{exit_qemu, serial, QemuExitCode};
 
 entry_point!(kernel_main);
 
@@ -22,7 +22,10 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     assert_eq!(framebuffer.buffer().len(), 1024 * 768 * 3);
 
     // check defaults for optional features
-    assert!(matches!(boot_info.physical_memory_offset.into_option(), Some(_)));
+    assert!(matches!(
+        boot_info.physical_memory_offset.into_option(),
+        Some(_)
+    ));
     assert_eq!(boot_info.recursive_index.into_option(), None);
 
     // check rsdp_addr

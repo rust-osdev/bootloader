@@ -3,7 +3,7 @@
 
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
-use test_kernel_map_phys_mem::{QemuExitCode, exit_qemu, serial};
+use test_kernel_map_phys_mem::{exit_qemu, serial, QemuExitCode};
 
 entry_point!(kernel_main);
 

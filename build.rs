@@ -229,7 +229,8 @@ mod binary {
                     .unwrap_or_else(|err| {
                         format!(
                             "compile_error!(\"failed to parse bootloader config in {}:\n\n{}\")",
-                            path,err.to_string().escape_default(),
+                            path,
+                            err.to_string().escape_default(),
                         )
                     })
             }
