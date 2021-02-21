@@ -373,6 +373,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "test_kernel_map_phys_mem"
+version = "0.1.0"
+dependencies = [
+ "bootloader",
+ "uart_16550",
+ "x86_64",
+]
+
+[[package]]
 name = "thiserror"
 version = "1.0.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
