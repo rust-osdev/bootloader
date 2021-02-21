@@ -6,8 +6,10 @@ use core::{ops, slice};
 /// The information is passed as an argument to the entry point. The entry point function must
 /// have the following signature:
 ///
-/// ```ignore
-/// pub extern "C" fn(boot_info: &'static BootInfo) -> !;
+/// ```
+/// # use bootloader::BootInfo;
+/// # type _SIGNATURE =
+/// extern "C" fn(boot_info: &'static BootInfo) -> !;
 /// ```
 ///
 /// Note that no type checking occurs for the entry point function, so be careful to
