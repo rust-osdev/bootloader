@@ -196,7 +196,7 @@ mod binary {
         }
 
         // Parse configuration from the kernel's Cargo.toml
-        let config: Config = match env::var("KERNEL_MANIFEST") {
+        let config = match env::var("KERNEL_MANIFEST") {
             Err(env::VarError::NotPresent) => {
                 panic!("The KERNEL_MANIFEST environment variable must be set for building the bootloader.\n\n\
                  Please use `cargo builder` for building.");
@@ -223,7 +223,15 @@ mod binary {
                     .cloned()
                     .unwrap_or_else(|| toml::Value::Table(toml::map::Map::new()));
 
-                config_table.try_into().expect("failed to parse config")
+                config_table
+                    .try_into::<Config>()
+                    .map(|c| format!("{:?}", c))
+                    .unwrap_or_else(|err| {
+                        format!(
+                            "compile_error!(\"failed to parse bootloader config in {}:\n\n{}\")",
+                            path,err.to_string().escape_default(),
+                        )
+                    })
             }
         };
 
@@ -234,7 +242,7 @@ mod binary {
             format!(
                 "mod parsed_config {{
                     use crate::config::Config;
-                    pub const CONFIG: Config = {:?};
+                    pub const CONFIG: Config = {};
                 }}",
                 config,
             )
