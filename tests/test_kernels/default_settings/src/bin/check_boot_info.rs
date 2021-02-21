@@ -3,7 +3,7 @@
 
 use bootloader::{boot_info::PixelFormat, entry_point, BootInfo};
 use core::panic::PanicInfo;
-use kernel::{exit_qemu, QemuExitCode};
+use test_kernel_default_settings::{exit_qemu, QemuExitCode};
 
 entry_point!(kernel_main);
 
@@ -41,6 +41,6 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
 fn panic(info: &PanicInfo) -> ! {
     use core::fmt::Write;
 
-    let _ = writeln!(kernel::serial(), "PANIC: {}", info);
+    let _ = writeln!(test_kernel_default_settings::serial(), "PANIC: {}", info);
     exit_qemu(QemuExitCode::Failed);
 }

@@ -3,7 +3,7 @@
 
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
-use kernel::{exit_qemu, QemuExitCode};
+use test_kernel_default_settings::{exit_qemu, QemuExitCode};
 
 entry_point!(kernel_main);
 

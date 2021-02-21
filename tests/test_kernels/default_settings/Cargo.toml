@@ -1,5 +1,5 @@
 [package]
-name = "kernel"
+name = "test_kernel_default_settings"
 version = "0.1.0"
 authors = ["Philipp Oppermann <dev@phil-opp.com>"]
 edition = "2018"
