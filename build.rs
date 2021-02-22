@@ -231,23 +231,37 @@ mod binary {
                     .parse::<Value>()
                     .expect("failed to parse kernel's Cargo.toml");
 
-                let config_table = manifest
-                    .get("package")
-                    .and_then(|table| table.get("metadata"))
-                    .and_then(|table| table.get("bootloader"))
-                    .cloned()
-                    .unwrap_or_else(|| toml::Value::Table(toml::map::Map::new()));
+                if manifest
+                    .get("dependencies")
+                    .and_then(|d| d.get("bootloader"))
+                    .is_some()
+                {
+                    // it seems to be the correct Cargo.toml
+                    let config_table = manifest
+                        .get("package")
+                        .and_then(|table| table.get("metadata"))
+                        .and_then(|table| table.get("bootloader"))
+                        .cloned()
+                        .unwrap_or_else(|| toml::Value::Table(toml::map::Map::new()));
 
-                config_table
-                    .try_into::<Config>()
-                    .map(|c| format!("{:?}", c))
-                    .unwrap_or_else(|err| {
-                        format!(
-                            "compile_error!(\"failed to parse bootloader config in {}:\n\n{}\")",
-                            path,
-                            err.to_string().escape_default(),
-                        )
-                    })
+                    config_table
+                        .try_into::<Config>()
+                        .map(|c| format!("{:?}", c))
+                        .unwrap_or_else(|err| {
+                            format!(
+                                "compile_error!(\"failed to parse bootloader config in {}:\n\n{}\")",
+                                path,
+                                err.to_string().escape_default(),
+                            )
+                        })
+                } else {
+                    format!(
+                        "compile_error!(\"no bootloader dependency in {}\n\n  The \
+                        `--kernel-manifest` path should point to the `Cargo.toml` \
+                        of the kernel.\")",
+                        path,
+                    )
+                }
             }
         };
 
