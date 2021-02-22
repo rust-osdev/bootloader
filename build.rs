@@ -204,6 +204,15 @@ mod binary {
             Err(env::VarError::NotUnicode(_)) => {
                 panic!("The KERNEL_MANIFEST environment variable contains invalid unicode")
             }
+            Ok(path)
+                if Path::new(&path).file_name().and_then(|s| s.to_str()) != Some("Cargo.toml") =>
+            {
+                format!(
+                    "compile_error!(\"The given `--kernel-manifest` path `{}` does not \
+                    point to a `Cargo.toml`\")",
+                    path,
+                )
+            }
             Ok(path) => {
                 println!("cargo:rerun-if-changed={}", path);
 
