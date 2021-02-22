@@ -213,6 +213,12 @@ mod binary {
                     path,
                 )
             }
+            Ok(path) if !Path::new(&path).exists() => {
+                format!(
+                    "compile_error!(\"The given `--kernel-manifest` path `{}` does not exist`\")",
+                    path,
+                )
+            }
             Ok(path) => {
                 println!("cargo:rerun-if-changed={}", path);
 
