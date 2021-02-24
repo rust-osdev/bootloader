@@ -1,5 +1,7 @@
 # Unreleased
 
+- Fix "panic message is not a string literal" warning ([#138](https://github.com/rust-osdev/bootloader/pull/138))
+
 # 0.9.12 – 2021-02-02
 
 - Fix build on latest nightly by updating x86_64 to v0.13.2 ([#135](https://github.com/rust-osdev/bootloader/pull/135))
