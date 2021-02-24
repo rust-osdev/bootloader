@@ -1,8 +1,10 @@
 # Unreleased
 
+- Fix "panic message is not a string literal" warning ([#138](https://github.com/rust-osdev/bootloader/pull/138))
+
 # 0.9.13 – 2021-02-24
 
-- Fix "panic message is not a string literal" warning ([#138](https://github.com/rust-osdev/bootloader/pull/138))
+(accidental release)
 
 # 0.9.12 – 2021-02-02
 
