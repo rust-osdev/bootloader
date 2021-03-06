@@ -93,7 +93,7 @@ load_rest_of_bootloader_from_disk:
     mov eax, offset _rest_of_bootloader_start_addr
 
     # number of disk blocks to load
-    lea ebx, _rest_of_bootloader_end_addr
+    mov ebx, offset _rest_of_bootloader_end_addr
     sub ebx, eax # end - start
     shr ebx, 9 # divide by 512 (block size)
     mov [dap_blocks], bx
