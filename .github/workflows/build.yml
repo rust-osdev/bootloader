@@ -66,7 +66,7 @@ jobs:
         HOMEBREW_NO_INSTALL_CLEANUP: 1
     - name: Install QEMU (Windows)
       run: |
-        choco install qemu --no-progress
+        choco install qemu --version=2021.02.03 -y --no-progress
         echo "C:\Program Files\qemu" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       if: runner.os == 'Windows'
       shell: pwsh
