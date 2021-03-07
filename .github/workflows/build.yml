@@ -71,7 +71,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: pwsh
     - name: Install QEMU (Windows)
-      run: scoop install qemu@5.1.0
+      run: scoop install qemu@5.2.0-rc2
       if: runner.os == 'Windows'
       shell: pwsh
     - name: "Print QEMU Version"
