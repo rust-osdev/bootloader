@@ -64,10 +64,14 @@ jobs:
         HOMEBREW_NO_AUTO_UPDATE: 1
         HOMEBREW_NO_BOTTLE_SOURCE_FALLBACK: 1
         HOMEBREW_NO_INSTALL_CLEANUP: 1
-    - name: Install QEMU (Windows)
+    - name: Install Scoop (Windows)
       run: |
-        choco install qemu --version=2020.11.20 -y --no-progress
-        echo "C:\Program Files\qemu" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.scoop.sh')
+        echo "$HOME\scoop\shims" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      if: runner.os == 'Windows'
+      shell: pwsh
+    - name: Install QEMU (Windows)
+      run: scoop install qemu
       if: runner.os == 'Windows'
       shell: pwsh
     - name: "Print QEMU Version"
@@ -78,7 +82,14 @@ jobs:
         qemu-system-x86_64 -drive format=raw,file=target/x86_64-bootloader/release/bootloader.bin -device isa-debug-exit,iobase=0xf4,iosize=0x04 -display none
         if [ $? -eq 123 ]; then (exit 0); else (exit 1); fi
       shell: 'bash {0}'
+      if: runner.os != 'Windows'
 
+    - name: 'Run Test Kernel with Bootloader (Windows)'
+      run: |
+        qemu-system-x86_64 -drive format=raw,file=target/x86_64-bootloader/release/bootloader.bin -device isa-debug-exit,iobase=0xf4,iosize=0x04 -display none -L "C:\Program Files\qemu"
+        if [ $? -eq 123 ]; then (exit 0); else (exit 1); fi
+      shell: 'bash {0}'
+      if: runner.os == 'Windows'
 
   build_example_kernel:
     name: "Build Example Kernel"
