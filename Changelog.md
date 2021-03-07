@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.9.16 – 2021-03-07
+
 Replace all remaining `lea`s with `mov` + `offset` ([#140](https://github.com/rust-osdev/bootloader/pull/140))
 
 # 0.9.15 – 2021-03-07
