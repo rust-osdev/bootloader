@@ -1,5 +1,9 @@
 # Unreleased
 
+# 0.9.15 – 2021-03-07
+
+- Fix linker errors on latest nightlies ([#139](https://github.com/rust-osdev/bootloader/pull/139))
+
 # 0.9.14 – 2021-02-24
 
 - Fix "panic message is not a string literal" warning ([#138](https://github.com/rust-osdev/bootloader/pull/138))
