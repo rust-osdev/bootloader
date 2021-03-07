@@ -65,7 +65,9 @@ jobs:
         HOMEBREW_NO_BOTTLE_SOURCE_FALLBACK: 1
         HOMEBREW_NO_INSTALL_CLEANUP: 1
     - name: Install QEMU (Windows)
-      run: choco install qemu
+      run: |
+        choco install qemu
+        echo "C:\Program Files\qemu" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       if: runner.os == 'Windows'
       shell: pwsh
     - name: "Print QEMU Version"
