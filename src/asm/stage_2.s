@@ -87,7 +87,7 @@ create_memory_map:
     call do_e820
 
 video_mode_config:
-    call config_video_mode
+    call vesa
 
 enter_protected_mode_again:
     cli
@@ -103,3 +103,70 @@ enter_protected_mode_again:
 
 spin32:
     jmp spin32
+
+
+
+# print a string and a newline
+# IN
+#   esi: points at zero-terminated String
+vga_println:
+    push eax
+    push ebx
+    push ecx
+    push edx
+
+    call vga_print
+
+    # newline
+    mov edx, 0
+    mov eax, vga_position
+    mov ecx, 80 * 2
+    div ecx
+    add eax, 1
+    mul ecx
+    mov vga_position, eax
+
+    pop edx
+    pop ecx
+    pop ebx
+    pop eax
+
+    ret
+
+# print a string
+# IN
+#   esi: points at zero-terminated String
+# CLOBBER
+#   ah, ebx
+vga_print:
+    cld
+vga_print_loop:
+    # note: if direction flag is set (via std)
+    # this will DECREMENT the ptr, effectively
+    # reading/printing in reverse.
+    lodsb al, BYTE PTR [esi]
+    test al, al
+    jz vga_print_done
+    call vga_print_char
+    jmp vga_print_loop
+vga_print_done:
+    ret
+
+
+# print a character
+# IN
+#   al: character to print
+# CLOBBER
+#   ah, ebx
+vga_print_char:
+    mov ebx, vga_position
+    mov ah, 0x0f
+    mov [ebx + 0xa0000], ax
+
+    add ebx, 2
+    mov [vga_position], ebx
+
+    ret
+
+vga_position:
+    .double 0

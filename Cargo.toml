@@ -65,10 +65,9 @@ serde = { version = "1.0", features = ["derive"], optional = true}
 default = []
 builder = ["argh", "thiserror", "displaydoc", "anyhow", "llvm-tools", "json", "fatfs", "gpt"]
 runner = ["anyhow"]
-bios_bin = ["binary", "vga_320x200", "rsdp"]
-uefi_bin = ["binary", "uefi", "font8x8"]
-binary = ["llvm-tools-build", "x86_64", "toml", "xmas-elf", "usize_conversions", "log", "conquer-once", "spinning_top", "serde"]
-vga_320x200 = ["font8x8"]
+bios_bin = ["binary", "rsdp"]
+uefi_bin = ["binary", "uefi"]
+binary = ["llvm-tools-build", "x86_64", "toml", "xmas-elf", "usize_conversions", "log", "conquer-once", "spinning_top", "serde", "font8x8"]
 recursive_page_table = []
 map_physical_memory = []
 

@@ -20,13 +20,19 @@ use x86_64::{PhysAddr, VirtAddr};
 
 global_asm!(include_str!("../asm/stage_1.s"));
 global_asm!(include_str!("../asm/stage_2.s"));
+global_asm!(include_str!("../asm/vesa.s"));
 global_asm!(include_str!("../asm/e820.s"));
 global_asm!(include_str!("../asm/stage_3.s"));
 
-#[cfg(feature = "vga_320x200")]
-global_asm!(include_str!("../asm/video_mode/vga_320x200.s"));
-#[cfg(not(feature = "vga_320x200"))]
-global_asm!(include_str!("../asm/video_mode/vga_text_80x25.s"));
+// values defined in `vesa.s`
+extern "C" {
+    static VBEModeInfo_physbaseptr: u32;
+    static VBEModeInfo_bytesperscanline: u16;
+    static VBEModeInfo_xresolution: u16;
+    static VBEModeInfo_yresolution: u16;
+    static VBEModeInfo_bitsperpixel: u8;
+    // TODO color values (e.g. RGB or BGR)
+}
 
 // Symbols defined in `linker.ld`
 extern "C" {
@@ -109,9 +115,20 @@ fn bootloader_main(
         }
     }
 
-    let framebuffer_addr = PhysAddr::new(0xfd000000);
-    let framebuffer_size = 1024 * 768 * 3;
-    let framebuffer_info = init_logger(framebuffer_addr, framebuffer_size);
+    let framebuffer_addr = PhysAddr::new(unsafe { VBEModeInfo_physbaseptr }.into());
+    let framebuffer_info = unsafe {
+        let framebuffer_size =
+            usize::from(VBEModeInfo_yresolution) * usize::from(VBEModeInfo_bytesperscanline);
+        let bytes_per_pixel = VBEModeInfo_bitsperpixel / 8;
+        init_logger(
+            framebuffer_addr,
+            framebuffer_size.into(),
+            VBEModeInfo_xresolution.into(),
+            VBEModeInfo_yresolution.into(),
+            bytes_per_pixel.into(),
+            (VBEModeInfo_bytesperscanline / u16::from(bytes_per_pixel)).into(),
+        )
+    };
 
     let page_tables = create_page_tables(&mut frame_allocator);
 
@@ -134,17 +151,24 @@ fn bootloader_main(
     );
 }
 
-fn init_logger(framebuffer_start: PhysAddr, framebuffer_size: usize) -> FrameBufferInfo {
+fn init_logger(
+    framebuffer_start: PhysAddr,
+    framebuffer_size: usize,
+    horizontal_resolution: usize,
+    vertical_resolution: usize,
+    bytes_per_pixel: usize,
+    stride: usize,
+) -> FrameBufferInfo {
     let ptr = framebuffer_start.as_u64() as *mut u8;
     let slice = unsafe { slice::from_raw_parts_mut(ptr, framebuffer_size) };
-    slice.fill(0x4);
+    slice.fill(0xff);
     let info = bootloader::boot_info::FrameBufferInfo {
         byte_len: framebuffer_size,
-        horizontal_resolution: 1024,
-        vertical_resolution: 768,
-        pixel_format: bootloader::boot_info::PixelFormat::RGB,
-        bytes_per_pixel: 3,
-        stride: 1024,
+        horizontal_resolution,
+        vertical_resolution,
+        bytes_per_pixel,
+        stride,
+        pixel_format: bootloader::boot_info::PixelFormat::RGB, // TODO: don't hardcode
     };
 
     bootloader::binary::init_logger(slice, info);

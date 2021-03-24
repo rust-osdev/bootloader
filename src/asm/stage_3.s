@@ -13,9 +13,6 @@ stage_3:
     mov es, bx # set extra segment
     mov ss, bx # set stack segment
 
-    mov si, offset boot_third_stage_str
-    call vga_println
-
 check_cpu:
     call check_cpuid
     call check_long_mode
@@ -168,6 +165,5 @@ gdt_64_pointer:
     .word gdt_64_pointer - gdt_64 - 1    # 16-bit Size (Limit) of GDT.
     .long gdt_64                            # 32-bit Base Address of GDT. (CPU will zero extend to 64-bit)
 
-boot_third_stage_str: .asciz "Booting (third stage)..."
 no_cpuid_str: .asciz "Error: CPU does not support CPUID"
 no_long_mode_str: .asciz "Error: CPU does not support long mode"

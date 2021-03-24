@@ -148,10 +148,10 @@ pub struct FrameBufferInfo {
     pub pixel_format: PixelFormat,
     /// The number of bytes per pixel.
     pub bytes_per_pixel: usize,
-    /// Number of bytes between the start of a line and the start of the next.
+    /// Number of pixels between the start of a line and the start of the next.
     ///
-    /// Some framebuffers use additional padding bytes at the end of a line, so this
-    /// value might be larger than `horizontal_resolution * bytes_per_pixel`. It is
+    /// Some framebuffers use additional padding at the end of a line, so this
+    /// value might be larger than `horizontal_resolution`. It is
     /// therefore recommended to use this field for calculating the start address of a line.
     pub stride: usize,
 }
