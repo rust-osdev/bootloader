@@ -1,5 +1,21 @@
 # Unreleased
 
+# 0.9.16 – 2021-03-07
+
+Replace all remaining `lea`s with `mov` + `offset` ([#140](https://github.com/rust-osdev/bootloader/pull/140))
+
+# 0.9.15 – 2021-03-07
+
+- Fix linker errors on latest nightlies ([#139](https://github.com/rust-osdev/bootloader/pull/139))
+
+# 0.9.14 – 2021-02-24
+
+- Fix "panic message is not a string literal" warning ([#138](https://github.com/rust-osdev/bootloader/pull/138))
+
+# 0.9.13 – 2021-02-24
+
+(accidental release)
+
 # 0.9.12 – 2021-02-02
 
 - Fix build on latest nightly by updating x86_64 to v0.13.2 ([#135](https://github.com/rust-osdev/bootloader/pull/135))

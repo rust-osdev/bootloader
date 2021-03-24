@@ -13,7 +13,7 @@ stage_3:
     mov es, bx # set extra segment
     mov ss, bx # set stack segment
 
-    lea si, boot_third_stage_str
+    mov si, offset boot_third_stage_str
     call vga_println
 
 check_cpu:
@@ -28,19 +28,19 @@ check_cpu:
 
 set_up_page_tables:
     # zero out buffer for page tables
-    lea edi, [__page_table_start]
-    lea ecx, [__page_table_end]
+    mov edi, offset __page_table_start
+    mov ecx, offset __page_table_end
     sub ecx, edi
     shr ecx, 2 # one stosd zeros 4 bytes -> divide by 4
     xor eax, eax
     rep stosd
 
     # p4
-    lea eax, [_p3]
+    mov eax, offset _p3
     or eax, (1 | 2)
     mov [_p4], eax
     # p3
-    lea eax, [_p2]
+    mov eax, offset _p2
     or eax, (1 | 2)
     mov [_p3], eax
     # p2
@@ -60,7 +60,7 @@ enable_paging:
     mfence
 
     # load P4 to cr3 register (cpu uses this to access the P4 table)
-    lea eax, [_p4]
+    mov eax, offset _p4
     mov cr3, eax
 
     # enable PAE-flag in cr4 (Physical Address Extension)
@@ -84,7 +84,7 @@ load_64bit_gdt:
 
 jump_to_long_mode:
     push 0x8
-    lea eax, [stage_4]
+    mov eax, offset stage_4
     push eax
     retf # Load CS with 64 bit segment and flush the instruction cache
 
@@ -124,7 +124,7 @@ check_cpuid:
     je no_cpuid
     ret
 no_cpuid:
-    lea esi, no_cpuid_str
+    mov esi, offset no_cpuid_str
     call vga_println
 no_cpuid_spin:
     hlt
@@ -144,7 +144,7 @@ check_long_mode:
     jz no_long_mode        # If it's not set, there is no long mode
     ret
 no_long_mode:
-    lea esi, no_long_mode_str
+    mov esi, offset no_long_mode_str
     call vga_println
 no_long_mode_spin:
     hlt

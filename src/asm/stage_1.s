@@ -22,7 +22,7 @@ _start:
     # initialize stack
     mov sp, 0x7c00
 
-    lea si, boot_start_str
+    mov si, offset boot_start_str
     call real_mode_println
 
 enable_a20:
@@ -78,7 +78,7 @@ check_int13h_extensions:
     jc no_int13h_extensions
 
 load_rest_of_bootloader_from_disk:
-    lea eax, _rest_of_bootloader_start_addr
+    mov eax, offset _rest_of_bootloader_start_addr
 
     mov ecx, 0
 
@@ -96,11 +96,11 @@ load_from_disk:
     sub eax, ebx
     mov [dap_buffer_addr], ax
 
-    lea eax, _rest_of_bootloader_start_addr
+    mov eax, offset _rest_of_bootloader_start_addr
     add eax, ecx # add offset
 
     # number of disk blocks to load
-    lea ebx, _rest_of_bootloader_end_addr
+    mov ebx, offset _rest_of_bootloader_end_addr
     sub ebx, eax # end - start
     jz load_from_disk_done
     shr ebx, 9 # divide by 512 (block size)
@@ -114,12 +114,12 @@ load_from_disk:
     add ecx, ebx
 
     # number of start block
-    lea ebx, _start
+    mov ebx, offset _start
     sub eax, ebx
     shr eax, 9 # divide by 512 (block size)
     mov [dap_start_lba], eax
 
-    lea si, dap
+    mov si, offset dap
     mov ah, 0x42
     int 0x13
     jc rest_of_bootloader_load_failed
@@ -131,7 +131,7 @@ load_from_disk_done:
     mov word ptr [dap_buffer_seg], 0
 
 jump_to_second_stage:
-    lea eax, [stage_2]
+    mov eax, offset stage_2
     jmp eax
 
 spin:
@@ -208,11 +208,11 @@ real_mode_error:
     jmp spin
 
 no_int13h_extensions:
-    lea si, no_int13h_extensions_str
+    mov si, offset no_int13h_extensions_str
     jmp real_mode_error
 
 rest_of_bootloader_load_failed:
-    lea si, rest_of_bootloader_load_failed_str
+    mov si, offset rest_of_bootloader_load_failed_str
     jmp real_mode_error
 
 boot_start_str: .asciz "Booting (first stage)..."
