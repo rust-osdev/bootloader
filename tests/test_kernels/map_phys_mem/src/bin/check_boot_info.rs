@@ -14,12 +14,34 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     // check framebuffer
     let framebuffer = boot_info.framebuffer.as_ref().unwrap();
     assert_eq!(framebuffer.info().byte_len, framebuffer.buffer().len());
-    assert_eq!(framebuffer.info().horizontal_resolution, 1024);
-    assert_eq!(framebuffer.info().vertical_resolution, 768);
-    assert_eq!(framebuffer.info().bytes_per_pixel, 3);
-    assert_eq!(framebuffer.info().stride, 1024);
+    if ![640, 1024].contains(&framebuffer.info().horizontal_resolution) {
+        panic!(
+            "unexpected horizontal_resolution `{}`",
+            framebuffer.info().horizontal_resolution
+        );
+    }
+    if ![480, 768].contains(&framebuffer.info().vertical_resolution) {
+        panic!(
+            "unexpected vertical_resolution `{}`",
+            framebuffer.info().vertical_resolution
+        );
+    }
+    if ![3, 4].contains(&framebuffer.info().bytes_per_pixel) {
+        panic!(
+            "unexpected bytes_per_pixel `{}`",
+            framebuffer.info().bytes_per_pixel
+        );
+    }
+    if ![640, 1024].contains(&framebuffer.info().stride) {
+        panic!("unexpected stride `{}`", framebuffer.info().stride);
+    }
     assert_eq!(framebuffer.info().pixel_format, PixelFormat::RGB);
-    assert_eq!(framebuffer.buffer().len(), 1024 * 768 * 3);
+    assert_eq!(
+        framebuffer.buffer().len(),
+        framebuffer.info().stride
+            * framebuffer.info().vertical_resolution
+            * framebuffer.info().bytes_per_pixel
+    );
 
     // check defaults for optional features
     assert!(matches!(
