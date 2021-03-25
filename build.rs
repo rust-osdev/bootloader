@@ -402,6 +402,9 @@ mod binary {
         where
             E: serde::de::Error,
         {
+            // ignore any `_` (used for digit grouping)
+            let value = &value.replace('_', "");
+
             let num = if value.starts_with("0x") {
                 u64::from_str_radix(&value[2..], 16)
             } else {
