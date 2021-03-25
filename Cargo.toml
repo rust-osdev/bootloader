@@ -20,10 +20,6 @@ name = "builder"
 required-features = ["builder"]
 
 [[bin]]
-name = "runner"
-required-features = ["runner"]
-
-[[bin]]
 name = "bios"
 required-features = ["bios_bin"]
 
