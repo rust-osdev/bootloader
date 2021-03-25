@@ -8,7 +8,10 @@
 #[cfg(not(target_os = "none"))]
 compile_error!("The bootloader crate must be compiled for the `x86_64-bootloader.json` target");
 
-use bootloader::{binary::SystemInfo, boot_info::FrameBufferInfo};
+use bootloader::{
+    binary::SystemInfo,
+    boot_info::{FrameBufferInfo, PixelFormat},
+};
 use core::panic::PanicInfo;
 use core::slice;
 use usize_conversions::usize_from;
@@ -31,7 +34,9 @@ extern "C" {
     static VBEModeInfo_xresolution: u16;
     static VBEModeInfo_yresolution: u16;
     static VBEModeInfo_bitsperpixel: u8;
-    // TODO color values (e.g. RGB or BGR)
+    static VBEModeInfo_redfieldposition: u8;
+    static VBEModeInfo_greenfieldposition: u8;
+    static VBEModeInfo_bluefieldposition: u8;
 }
 
 // Symbols defined in `linker.ld`
@@ -116,6 +121,7 @@ fn bootloader_main(
     }
 
     let framebuffer_addr = PhysAddr::new(unsafe { VBEModeInfo_physbaseptr }.into());
+    let mut error = None;
     let framebuffer_info = unsafe {
         let framebuffer_size =
             usize::from(VBEModeInfo_yresolution) * usize::from(VBEModeInfo_bytesperscanline);
@@ -127,8 +133,26 @@ fn bootloader_main(
             VBEModeInfo_yresolution.into(),
             bytes_per_pixel.into(),
             (VBEModeInfo_bytesperscanline / u16::from(bytes_per_pixel)).into(),
+            match (
+                VBEModeInfo_redfieldposition,
+                VBEModeInfo_greenfieldposition,
+                VBEModeInfo_bluefieldposition,
+            ) {
+                (0, 8, 16) => PixelFormat::RGB,
+                (16, 8, 0) => PixelFormat::BGR,
+                (r, g, b) => {
+                    error = Some(("invalid rgb field positions", r, g, b));
+                    PixelFormat::RGB // default to RBG so that we can print something
+                }
+            },
         )
     };
+
+    log::info!("BIOS boot");
+
+    if let Some((msg, r, g, b)) = error {
+        panic!("{}: r: {}, g: {}, b: {}", msg, r, g, b);
+    }
 
     let page_tables = create_page_tables(&mut frame_allocator);
 
@@ -158,17 +182,18 @@ fn init_logger(
     vertical_resolution: usize,
     bytes_per_pixel: usize,
     stride: usize,
+    pixel_format: PixelFormat,
 ) -> FrameBufferInfo {
     let ptr = framebuffer_start.as_u64() as *mut u8;
     let slice = unsafe { slice::from_raw_parts_mut(ptr, framebuffer_size) };
-    slice.fill(0xff);
+
     let info = bootloader::boot_info::FrameBufferInfo {
         byte_len: framebuffer_size,
         horizontal_resolution,
         vertical_resolution,
         bytes_per_pixel,
         stride,
-        pixel_format: bootloader::boot_info::PixelFormat::RGB, // TODO: don't hardcode
+        pixel_format,
     };
 
     bootloader::binary::init_logger(slice, info);

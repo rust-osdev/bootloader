@@ -164,6 +164,8 @@ fn init_logger(st: &SystemTable<Boot>) -> (PhysAddr, FrameBufferInfo) {
         stride: mode_info.stride(),
     };
 
+    log::info!("UEFI boot");
+
     bootloader::binary::init_logger(slice, info);
 
     (PhysAddr::new(framebuffer.as_mut_ptr() as u64), info)
