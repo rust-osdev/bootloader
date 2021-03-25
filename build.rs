@@ -8,7 +8,7 @@ fn main() {
 
 #[cfg(feature = "binary")]
 mod binary {
-    use std::fmt;
+    use quote::quote;
 
     pub fn main() {
         use llvm_tools_build as llvm_tools;
@@ -207,17 +207,21 @@ mod binary {
             Ok(path)
                 if Path::new(&path).file_name().and_then(|s| s.to_str()) != Some("Cargo.toml") =>
             {
-                format!(
-                    "compile_error!(\"The given `--kernel-manifest` path `{}` does not \
-                    point to a `Cargo.toml`\")",
+                let err = format!(
+                    "The given `--kernel-manifest` path `{}` does not \
+                    point to a `Cargo.toml`",
                     path,
-                )
+                );
+                quote! { compile_error!(#err) }
             }
             Ok(path) if !Path::new(&path).exists() => {
-                format!(
-                    "compile_error!(\"The given `--kernel-manifest` path `{}` does not exist`\")",
-                    path,
-                )
+                let err = format!(
+                    "The given `--kernel-manifest` path `{}` does not exist.",
+                    path
+                );
+                quote! {
+                    compile_error!(#err);
+                }
             }
             Ok(path) => {
                 println!("cargo:rerun-if-changed={}", path);
@@ -245,22 +249,28 @@ mod binary {
                         .unwrap_or_else(|| toml::Value::Table(toml::map::Map::new()));
 
                     config_table
-                        .try_into::<Config>()
-                        .map(|c| format!("{:?}", c))
+                        .try_into::<ParsedConfig>()
+                        .map(|c| quote! { #c })
                         .unwrap_or_else(|err| {
-                            format!(
-                                "compile_error!(\"failed to parse bootloader config in {}:\n\n{}\")",
+                            let err = format!(
+                                "failed to parse bootloader config in {}:\n\n{}",
                                 path,
-                                err.to_string().escape_default(),
-                            )
+                                err.to_string().escape_default()
+                            );
+                            quote! {
+                                compile_error!(#err);
+                            }
                         })
                 } else {
-                    format!(
-                        "compile_error!(\"no bootloader dependency in {}\n\n  The \
-                        `--kernel-manifest` path should point to the `Cargo.toml` \
-                        of the kernel.\")",
-                        path,
-                    )
+                    let err = format!(
+                        "no bootloader dependency in {}\n\n  The \
+                    `--kernel-manifest` path should point to the `Cargo.toml` \
+                    of the kernel.",
+                        path
+                    );
+                    quote! {
+                        compile_error!(#err);
+                    }
                 }
             }
         };
@@ -269,13 +279,13 @@ mod binary {
         let file_path = out_dir.join("bootloader_config.rs");
         let mut file = File::create(file_path).expect("failed to create bootloader_config.rs");
         file.write_all(
-            format!(
-                "mod parsed_config {{
+            quote::quote! {
+                mod parsed_config {
                     use crate::config::Config;
-                    pub const CONFIG: Config = {};
-                }}",
-                config,
-            )
+                    pub const CONFIG: Config = #config;
+                }
+            }
+            .to_string()
             .as_bytes(),
         )
         .expect("write to bootloader_config.rs failed");
@@ -294,10 +304,11 @@ mod binary {
     ///
     /// This copy is needed because we can't derive Deserialize in the `src/config.rs`
     /// module itself, since cargo currently unifies dependencies (the `toml` crate enables
-    /// serde's standard feature).
+    /// serde's standard feature). Also, it allows to separate the parsing special cases
+    /// such as `AlignedAddress` more cleanly.
     #[derive(Debug, serde::Deserialize)]
     #[serde(rename_all = "kebab-case", deny_unknown_fields)]
-    struct Config {
+    struct ParsedConfig {
         #[serde(default)]
         pub map_physical_memory: bool,
         #[serde(default)]
@@ -312,11 +323,43 @@ mod binary {
         pub framebuffer_address: Option<AlignedAddress>,
     }
 
+    /// Convert to tokens suitable for initializing the `Config` struct.
+    impl quote::ToTokens for ParsedConfig {
+        fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+            fn optional(value: Option<impl quote::ToTokens>) -> proc_macro2::TokenStream {
+                value.map(|v| quote!(Some(#v))).unwrap_or(quote!(None))
+            }
+
+            let map_physical_memory = self.map_physical_memory;
+            let map_page_table_recursively = self.map_page_table_recursively;
+            let map_framebuffer = self.map_framebuffer;
+            let kernel_stack_size = optional(self.kernel_stack_size);
+            let physical_memory_offset = optional(self.physical_memory_offset);
+            let recursive_index = optional(self.recursive_index);
+            let kernel_stack_address = optional(self.kernel_stack_address);
+            let boot_info_address = optional(self.boot_info_address);
+            let framebuffer_address = optional(self.framebuffer_address);
+
+            tokens.extend(quote! { Config {
+                map_physical_memory: #map_physical_memory,
+                map_page_table_recursively: #map_page_table_recursively,
+                map_framebuffer: #map_framebuffer,
+                kernel_stack_size: #kernel_stack_size,
+                physical_memory_offset: #physical_memory_offset,
+                recursive_index: #recursive_index,
+                kernel_stack_address: #kernel_stack_address,
+                boot_info_address: #boot_info_address,
+                framebuffer_address: #framebuffer_address,
+            }});
+        }
+    }
+
+    #[derive(Debug, Clone, Copy)]
     struct AlignedAddress(u64);
 
-    impl fmt::Debug for AlignedAddress {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "{}", self.0)
+    impl quote::ToTokens for AlignedAddress {
+        fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+            self.0.to_tokens(tokens);
         }
     }
 

@@ -60,6 +60,8 @@ optional = true
 llvm-tools-build = { version = "0.1", optional = true, package = "llvm-tools" }
 toml = { version = "0.5.1", optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true}
+quote = { version = "1.0", optional = true}
+proc-macro2 = { version = "1.0", optional = true}
 
 [features]
 default = []
@@ -67,9 +69,12 @@ builder = ["argh", "thiserror", "displaydoc", "anyhow", "llvm-tools", "json", "f
 runner = ["anyhow"]
 bios_bin = ["binary", "rsdp"]
 uefi_bin = ["binary", "uefi"]
-binary = ["llvm-tools-build", "x86_64", "toml", "xmas-elf", "usize_conversions", "log", "conquer-once", "spinning_top", "serde", "font8x8"]
 recursive_page_table = []
 map_physical_memory = []
+binary = [
+    "llvm-tools-build", "x86_64", "toml", "xmas-elf", "usize_conversions", "log", "conquer-once",
+    "spinning_top", "serde", "font8x8", "quote", "proc-macro2",
+]
 
 [profile.dev]
 panic = "abort"

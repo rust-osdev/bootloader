@@ -76,6 +76,8 @@ dependencies = [
  "json",
  "llvm-tools",
  "log",
+ "proc-macro2",
+ "quote",
  "rsdp",
  "serde",
  "spinning_top",
