@@ -13,9 +13,10 @@
 #![warn(missing_docs)]
 
 pub use crate::boot_info::BootInfo;
+pub use crate::config::Config;
 
 /// Configuration options for the bootloader.
-pub mod config;
+mod config;
 
 /// Contains the boot information struct sent by the bootloader to the kernel on startup.
 pub mod boot_info;
