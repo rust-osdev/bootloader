@@ -1,5 +1,5 @@
 [target.x86_64-unknown-uefi]
-runner = "cargo run --bin runner --features runner"
+runner = "cargo run -p runner"
 
 [alias]
 builder = "run --bin builder --features builder --quiet --"

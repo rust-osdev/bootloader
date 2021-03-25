@@ -62,11 +62,8 @@ proc-macro2 = { version = "1.0", optional = true}
 [features]
 default = []
 builder = ["argh", "thiserror", "displaydoc", "anyhow", "llvm-tools", "json", "fatfs", "gpt"]
-runner = ["anyhow"]
 bios_bin = ["binary", "rsdp"]
 uefi_bin = ["binary", "uefi"]
-recursive_page_table = []
-map_physical_memory = []
 binary = [
     "llvm-tools-build", "x86_64", "toml", "xmas-elf", "usize_conversions", "log", "conquer-once",
     "spinning_top", "serde", "font8x8", "quote", "proc-macro2",
