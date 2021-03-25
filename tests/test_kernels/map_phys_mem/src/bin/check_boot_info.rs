@@ -44,10 +44,10 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     );
 
     // check defaults for optional features
-    assert!(matches!(
+    assert_eq!(
         boot_info.physical_memory_offset.into_option(),
-        Some(_)
-    ));
+        Some(0x0000_4000_0000_0000),
+    );
     assert_eq!(boot_info.recursive_index.into_option(), None);
 
     // check rsdp_addr
