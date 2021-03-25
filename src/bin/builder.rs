@@ -154,8 +154,7 @@ fn main() -> anyhow::Result<()> {
             })?;
 
         if let Some(out_dir) = &args.out_dir {
-            let efi_file =
-                out_dir.join(format!("bootimage-{}-{}.efi", executable_name, kernel_name));
+            let efi_file = out_dir.join(format!("boot-{}-{}.efi", executable_name, kernel_name));
             create_uefi_disk_image(&executable_path, &efi_file)
                 .context("failed to create UEFI disk image")?;
         }
@@ -208,7 +207,7 @@ fn main() -> anyhow::Result<()> {
         let mut output_bin_path = executable_path
             .parent()
             .unwrap()
-            .join(format!("bootimage-{}-{}.img", executable_name, kernel_name));
+            .join(format!("boot-{}-{}.img", executable_name, kernel_name));
 
         create_disk_image(&executable_path, &output_bin_path)
             .context("Failed to create bootable disk image")?;
