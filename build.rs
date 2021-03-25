@@ -255,7 +255,7 @@ mod binary {
                             let err = format!(
                                 "failed to parse bootloader config in {}:\n\n{}",
                                 path,
-                                err.to_string().escape_default()
+                                err.to_string()
                             );
                             quote! {
                                 compile_error!(#err)
