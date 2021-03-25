@@ -220,7 +220,7 @@ mod binary {
                     path
                 );
                 quote! {
-                    compile_error!(#err);
+                    compile_error!(#err)
                 }
             }
             Ok(path) => {
@@ -258,7 +258,7 @@ mod binary {
                                 err.to_string().escape_default()
                             );
                             quote! {
-                                compile_error!(#err);
+                                compile_error!(#err)
                             }
                         })
                 } else {
@@ -269,7 +269,7 @@ mod binary {
                         path
                     );
                     quote! {
-                        compile_error!(#err);
+                        compile_error!(#err)
                     }
                 }
             }
