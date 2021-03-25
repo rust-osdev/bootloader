@@ -40,6 +40,22 @@ but does not create any bootable disk images. To create them, two additional ste
     images should be placed. It is recommended to set `--target-dir` to the `target` folder of your
     kernel and `--out-dir` to the the parent folder of `--kernel-binary`.
 
+This will result in the following files, which are placed in the specified `--out-dir`:
+
+- A disk image suitable for BIOS booting, named `boot-bios-<kernel>.img`, where `<kernel>` is the
+  name of your kernel executable. This image can be started in QEMU or booted on a real machine
+  after burning it to an USB stick..
+- A disk image suitable for UEFI booting, named `boot-uefi-<kernel>.img`. Like the BIOS disk image,
+  this can be started in QEMU (requires OVMF) and burned to an USB stick to run it on a real
+  machine.
+- Intermediate UEFI files
+  - A FAT partition image named `boot-uefi-<kernel>.fat`, which can be directly started in QEMU
+    or written as an EFI system partition to a GPT-formatted disk.
+  - An EFI file named `boot-uefi-<kernel>.efi`. This executable is the combination of the
+    bootloader and kernel executables. It can be started in QEMU or used to construct a bootable
+    disk image: Create an EFI system partition formatted with the FAT filesystem and place the
+    EFI file under `efi\boot\bootx64.efi` on that filesystem.
+
 ## Configuration
 
 The bootloader can be configured through a `[package.metadata.bootloader]` table in the
