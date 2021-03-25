@@ -11,4 +11,4 @@ uart_16550 = "0.2.10"
 
 [package.metadata.bootloader]
 map-physical-memory = true
-physical-memory-offset = "0x0000_4000_0000_0000"
+physical-memory-offset = 0x0000_4000_0000_0000

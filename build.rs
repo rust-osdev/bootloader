@@ -9,6 +9,7 @@ fn main() {
 #[cfg(feature = "binary")]
 mod binary {
     use quote::quote;
+    use std::convert::TryInto;
 
     pub fn main() {
         use llvm_tools_build as llvm_tools;
@@ -394,8 +395,21 @@ mod binary {
             if num % 0x1000 == 0 {
                 Ok(AlignedAddress(num))
             } else {
-                Err(serde::de::Error::custom(format!("address {:#x} is not page aligned", num)))
+                Err(serde::de::Error::custom(format!(
+                    "address {:#x} is not page aligned",
+                    num
+                )))
             }
+        }
+
+        fn visit_i64<E>(self, num: i64) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            let unsigned: u64 = num
+                .try_into()
+                .map_err(|_| serde::de::Error::custom(format!("address {} is negative", num)))?;
+            self.visit_u64(unsigned)
         }
 
         fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
@@ -411,7 +425,10 @@ mod binary {
                 u64::from_str_radix(&value, 10)
             }
             .map_err(|_err| {
-                serde::de::Error::custom(format!("string \"{}\" is not a valid memory address", value))
+                serde::de::Error::custom(format!(
+                    "string \"{}\" is not a valid memory address",
+                    value
+                ))
             })?;
 
             self.visit_u64(num)
