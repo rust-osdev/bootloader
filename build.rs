@@ -394,10 +394,7 @@ mod binary {
             if num % 0x1000 == 0 {
                 Ok(AlignedAddress(num))
             } else {
-                Err(serde::de::Error::invalid_value(
-                    serde::de::Unexpected::Unsigned(num),
-                    &self,
-                ))
+                Err(serde::de::Error::custom(format!("address {:#x} is not page aligned", num)))
             }
         }
 
@@ -411,7 +408,7 @@ mod binary {
                 u64::from_str_radix(&value, 10)
             }
             .map_err(|_err| {
-                serde::de::Error::invalid_value(serde::de::Unexpected::Str(value), &self)
+                serde::de::Error::custom(format!("string \"{}\" is not a valid memory address", value))
             })?;
 
             self.visit_u64(num)
