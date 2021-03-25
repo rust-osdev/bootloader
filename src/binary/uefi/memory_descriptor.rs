@@ -1,4 +1,4 @@
-use crate::{binary::legacy_memory_region::LegacyMemoryRegion, memory_region::MemoryRegionKind};
+use crate::{binary::legacy_memory_region::LegacyMemoryRegion, boot_info::MemoryRegionKind};
 use uefi::table::boot::{MemoryDescriptor, MemoryType};
 use x86_64::PhysAddr;
 

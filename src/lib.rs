@@ -19,8 +19,6 @@ pub mod config;
 
 /// Contains the boot information struct sent by the bootloader to the kernel on startup.
 pub mod boot_info;
-/// Provides a memory region type that is used in the memory map of the boot info structure.
-pub mod memory_region;
 
 /// Contains the actual bootloader implementation ("bootloader as a binary").
 ///
