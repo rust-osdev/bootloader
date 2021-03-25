@@ -47,19 +47,3 @@ pub struct Config {
     /// Only considered if `map_framebuffer` is `true`.
     pub framebuffer_address: Option<u64>,
 }
-
-impl Default for Config {
-    fn default() -> Self {
-        Config {
-            map_physical_memory: false,
-            map_page_table_recursively: false,
-            map_framebuffer: true,
-            physical_memory_offset: None,
-            recursive_index: None,
-            kernel_stack_address: None,
-            kernel_stack_size: None,
-            boot_info_address: None,
-            framebuffer_address: None,
-        }
-    }
-}
