@@ -1,8 +1,0 @@
-[package]
-name = "example-kernel"
-version = "0.1.0"
-authors = ["Philipp Oppermann <dev@phil-opp.com>"]
-edition = "2018"
-
-[dependencies]
-x86_64 = "0.13.2"
