@@ -8,7 +8,7 @@ An experimental x86_64 bootloader that works on both BIOS and UEFI systems. Writ
 
 ## Requirements
 
-You need a nightly [Rust](https://www.rust-lang.org) compiler and [cargo xbuild](https://github.com/rust-osdev/cargo-xbuild). You also need the `llvm-tools-preview` component, which can be installed through `rustup component add llvm-tools-preview`.
+You need a nightly [Rust](https://www.rust-lang.org) compiler with the `llvm-tools-preview` component, which can be installed through `rustup component add llvm-tools-preview`.
 
 ## Usage
 
