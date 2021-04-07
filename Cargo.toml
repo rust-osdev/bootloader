@@ -78,10 +78,6 @@ lto = false
 debug = true
 overflow-checks = true
 
-[package.metadata.bootloader]
-target = "x86_64-bootloader.json"
-build-std = "core"
-
 [package.metadata.docs.rs]
 features = [ "recursive_page_table", "map_physical_memory" ]
 default-target = "x86_64-unknown-linux-gnu"
