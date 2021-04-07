@@ -12,7 +12,7 @@ You need a nightly [Rust](https://www.rust-lang.org) compiler with the `llvm-too
 
 ## Usage
 
-See our [documentation](https://docs.rs/bootloader).
+See our [documentation](https://docs.rs/bootloader). Note that the `bootimage` crate is no longer used since version 0.10.0.
 
 ## Architecture
 
