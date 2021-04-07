@@ -79,7 +79,6 @@ debug = true
 overflow-checks = true
 
 [package.metadata.docs.rs]
-features = [ "recursive_page_table", "map_physical_memory" ]
 default-target = "x86_64-unknown-linux-gnu"
 
 [package.metadata.release]

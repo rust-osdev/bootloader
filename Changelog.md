@@ -1,5 +1,7 @@
 # Unreleased
 
+- Fix docs.rs build: Don't enable any features
+
 # 0.10.0 – 2021-04-06
 
 - Rewrite for UEFI support ([#130](https://github.com/rust-osdev/bootloader/pull/130))
