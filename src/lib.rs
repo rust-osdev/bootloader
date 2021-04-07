@@ -104,7 +104,7 @@ compile_error!("This crate only supports the x86_64 architecture.");
 
 /// Defines the entry point function.
 ///
-/// The function must have the signature `fn(&'static BootInfo) -> !`.
+/// The function must have the signature `fn(&'static mut BootInfo) -> !`.
 ///
 /// This macro just creates a function named `_start`, which the linker will use as the entry
 /// point. The advantage of using this macro instead of providing an own `_start` function is

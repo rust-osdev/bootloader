@@ -8,7 +8,7 @@ use core::{ops, slice};
 /// ```
 /// # use bootloader::BootInfo;
 /// # type _SIGNATURE =
-/// extern "C" fn(boot_info: &'static BootInfo) -> !;
+/// extern "C" fn(boot_info: &'static mut BootInfo) -> !;
 /// ```
 ///
 /// Note that no type checking occurs for the entry point function, so be careful to
