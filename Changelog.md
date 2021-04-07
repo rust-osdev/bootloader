@@ -2,6 +2,9 @@
 
 # 0.10.0 – 2021-04-06
 
+- Rewrite for UEFI support ([#130](https://github.com/rust-osdev/bootloader/pull/130))
+  - Includes a new build process that no longer uses the `bootimage` crate. See the Readme for details. 
+
 # 0.9.16 – 2021-03-07
 
 - Replace all remaining `lea`s with `mov` + `offset` ([#140](https://github.com/rust-osdev/bootloader/pull/140))
