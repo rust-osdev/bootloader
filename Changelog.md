@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.10.1 – 2021-04-07
+
 - Fix docs.rs build: Don't enable any features
 
 # 0.10.0 – 2021-04-06
