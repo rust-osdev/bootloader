@@ -92,9 +92,13 @@ mod binary {
         let output = cmd.output().expect("failed to run llvm-size");
         let output_str = String::from_utf8_lossy(&output.stdout);
         let second_line_opt = output_str.lines().skip(1).next();
-        let second_line = second_line_opt.expect(&format!("unexpected llvm-size line output:\n{}", output_str));
+        let second_line = second_line_opt.expect(&format!(
+            "unexpected llvm-size line output:\n{}",
+            output_str
+        ));
         let text_size_opt = second_line.split_ascii_whitespace().next();
-        let text_size = text_size_opt.expect(&format!("unexpected llvm-size output:\n{}", output_str));
+        let text_size =
+            text_size_opt.expect(&format!("unexpected llvm-size output:\n{}", output_str));
         if text_size == "0" {
             panic!("Kernel executable has an empty text section. Perhaps the entry point was set incorrectly?\n\n\
             Kernel executable at `{}`\n", kernel.display());
