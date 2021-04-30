@@ -1,5 +1,7 @@
 # Unreleased
 
+- Use new `asm!` syntax instead of deprecated `llvm_asm!` ([#148](https://github.com/rust-osdev/bootloader/154))
+
 # 0.10.1 – 2021-04-07
 
 - Fix docs.rs build: Don't enable any features

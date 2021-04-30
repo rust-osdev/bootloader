@@ -1,6 +1,5 @@
 #![feature(lang_items)]
 #![feature(global_asm)]
-#![feature(llvm_asm)]
 #![feature(asm)]
 #![no_std]
 #![no_main]
@@ -51,8 +50,10 @@ extern "C" {
 #[no_mangle]
 pub unsafe extern "C" fn stage_4() -> ! {
     // Set stack segment
-    llvm_asm!("mov bx, 0x0
-          mov ss, bx" ::: "bx" : "intel");
+    asm!(
+        "mov bx, 0x0; mov ss, bx",
+        out("bx") _,
+    );
 
     let kernel_start = 0x400000;
     let kernel_size = &_kernel_size as *const _ as u64;
