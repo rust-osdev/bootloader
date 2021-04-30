@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.9.17 – 2021-04-30
+
 - Reduce the number of used unstable features of x86_64 crate (backport [#155](https://github.com/rust-osdev/bootloader/pull/140))
 
 # 0.9.16 – 2021-03-07
