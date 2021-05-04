@@ -51,8 +51,8 @@ extern "C" {
 pub unsafe extern "C" fn stage_4() -> ! {
     // Set stack segment
     asm!(
-        "mov bx, 0x0; mov ss, bx",
-        out("bx") _,
+        "mov ax, 0x0; mov ss, ax",
+        out("ax") _,
     );
 
     let kernel_start = 0x400000;
