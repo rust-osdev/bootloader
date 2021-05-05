@@ -1,5 +1,7 @@
 # Unreleased
 
+- Change register used in setting SS in stage_4 ([#156](https://github.com/rust-osdev/bootloader/pull/156))
+
 # 0.10.2 – 2021-04-30
 
 - Use new `asm!` syntax instead of deprecated `llvm_asm!` ([#148](https://github.com/rust-osdev/bootloader/154))
