@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.10.3 – 2021-05-05
+
 - Change register used in setting SS in stage_4 ([#156](https://github.com/rust-osdev/bootloader/pull/156))
 
 # 0.10.2 – 2021-04-30
