@@ -262,7 +262,7 @@ pub fn create_boot_info<I, D>(
     page_tables: &mut PageTables,
     mappings: &mut Mappings,
     system_info: SystemInfo,
-) -> (&'static mut BootInfo, TwoFrames)
+) -> (&'static mut BootInfo, ReservedFrames)
 where
     I: ExactSizeIterator<Item = D> + Clone,
     D: LegacyMemoryRegion,
@@ -311,7 +311,7 @@ where
     };
 
     // reserve two unused frames for context switch
-    let two_frames = TwoFrames::new(&mut frame_allocator);
+    let two_frames = ReservedFrames::new(&mut frame_allocator);
 
     log::info!("Create Memory Map");
 
@@ -349,7 +349,7 @@ pub fn switch_to_kernel(
     page_tables: PageTables,
     mappings: Mappings,
     boot_info: &'static mut BootInfo,
-    two_frames: TwoFrames,
+    two_frames: ReservedFrames,
 ) -> ! {
     let PageTables {
         kernel_level_4_frame,
@@ -392,7 +392,7 @@ pub struct PageTables {
 /// This function uses the given `frame_allocator` to identity map itself in the kernel-level
 /// page table. This is required to avoid a page fault after the context switch. Since this
 /// function is relatively small, only up to two physical frames are required from the frame
-/// allocator, so the [`TwoFrames`] type can be used here.
+/// allocator, so the [`ReservedFrames`] type can be used here.
 unsafe fn context_switch(
     addresses: Addresses,
     mut kernel_page_table: OffsetPageTable,
@@ -434,23 +434,24 @@ struct Addresses {
     boot_info: &'static mut crate::boot_info::BootInfo,
 }
 
-/// Used for reversing two physical frames for identity mapping the context switch function.
+/// Used for reversing three physical frames for identity mapping the context switch function.
 ///
 /// In order to prevent a page fault, the context switch function must be mapped identically in
 /// both address spaces. The context switch function is small, so this mapping requires only
-/// two physical frames (one frame is not enough because the linker might place the function
+/// three physical frames (one frame is not enough because the linker might place the function
 /// directly before a page boundary). Since the frame allocator no longer exists when the
-/// context switch function is invoked, we use this type to reserve two physical frames
+/// context switch function is invoked, we use this type to reserve three physical frames
 /// beforehand.
-pub struct TwoFrames {
-    frames: [Option<PhysFrame>; 2],
+pub struct ReservedFrames {
+    frames: [Option<PhysFrame>; 3],
 }
 
-impl TwoFrames {
-    /// Creates a new instance by allocating two physical frames from the given frame allocator.
+impl ReservedFrames {
+    /// Creates a new instance by allocating three physical frames from the given frame allocator.
     pub fn new(frame_allocator: &mut impl FrameAllocator<Size4KiB>) -> Self {
-        TwoFrames {
+        ReservedFrames {
             frames: [
+                Some(frame_allocator.allocate_frame().unwrap()),
                 Some(frame_allocator.allocate_frame().unwrap()),
                 Some(frame_allocator.allocate_frame().unwrap()),
             ],
@@ -458,7 +459,7 @@ impl TwoFrames {
     }
 }
 
-unsafe impl FrameAllocator<Size4KiB> for TwoFrames {
+unsafe impl FrameAllocator<Size4KiB> for ReservedFrames {
     fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KiB>> {
         self.frames.iter_mut().find_map(|f| f.take())
     }
