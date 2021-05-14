@@ -10,10 +10,9 @@ use level_4_entries::UsedLevel4Entries;
 use parsed_config::CONFIG;
 use usize_conversions::FromUsize;
 use x86_64::{
-    registers,
     structures::paging::{
         FrameAllocator, Mapper, OffsetPageTable, Page, PageTableFlags, PageTableIndex, PhysFrame,
-        Size2MiB, Size4KiB,
+        Size2MiB,
     },
     PhysAddr, VirtAddr,
 };
@@ -90,13 +89,13 @@ where
         system_info.framebuffer_addr,
         system_info.framebuffer_info.byte_len,
     );
-    let (boot_info, two_frames) = create_boot_info(
+    let boot_info = create_boot_info(
         frame_allocator,
         &mut page_tables,
         &mut mappings,
         system_info,
     );
-    switch_to_kernel(page_tables, mappings, boot_info, two_frames);
+    switch_to_kernel(page_tables, mappings, boot_info);
 }
 
 /// Sets up mappings for a kernel stack and the framebuffer.
@@ -149,6 +148,20 @@ where
             .expect("frame allocation failed when mapping a kernel stack");
         let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
         unsafe { kernel_page_table.map_to(page, frame, flags, frame_allocator) }
+            .unwrap()
+            .flush();
+    }
+
+    // identity-map context switch function, so that we don't get an immediate pagefault
+    // after switching the active page table
+    let context_switch_function = PhysAddr::new(context_switch as *const () as u64);
+    let context_switch_function_start_frame: PhysFrame =
+        PhysFrame::containing_address(context_switch_function);
+    for frame in PhysFrame::range_inclusive(
+        context_switch_function_start_frame,
+        context_switch_function_start_frame + 1,
+    ) {
+        unsafe { kernel_page_table.identity_map(frame, PageTableFlags::PRESENT, frame_allocator) }
             .unwrap()
             .flush();
     }
@@ -262,7 +275,7 @@ pub fn create_boot_info<I, D>(
     page_tables: &mut PageTables,
     mappings: &mut Mappings,
     system_info: SystemInfo,
-) -> (&'static mut BootInfo, TwoFrames)
+) -> &'static mut BootInfo
 where
     I: ExactSizeIterator<Item = D> + Clone,
     D: LegacyMemoryRegion,
@@ -310,9 +323,6 @@ where
         (boot_info, memory_regions)
     };
 
-    // reserve two unused frames for context switch
-    let two_frames = TwoFrames::new(&mut frame_allocator);
-
     log::info!("Create Memory Map");
 
     // build memory map
@@ -341,7 +351,7 @@ where
         tls_template: mappings.tls_template.into(),
     });
 
-    (boot_info, two_frames)
+    boot_info
 }
 
 /// Switches to the kernel address space and jumps to the kernel entry point.
@@ -349,11 +359,9 @@ pub fn switch_to_kernel(
     page_tables: PageTables,
     mappings: Mappings,
     boot_info: &'static mut BootInfo,
-    two_frames: TwoFrames,
 ) -> ! {
     let PageTables {
         kernel_level_4_frame,
-        kernel: kernel_page_table,
         ..
     } = page_tables;
     let addresses = Addresses {
@@ -369,7 +377,7 @@ pub fn switch_to_kernel(
     );
 
     unsafe {
-        context_switch(addresses, kernel_page_table, two_frames);
+        context_switch(addresses);
     }
 }
 
@@ -388,32 +396,7 @@ pub struct PageTables {
 }
 
 /// Performs the actual context switch.
-///
-/// This function uses the given `frame_allocator` to identity map itself in the kernel-level
-/// page table. This is required to avoid a page fault after the context switch. Since this
-/// function is relatively small, only up to two physical frames are required from the frame
-/// allocator, so the [`TwoFrames`] type can be used here.
-unsafe fn context_switch(
-    addresses: Addresses,
-    mut kernel_page_table: OffsetPageTable,
-    mut frame_allocator: impl FrameAllocator<Size4KiB>,
-) -> ! {
-    // identity-map current and next frame, so that we don't get an immediate pagefault
-    // after switching the active page table
-    let current_addr = PhysAddr::new(registers::read_rip().as_u64());
-    let current_frame: PhysFrame = PhysFrame::containing_address(current_addr);
-    for frame in PhysFrame::range_inclusive(current_frame, current_frame + 1) {
-        unsafe {
-            kernel_page_table.identity_map(frame, PageTableFlags::PRESENT, &mut frame_allocator)
-        }
-        .unwrap()
-        .flush();
-    }
-
-    // we don't need the kernel page table anymore
-    mem::drop(kernel_page_table);
-
-    // do the context switch
+unsafe fn context_switch(addresses: Addresses) -> ! {
     unsafe {
         asm!(
             "mov cr3, {}; mov rsp, {}; push 0; jmp {}",
@@ -432,36 +415,6 @@ struct Addresses {
     stack_top: VirtAddr,
     entry_point: VirtAddr,
     boot_info: &'static mut crate::boot_info::BootInfo,
-}
-
-/// Used for reversing two physical frames for identity mapping the context switch function.
-///
-/// In order to prevent a page fault, the context switch function must be mapped identically in
-/// both address spaces. The context switch function is small, so this mapping requires only
-/// two physical frames (one frame is not enough because the linker might place the function
-/// directly before a page boundary). Since the frame allocator no longer exists when the
-/// context switch function is invoked, we use this type to reserve two physical frames
-/// beforehand.
-pub struct TwoFrames {
-    frames: [Option<PhysFrame>; 2],
-}
-
-impl TwoFrames {
-    /// Creates a new instance by allocating two physical frames from the given frame allocator.
-    pub fn new(frame_allocator: &mut impl FrameAllocator<Size4KiB>) -> Self {
-        TwoFrames {
-            frames: [
-                Some(frame_allocator.allocate_frame().unwrap()),
-                Some(frame_allocator.allocate_frame().unwrap()),
-            ],
-        }
-    }
-}
-
-unsafe impl FrameAllocator<Size4KiB> for TwoFrames {
-    fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KiB>> {
-        self.frames.iter_mut().find_map(|f| f.take())
-    }
 }
 
 fn boot_info_location(used_entries: &mut UsedLevel4Entries) -> VirtAddr {

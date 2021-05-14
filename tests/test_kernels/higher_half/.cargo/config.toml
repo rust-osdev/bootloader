@@ -1,0 +1,10 @@
+[unstable]
+# TODO: Uncomment once https://github.com/rust-lang/cargo/issues/8643 is merged
+# build-std = ["core"]
+
+[build]
+# TODO: Uncomment once https://github.com/rust-lang/cargo/issues/8643 is merged
+# target = "x86_64-example-kernel.json"
+
+[target.'cfg(target_os = "none")']
+runner = "cargo run --manifest-path ../../runner/Cargo.toml"

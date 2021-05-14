@@ -13,6 +13,7 @@ members = [
     "tests/runner",
     "tests/test_kernels/default_settings",
     "tests/test_kernels/map_phys_mem",
+    "tests/test_kernels/higher_half",
 ]
 
 [[bin]]

@@ -367,6 +367,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "test_kernel_higher_half"
+version = "0.1.0"
+dependencies = [
+ "bootloader",
+ "uart_16550",
+ "x86_64 0.13.6",
+]
+
+[[package]]
 name = "test_kernel_map_phys_mem"
 version = "0.1.0"
 dependencies = [
