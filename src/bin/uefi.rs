@@ -154,8 +154,8 @@ fn init_logger(st: &SystemTable<Boot>) -> (PhysAddr, FrameBufferInfo) {
         horizontal_resolution: mode_info.resolution().0,
         vertical_resolution: mode_info.resolution().1,
         pixel_format: match mode_info.pixel_format() {
-            PixelFormat::RGB => bootloader::boot_info::PixelFormat::BGR,
-            PixelFormat::BGR => bootloader::boot_info::PixelFormat::BGR,
+            PixelFormat::Rgb => bootloader::boot_info::PixelFormat::BGR,
+            PixelFormat::Bgr => bootloader::boot_info::PixelFormat::BGR,
             PixelFormat::Bitmask | PixelFormat::BltOnly => {
                 panic!("Bitmask and BltOnly framebuffers are not supported")
             }

@@ -1,5 +1,7 @@
 # Unreleased
 
+- Fix build on latest Rust nightly by updating to `uefi` v0.9.0 ([#162](https://github.com/rust-osdev/bootloader/pull/162))
+
 # 0.10.3 – 2021-05-05
 
 - Change register used in setting SS in stage_4 ([#156](https://github.com/rust-osdev/bootloader/pull/156))
