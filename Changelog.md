@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.10.4 – 2021-05-14
+
 - Fix build on latest Rust nightly by updating to `uefi` v0.9.0 ([#162](https://github.com/rust-osdev/bootloader/pull/162))
 - Fix higher half kernels by identity mapping context switch fn earlier ([#161](https://github.com/rust-osdev/bootloader/pull/161))
   - Also: improve reporting of mapping errors
