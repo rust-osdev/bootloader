@@ -147,9 +147,10 @@ where
             .allocate_frame()
             .expect("frame allocation failed when mapping a kernel stack");
         let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
-        unsafe { kernel_page_table.map_to(page, frame, flags, frame_allocator) }
-            .unwrap()
-            .flush();
+        match unsafe { kernel_page_table.map_to(page, frame, flags, frame_allocator) } {
+            Ok(tlb) => tlb.flush(),
+            Err(err) => panic!("failed to map page {:?}: {:?}", page, err),
+        }
     }
 
     // identity-map context switch function, so that we don't get an immediate pagefault
@@ -161,9 +162,12 @@ where
         context_switch_function_start_frame,
         context_switch_function_start_frame + 1,
     ) {
-        unsafe { kernel_page_table.identity_map(frame, PageTableFlags::PRESENT, frame_allocator) }
-            .unwrap()
-            .flush();
+        match unsafe {
+            kernel_page_table.identity_map(frame, PageTableFlags::PRESENT, frame_allocator)
+        } {
+            Ok(tlb) => tlb.flush(),
+            Err(err) => panic!("failed to identity map frame {:?}: {:?}", frame, err),
+        }
     }
 
     // map framebuffer
@@ -179,9 +183,13 @@ where
         {
             let page = start_page + u64::from_usize(i);
             let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
-            unsafe { kernel_page_table.map_to(page, frame, flags, frame_allocator) }
-                .unwrap()
-                .flush();
+            match unsafe { kernel_page_table.map_to(page, frame, flags, frame_allocator) } {
+                Ok(tlb) => tlb.flush(),
+                Err(err) => panic!(
+                    "failed to map page {:?} to frame {:?}: {:?}",
+                    page, frame, err
+                ),
+            }
         }
         let framebuffer_virt_addr = start_page.start_address();
         Some(framebuffer_virt_addr)
@@ -202,9 +210,13 @@ where
         for frame in PhysFrame::range_inclusive(start_frame, end_frame) {
             let page = Page::containing_address(offset + frame.start_address().as_u64());
             let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
-            unsafe { kernel_page_table.map_to(page, frame, flags, frame_allocator) }
-                .unwrap()
-                .ignore();
+            match unsafe { kernel_page_table.map_to(page, frame, flags, frame_allocator) } {
+                Ok(tlb) => tlb.ignore(),
+                Err(err) => panic!(
+                    "failed to map page {:?} to frame {:?}: {:?}",
+                    page, frame, err
+                ),
+            };
         }
 
         Some(offset)
@@ -299,21 +311,23 @@ where
             let frame = frame_allocator
                 .allocate_frame()
                 .expect("frame allocation for boot info failed");
-            unsafe {
+            match unsafe {
                 page_tables
                     .kernel
                     .map_to(page, frame, flags, &mut frame_allocator)
+            } {
+                Ok(tlb) => tlb.flush(),
+                Err(err) => panic!("failed to map page {:?}: {:?}", page, err),
             }
-            .unwrap()
-            .flush();
             // we need to be able to access it too
-            unsafe {
+            match unsafe {
                 page_tables
                     .bootloader
                     .map_to(page, frame, flags, &mut frame_allocator)
+            } {
+                Ok(tlb) => tlb.flush(),
+                Err(err) => panic!("failed to map page {:?}: {:?}", page, err),
             }
-            .unwrap()
-            .flush();
         }
 
         let boot_info: &'static mut MaybeUninit<BootInfo> =
