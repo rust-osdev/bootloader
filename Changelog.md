@@ -1,3 +1,90 @@
+# Unreleased
+
+# 0.10.4 – 2021-05-14
+
+- Fix build on latest Rust nightly by updating to `uefi` v0.9.0 ([#162](https://github.com/rust-osdev/bootloader/pull/162))
+- Fix higher half kernels by identity mapping context switch fn earlier ([#161](https://github.com/rust-osdev/bootloader/pull/161))
+  - Also: improve reporting of mapping errors
+
+# 0.10.3 – 2021-05-05
+
+- Change register used in setting SS in stage_4 ([#156](https://github.com/rust-osdev/bootloader/pull/156))
+
+# 0.10.2 – 2021-04-30
+
+- Use new `asm!` syntax instead of deprecated `llvm_asm!` ([#148](https://github.com/rust-osdev/bootloader/154))
+- Reduce the number of used unstable features of x86_64 crate ([#155](https://github.com/rust-osdev/bootloader/pull/155))
+
+# 0.10.1 – 2021-04-07
+
+- Fix docs.rs build: Don't enable any features
+
+# 0.10.0 – 2021-04-06
+
+- Rewrite for UEFI support ([#130](https://github.com/rust-osdev/bootloader/pull/130))
+  - Includes a new build process that no longer uses the `bootimage` crate. See the Readme for details. 
+
+# 0.9.17 _(backport)_ – 2021-04-30
+
+- Reduce the number of used unstable features of x86_64 crate (backport [#155](https://github.com/rust-osdev/bootloader/pull/140))
+
+# 0.9.16 – 2021-03-07
+
+- Replace all remaining `lea`s with `mov` + `offset` ([#140](https://github.com/rust-osdev/bootloader/pull/140))
+
+# 0.9.15 – 2021-03-07
+
+- Fix linker errors on latest nightlies ([#139](https://github.com/rust-osdev/bootloader/pull/139))
+
+# 0.9.14 – 2021-02-24
+
+- Fix "panic message is not a string literal" warning ([#138](https://github.com/rust-osdev/bootloader/pull/138))
+
+# 0.9.13 – 2021-02-24
+
+(accidental release)
+
+# 0.9.12 – 2021-02-02
+
+- Fix build on latest nightly by updating x86_64 to v0.13.2 ([#135](https://github.com/rust-osdev/bootloader/pull/135))
+
+# 0.9.11 – 2020-09-29
+
+- Update `Cargo.lock` to fix nightly breakage ([#129](https://github.com/rust-osdev/bootloader/pull/129))
+
+# 0.9.10 – 2020-09-24
+
+- Update `x86_64` again to version 0.12.1 to fix `const fn`-related build errors on latest nightly
+
+# 0.9.9 – 2020-09-20
+
+- Run `cargo update` to fix build errors of `x86_64` on latest nightly
+
+# 0.9.8 – 2020-07-17
+
+- Enable rlibc dependency only with `binary` feature ([#126](https://github.com/rust-osdev/bootloader/pull/126))
+
+# 0.9.7 – 2020-07-17
+
+- Make bootloader buildable with `-Zbuild-std` ([#125](https://github.com/rust-osdev/bootloader/pull/125))
+
+# 0.9.6 – 2020-07-16
+
+- Change 1st stage int 13h addressing ([#123](https://github.com/rust-osdev/bootloader/pull/123))
+
+# 0.9.5
+
+- Fix warning by renaming `_improper_ctypes_check` functions ([#122](https://github.com/rust-osdev/bootloader/pull/122))
+
+# 0.9.4
+
+- Add recursive_idx for boot info ([#116](https://github.com/rust-osdev/bootloader/pull/116))
+- Remove unused feature gates ([#118](https://github.com/rust-osdev/bootloader/pull/118))
+
+# 0.9.3
+
+- Update x86_64 dependency to version 0.11.0 ([#117](https://github.com/rust-osdev/bootloader/pull/117))
+
 # 0.9.2
 
 - **Nightly Breakage:** Use `llvm_asm!` instead of deprecated `asm!` ([#108](https://github.com/rust-osdev/bootloader/pull/108))

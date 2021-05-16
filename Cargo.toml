@@ -1,41 +1,74 @@
 [package]
 name = "bootloader"
-version = "0.9.2"
+version = "0.10.4"
 authors = ["Philipp Oppermann <dev@phil-opp.com>"]
 license = "MIT/Apache-2.0"
-description = "An experimental pure-Rust x86 bootloader."
+description = "An experimental x86_64 bootloader that works on both BIOS and UEFI systems."
 repository = "https://github.com/rust-osdev/bootloader"
 edition = "2018"
 build = "build.rs"
 
+[workspace]
+members = [
+    "tests/runner",
+    "tests/test_kernels/default_settings",
+    "tests/test_kernels/map_phys_mem",
+    "tests/test_kernels/higher_half",
+]
+
 [[bin]]
-name = "bootloader"
-required-features = ["binary"]
+name = "builder"
+required-features = ["builder"]
+
+[[bin]]
+name = "bios"
+required-features = ["bios_bin"]
+
+[[bin]]
+name = "uefi"
+required-features = ["uefi_bin"]
 
 [dependencies]
 xmas-elf = { version = "0.6.2", optional = true }
-x86_64 = { version = "0.8.3", optional = true }
+x86_64 = { version = "0.13.2", optional = true, default-features = false, features = ["instructions", "inline_asm"] }
 usize_conversions = { version = "0.2.0", optional = true }
-fixedvec = { version = "0.2.4", optional = true }
 bit_field = { version = "0.10.0", optional = true }
+log = { version = "0.4.8", optional = true }
+uefi = { version = "0.9.0", optional = true }
+argh = { version = "0.1.3", optional = true }
+displaydoc = { version = "0.1.7", optional = true }
+conquer-once = { version = "0.2.1", optional = true, default-features = false }
+spinning_top = { version = "0.2.1", optional = true }
+anyhow = { version = "1.0.32", optional = true }
+llvm-tools = { version = "0.1.1", optional = true }
+thiserror = { version = "1.0.20", optional = true }
+json = { version = "0.12.4", optional = true }
+rsdp = { version = "1.0.0", optional = true }
+fatfs = { version = "0.3.4", optional = true }
+gpt = { version = "2.0.0", optional = true }
 
 [dependencies.font8x8]
-version = "0.2.4"
+version = "0.2.5"
 default-features = false
 features = ["unicode"]
 optional = true
 
 [build-dependencies]
-llvm-tools = { version = "0.1", optional = true }
+llvm-tools-build = { version = "0.1", optional = true, package = "llvm-tools" }
 toml = { version = "0.5.1", optional = true }
+serde = { version = "1.0", features = ["derive"], optional = true}
+quote = { version = "1.0", optional = true}
+proc-macro2 = { version = "1.0", optional = true}
 
 [features]
 default = []
-binary = ["xmas-elf", "x86_64", "usize_conversions", "fixedvec", "llvm-tools", "toml"]
-vga_320x200 = ["font8x8"]
-recursive_page_table = []
-map_physical_memory = []
-sse = ["bit_field"]
+builder = ["argh", "thiserror", "displaydoc", "anyhow", "llvm-tools", "json", "fatfs", "gpt"]
+bios_bin = ["binary", "rsdp"]
+uefi_bin = ["binary", "uefi"]
+binary = [
+    "llvm-tools-build", "x86_64", "toml", "xmas-elf", "usize_conversions", "log", "conquer-once",
+    "spinning_top", "serde", "font8x8", "quote", "proc-macro2",
+]
 
 [profile.dev]
 panic = "abort"
@@ -44,10 +77,15 @@ panic = "abort"
 panic = "abort"
 lto = false
 debug = true
-
-[package.metadata.bootloader]
-target = "x86_64-bootloader.json"
+overflow-checks = true
 
 [package.metadata.docs.rs]
-features = [ "recursive_page_table", "map_physical_memory" ]
 default-target = "x86_64-unknown-linux-gnu"
+
+[package.metadata.release]
+no-dev-version = true
+pre-release-replacements = [
+    { file="Changelog.md", search="# Unreleased", replace="# Unreleased\n\n# {{version}} – {{date}}", exactly=1 },
+]
+pre-release-commit-message = "Release version {{version}}"
+disable-publish = true
