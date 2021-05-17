@@ -15,6 +15,10 @@ members = [
     "tests/test_kernels/map_phys_mem",
     "tests/test_kernels/higher_half",
 ]
+exclude = [
+    "examples/basic",
+    "examples/test_framework",
+]
 
 [[bin]]
 name = "builder"
