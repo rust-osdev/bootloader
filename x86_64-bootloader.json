@@ -5,9 +5,9 @@
     "linker": "rust-lld",
     "pre-link-args": {
         "ld.lld": [
-	        "--script=linker.ld",
+            "--script=linker.ld",
             "--gc-sections"
-	    ]
+        ]
     },
     "target-endian": "little",
     "target-pointer-width": "64",
