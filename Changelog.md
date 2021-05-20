@@ -1,5 +1,7 @@
 # Unreleased
 
+- Fix nightly regression by manually passing --gc-sections ([#168](https://github.com/rust-osdev/bootloader/pull/168))
+
 # 0.9.17 – 2021-04-30
 
 - Reduce the number of used unstable features of x86_64 crate (backport [#155](https://github.com/rust-osdev/bootloader/pull/140))
