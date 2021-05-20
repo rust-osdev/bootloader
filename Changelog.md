@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.9.18 – 2021-05-20
+
 - Fix nightly regression by manually passing --gc-sections ([#168](https://github.com/rust-osdev/bootloader/pull/168))
 
 # 0.9.17 – 2021-04-30
