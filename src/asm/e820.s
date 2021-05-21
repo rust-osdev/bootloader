@@ -1,5 +1,4 @@
 .section .boot, "awx"
-.intel_syntax noprefix
 .code16
 
 # From http://wiki.osdev.org/Detecting_Memory_(x86)#Getting_an_E820_Memory_Map
