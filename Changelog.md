@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.10.5 – 2021-05-21
+
 - Fix build on latest Rust nightlies by updating `uefi-rs` dependency ([#170](https://github.com/rust-osdev/bootloader/pull/170))
   - Also: Fix warnings about `.intel_syntax` attribute in assembly code
 
