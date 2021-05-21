@@ -1,5 +1,4 @@
 .section .boot, "awx"
-.intel_syntax noprefix
 .code32
 
 # This stage performs some checks on the CPU (cpuid, long mode), sets up an

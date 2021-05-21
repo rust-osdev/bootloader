@@ -3,7 +3,6 @@
 # Copyright (c) 2017 Redox OS, licensed under MIT License
 
 .section .boot, "awx"
-.intel_syntax noprefix
 .code16
 
 vesa:
