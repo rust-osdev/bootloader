@@ -69,6 +69,14 @@ jobs:
         with:
           command: test
 
+      - name: "Example: `basic`"
+        working-directory: examples/basic
+        run: cargo kimage
+
+      - name: "Example: `test_framework` example"
+        working-directory: examples/test_framework
+        run: cargo ktest
+
   fmt:
     name: Check Formatting
     runs-on: ubuntu-latest

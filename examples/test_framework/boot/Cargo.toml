@@ -1,0 +1,12 @@
+[package]
+name = "boot"
+version = "0.1.0"
+authors = ["Philipp Oppermann <dev@phil-opp.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bootloader-locator = "0.0.4" # for locating the `bootloader` dependency on disk
+runner-utils = "0.0.2" # small helper functions for custom runners (e.g. timeouts)
+locate-cargo-manifest = "0.2.0" # for locating the kernel's `Cargo.toml`

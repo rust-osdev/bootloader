@@ -56,6 +56,8 @@ This will result in the following files, which are placed in the specified `--ou
     disk image: Create an EFI system partition formatted with the FAT filesystem and place the
     EFI file under `efi\boot\bootx64.efi` on that filesystem.
 
+**You can find some examples that implement the above steps [in our GitHub repo](https://github.com/rust-osdev/bootloader/tree/main/examples).**
+
 ## Configuration
 
 The bootloader can be configured through a `[package.metadata.bootloader]` table in the
