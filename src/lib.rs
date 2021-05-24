@@ -95,13 +95,17 @@ pub mod binary;
 #[cfg(feature = "builder")]
 pub mod disk_image;
 
-#[cfg(target_arch = "x86")]
+#[cfg(all(target_arch = "x86", not(feature = "builder")))]
 compile_error!(
     "This crate currently does not support 32-bit protected mode. \
          See https://github.com/rust-osdev/bootloader/issues/70 for more information."
 );
 
-#[cfg(not(any(target_arch = "x86_64", target_arch = "x86")))]
+#[cfg(all(
+    not(target_arch = "x86_64"),
+    not(target_arch = "x86"),
+    not(feature = "builder")
+))]
 compile_error!("This crate only supports the x86_64 architecture.");
 
 /// Defines the entry point function.
