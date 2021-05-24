@@ -61,7 +61,7 @@ fn efi_main(image: Handle, st: SystemTable<Boot>) -> Status {
             let mut config_entries = system_table.config_table().iter();
             // look for an ACPI2 RSDP first
             let acpi2_rsdp = config_entries.find(|entry| matches!(entry.guid, cfg::ACPI2_GUID));
-            // if no ACPI2 RSDP is found, look for a ACPI RSDP
+            // if no ACPI2 RSDP is found, look for a ACPI1 RSDP
             let rsdp = acpi2_rsdp
                 .or_else(|| config_entries.find(|entry| matches!(entry.guid, cfg::ACPI_GUID)));
             rsdp.map(|entry| PhysAddr::new(entry.address as u64));
