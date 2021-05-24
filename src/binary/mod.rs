@@ -24,6 +24,7 @@ pub mod bios;
 #[cfg(feature = "uefi_bin")]
 mod uefi;
 
+mod gdt;
 /// Provides a frame allocator based on a BIOS or UEFI memory map.
 pub mod legacy_memory_region;
 /// Provides a type to keep track of used entries in a level 4 page table.
@@ -168,6 +169,18 @@ where
             Ok(tlb) => tlb.flush(),
             Err(err) => panic!("failed to identity map frame {:?}: {:?}", frame, err),
         }
+    }
+
+    // create, load, and identity-map GDT (required for working `iretq`)
+    let gdt_frame = frame_allocator
+        .allocate_frame()
+        .expect("failed to allocate GDT frame");
+    gdt::create_and_load(gdt_frame);
+    match unsafe {
+        kernel_page_table.identity_map(gdt_frame, PageTableFlags::PRESENT, frame_allocator)
+    } {
+        Ok(tlb) => tlb.flush(),
+        Err(err) => panic!("failed to identity map frame {:?}: {:?}", gdt_frame, err),
     }
 
     // map framebuffer
