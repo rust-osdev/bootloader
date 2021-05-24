@@ -2,6 +2,7 @@
 
 - Identity-map GDT into kernel address space to fix `iretq` ([#175](https://github.com/rust-osdev/bootloader/pull/175))
 - Uefi: Look for an ACPI2 RSDP first ([#174](https://github.com/rust-osdev/bootloader/pull/174))
+- Don't check target architecture for builder crate to support cross-compiling ([#176](https://github.com/rust-osdev/bootloader/pull/176))
 
 # 0.10.5 – 2021-05-21
 
