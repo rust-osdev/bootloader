@@ -1,5 +1,7 @@
 # Unreleased
 
+- Uefi: Look for an ACPI2 RSDP first ([#174](https://github.com/rust-osdev/bootloader/pull/174))
+
 # 0.10.5 – 2021-05-21
 
 - Fix build on latest Rust nightlies by updating `uefi-rs` dependency ([#170](https://github.com/rust-osdev/bootloader/pull/170))
