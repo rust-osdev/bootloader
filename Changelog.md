@@ -1,5 +1,6 @@
 # Unreleased
 
+- Identity-map GDT into kernel address space to fix `iretq` ([#175](https://github.com/rust-osdev/bootloader/pull/175))
 - Uefi: Look for an ACPI2 RSDP first ([#174](https://github.com/rust-osdev/bootloader/pull/174))
 
 # 0.10.5 – 2021-05-21
