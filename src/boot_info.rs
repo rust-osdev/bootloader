@@ -36,6 +36,9 @@ pub struct BootInfo {
     /// the memory map before passing it to the kernel. Regions marked as usable can be freely
     /// used by the kernel.
     pub memory_regions: MemoryRegions,
+    /// Information about the kernel specific allocations that the bootloader provided
+    /// for the kernel.
+    pub kernel_info: KernelInfo,
     /// Information about the framebuffer for screen output if available.
     pub framebuffer: Optional<FrameBuffer>,
     /// The virtual address at which the mapping of the physical memory starts.
@@ -147,6 +150,25 @@ pub enum MemoryRegionKind {
     ///
     /// This should only be used if the BIOS memory type is known as usable.
     UnknownBios(u32),
+}
+
+/// Information about the kernel specific allocations that the bootloader provided
+/// for the kernel.
+#[derive(Debug, Copy, Clone)]
+#[repr(C)]
+pub struct KernelInfo {
+    /// The base address of the kernel. The kernel base is helpful
+    /// for stack unwinding during kernel panics.
+    pub kernel_base: u64,
+    /// The size of the kernel, required to calculate the end of the
+    /// kernel base.
+    pub kernel_size: u64,
+
+    /// The start address of the stack allocated for the kernel.
+    pub stack_top: u64,
+    /// The size of the stack allocated for the kernel, required to calculate
+    /// the end of the kernel stack.
+    pub stack_size: u64,
 }
 
 /// A pixel-based framebuffer that controls the screen output.
