@@ -1,6 +1,6 @@
 use crate::{
     binary::legacy_memory_region::{LegacyFrameAllocator, LegacyMemoryRegion},
-    boot_info::{BootInfo, FrameBuffer, FrameBufferInfo, MemoryRegion, TlsTemplate},
+    boot_info::{BootInfo, FrameBuffer, FrameBufferInfo, KernelInfo, MemoryRegion, TlsTemplate},
 };
 use core::{
     mem::{self, MaybeUninit},
@@ -139,8 +139,9 @@ where
     // create a stack
     let stack_start_addr = kernel_stack_start_location(&mut used_entries);
     let stack_start: Page = Page::containing_address(stack_start_addr);
+    let stack_size = CONFIG.kernel_stack_size.unwrap_or(20 * PAGE_SIZE);
     let stack_end = {
-        let end_addr = stack_start_addr + CONFIG.kernel_stack_size.unwrap_or(20 * PAGE_SIZE);
+        let end_addr = stack_start_addr + stack_size;
         Page::containing_address(end_addr - 1u64)
     };
     for page in Page::range_inclusive(stack_start, stack_end) {
@@ -259,6 +260,13 @@ where
         None
     };
 
+    let kernel_info = KernelInfo {
+        kernel_base: kernel_bytes.as_ptr() as u64,
+        kernel_size: kernel_bytes.len() as u64,
+        stack_top: stack_end.start_address().as_u64(),
+        stack_size,
+    };
+
     Mappings {
         framebuffer: framebuffer_virt_addr,
         entry_point,
@@ -267,6 +275,7 @@ where
         physical_memory_offset,
         recursive_index,
         tls_template,
+        kernel_info,
     }
 }
 
@@ -287,6 +296,8 @@ pub struct Mappings {
     pub recursive_index: Option<PageTableIndex>,
     /// The thread local storage template of the kernel executable, if it contains one.
     pub tls_template: Option<TlsTemplate>,
+    /// The information about kernel specific mappings.
+    pub kernel_info: KernelInfo,
 }
 
 /// Allocates and initializes the boot info struct and the memory map.
@@ -372,6 +383,7 @@ where
                 info: system_info.framebuffer_info,
             })
             .into(),
+        kernel_info: mappings.kernel_info,
         physical_memory_offset: mappings.physical_memory_offset.map(VirtAddr::as_u64).into(),
         recursive_index: mappings.recursive_index.map(Into::into).into(),
         rsdp_addr: system_info.rsdp_addr.map(|addr| addr.as_u64()).into(),
