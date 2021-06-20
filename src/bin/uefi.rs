@@ -7,6 +7,8 @@
 
 // Defines the constants `KERNEL_BYTES` (array of `u8`) and `KERNEL_SIZE` (`usize`).
 include!(concat!(env!("OUT_DIR"), "/kernel_info.rs"));
+// Contains the bootloader configuration specified by the kernel crate (needed for GOP configuration)
+include!(concat!(env!("OUT_DIR"), "/kernel_bootloader_config.rs"));
 
 static KERNEL: PageAligned<[u8; KERNEL_SIZE]> = PageAligned(KERNEL_BYTES);
 
@@ -18,10 +20,12 @@ use bootloader::{
     boot_info::FrameBufferInfo,
 };
 use core::{mem, panic::PanicInfo, slice};
+use parsed_config::CONFIG;
 use uefi::{
     prelude::{entry, Boot, Handle, ResultExt, Status, SystemTable},
     proto::console::gop::{GraphicsOutput, PixelFormat},
     table::boot::{MemoryDescriptor, MemoryType},
+    Completion,
 };
 use x86_64::{
     structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB},
@@ -148,6 +152,25 @@ fn init_logger(st: &SystemTable<Boot>) -> (PhysAddr, FrameBufferInfo) {
         .locate_protocol::<GraphicsOutput>()
         .expect_success("failed to locate gop");
     let gop = unsafe { &mut *gop.get() };
+
+    let mode = {
+        let modes = gop.modes().map(Completion::unwrap);
+        match (
+            CONFIG.desired_framebuffer_height,
+            CONFIG.desired_framebuffer_width,
+        ) {
+            (Some(height), Some(width)) => modes
+                .filter(|m| m.info().resolution() == (width, height))
+                .last(),
+            (Some(height), None) => modes.filter(|m| m.info().resolution().1 == height).last(),
+            (None, Some(width)) => modes.filter(|m| m.info().resolution().0 == width).last(),
+            _ => None,
+        }
+    };
+    if let Some(mode) = mode {
+        gop.set_mode(&mode)
+            .expect_success("failed to apply gop mode");
+    }
 
     let mode_info = gop.current_mode_info();
     let mut framebuffer = gop.frame_buffer();

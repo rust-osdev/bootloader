@@ -75,4 +75,16 @@ pub struct Config {
     ///
     /// Only considered if `map_framebuffer` is `true`.
     pub framebuffer_address: Option<u64>,
+    /// Desired height of the framebuffer mode when running in UEFI mode.
+    ///
+    /// Defaults to using the default mode if neither `desired_framebuffer_height` or
+    /// `desired_framebuffer_width` is supplied, and using the last available mode that
+    /// fits them if 1 or more is set.
+    pub desired_framebuffer_height: Option<usize>,
+    /// Desired width of the framebuffer mode when running in UEFI mode.
+    ///
+    /// Defaults to using the default mode if neither `desired_framebuffer_height` or
+    /// `desired_framebuffer_width` is supplied, and using the last available mode that
+    /// fits them if 1 or more is set.
+    pub desired_framebuffer_width: Option<usize>,
 }

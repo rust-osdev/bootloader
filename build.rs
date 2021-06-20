@@ -8,6 +8,7 @@ fn main() {
 
 #[cfg(feature = "binary")]
 mod binary {
+    use proc_macro2::TokenStream;
     use quote::quote;
     use std::convert::TryInto;
 
@@ -281,19 +282,29 @@ mod binary {
         };
 
         // Write config to file
-        let file_path = out_dir.join("bootloader_config.rs");
-        let mut file = File::create(file_path).expect("failed to create bootloader_config.rs");
-        file.write_all(
-            quote::quote! {
-                mod parsed_config {
-                    use crate::config::Config;
-                    pub const CONFIG: Config = #config;
+        let write_config = |path: &str, import: TokenStream| {
+            let file_path = out_dir.join(path);
+            let mut file = File::create(file_path).expect("failed to create config file");
+            file.write_all(
+                quote::quote! {
+                    mod parsed_config {
+                        use #import;
+                        pub const CONFIG: Config = #config;
+                    }
                 }
-            }
-            .to_string()
-            .as_bytes(),
-        )
-        .expect("write to bootloader_config.rs failed");
+                .to_string()
+                .as_bytes(),
+            )
+            .expect("writing config failed");
+        };
+        write_config(
+            "bootloader_config.rs",
+            quote::quote! { crate::config::Config },
+        );
+        write_config(
+            "kernel_bootloader_config.rs",
+            quote::quote! { bootloader::Config },
+        );
 
         println!("cargo:rerun-if-env-changed=KERNEL");
         println!("cargo:rerun-if-env-changed=KERNEL_MANIFEST");
@@ -326,6 +337,8 @@ mod binary {
         pub kernel_stack_address: Option<AlignedAddress>,
         pub boot_info_address: Option<AlignedAddress>,
         pub framebuffer_address: Option<AlignedAddress>,
+        pub desired_framebuffer_height: Option<usize>,
+        pub desired_framebuffer_width: Option<usize>,
     }
 
     /// Convert to tokens suitable for initializing the `Config` struct.
@@ -344,6 +357,8 @@ mod binary {
             let kernel_stack_address = optional(self.kernel_stack_address);
             let boot_info_address = optional(self.boot_info_address);
             let framebuffer_address = optional(self.framebuffer_address);
+            let desired_framebuffer_height = optional(self.desired_framebuffer_height);
+            let desired_framebuffer_width = optional(self.desired_framebuffer_width);
 
             tokens.extend(quote! { Config {
                 map_physical_memory: #map_physical_memory,
@@ -355,6 +370,8 @@ mod binary {
                 kernel_stack_address: #kernel_stack_address,
                 boot_info_address: #boot_info_address,
                 framebuffer_address: #framebuffer_address,
+                desired_framebuffer_height: #desired_framebuffer_height,
+                desired_framebuffer_width: #desired_framebuffer_width
             }});
         }
     }
