@@ -252,9 +252,9 @@ fn create_uefi_disk_image(executable_path: &Path, efi_file: &Path) -> anyhow::Re
             .truncate(true)
             .open(&fat_path)
             .context("Failed to create UEFI FAT file")?;
-        let efi_size_rounded = ((efi_size - 1) / MB + 1) * MB;
+        let efi_size_padded_and_rounded = ((efi_size + 1024 * 64 - 1) / MB + 1) * MB;
         fat_file
-            .set_len(efi_size_rounded)
+            .set_len(efi_size_padded_and_rounded)
             .context("failed to set UEFI FAT file length")?;
 
         // create new FAT partition
