@@ -202,7 +202,8 @@ mod binary {
         }
 
         // Parse configuration from the kernel's Cargo.toml
-        let config = match env::var("KERNEL_MANIFEST") {
+        let mut config = None;
+        let config_stream = match env::var("KERNEL_MANIFEST") {
             Err(env::VarError::NotPresent) => {
                 panic!("The KERNEL_MANIFEST environment variable must be set for building the bootloader.\n\n\
                  Please use `cargo builder` for building.");
@@ -254,10 +255,14 @@ mod binary {
                         .cloned()
                         .unwrap_or_else(|| toml::Value::Table(toml::map::Map::new()));
 
-                    config_table
-                        .try_into::<ParsedConfig>()
-                        .map(|c| quote! { #c })
-                        .unwrap_or_else(|err| {
+                    let result = config_table.try_into::<ParsedConfig>();
+                    match result {
+                        Ok(p_config) => {
+                            let stream = quote! { #p_config };
+                            config = Some(p_config);
+                            stream
+                        }
+                        Err(err) => {
                             let err = format!(
                                 "failed to parse bootloader config in {}:\n\n{}",
                                 path,
@@ -266,7 +271,8 @@ mod binary {
                             quote! {
                                 compile_error!(#err)
                             }
-                        })
+                        }
+                    }
                 } else {
                     let err = format!(
                         "no bootloader dependency in {}\n\n  The \
@@ -280,6 +286,7 @@ mod binary {
                 }
             }
         };
+        let config = config;
 
         // Write config to file
         let write_config = |path: &str, import: TokenStream| {
@@ -289,7 +296,7 @@ mod binary {
                 quote::quote! {
                     mod parsed_config {
                         use #import;
-                        pub const CONFIG: Config = #config;
+                        pub const CONFIG: Config = #config_stream;
                     }
                 }
                 .to_string()
@@ -305,6 +312,16 @@ mod binary {
             "kernel_bootloader_config.rs",
             quote::quote! { bootloader::Config },
         );
+
+        // Write VESA framebuffer configuration
+        let file_path = out_dir.join("vesa_config.s");
+        let mut file = File::create(file_path).expect("failed to create vesa config file");
+        file.write_fmt(format_args!(
+            "vesa_minx: .2byte {}\n\
+            vesa_miny: .2byte {}",
+            config.as_ref().map(|c| c.desired_framebuffer_width).flatten().unwrap_or(640),
+            config.as_ref().map(|c| c.desired_framebuffer_height).flatten().unwrap_or(480)
+        )).expect("writing config failed");
 
         println!("cargo:rerun-if-env-changed=KERNEL");
         println!("cargo:rerun-if-env-changed=KERNEL_MANIFEST");
