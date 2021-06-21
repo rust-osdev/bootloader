@@ -169,7 +169,7 @@ fn init_logger(st: &SystemTable<Boot>) -> (PhysAddr, FrameBufferInfo) {
     };
     if let Some(mode) = mode {
         gop.set_mode(&mode)
-            .expect_success("failed to apply gop mode");
+            .expect_success("Failed to apply the desired display mode");
     }
 
     let mode_info = gop.current_mode_info();
