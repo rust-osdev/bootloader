@@ -1,5 +1,4 @@
 .section .boot, "awx"
-.intel_syntax noprefix
 .code16
 
 config_video_mode:

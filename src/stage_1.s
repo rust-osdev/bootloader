@@ -1,6 +1,5 @@
 .section .boot-first-stage, "awx"
 .global _start
-.intel_syntax noprefix
 .code16
 
 # This stage initializes the stack, enables the A20 line, loads the rest of
