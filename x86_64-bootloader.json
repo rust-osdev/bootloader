@@ -16,7 +16,7 @@
     "os": "none",
     "features": "-mmx,-sse,+soft-float",
     "disable-redzone": true,
-    "panic": "abort",
+    "panic-strategy": "abort",
     "executables": true,
     "relocation_model": "static"
 }
