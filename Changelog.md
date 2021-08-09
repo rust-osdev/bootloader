@@ -1,5 +1,9 @@
 # Unreleased
 
+- Set `relocation-model: static` and `panic-strategy: abort` and `fix .intel_syntax` warnings [#185](https://github.com/rust-osdev/bootloader/pull/185)
+  - Fixes warnings on the latest Rust nightlies.
+  - This effectively changes the `relocation-model` and `panic-strategy`. Please report if you encounter any issues because of this.
+
 # 0.9.18 – 2021-05-20
 
 - Fix nightly regression by manually passing --gc-sections ([#168](https://github.com/rust-osdev/bootloader/pull/168))
