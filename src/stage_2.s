@@ -1,5 +1,4 @@
 .section .boot, "awx"
-.intel_syntax noprefix
 .code16
 
 # This stage sets the target operating mode, loads the kernel from disk,
