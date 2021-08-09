@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.10.7 – 2021-08-09
+
 - Fix `relocation-model` field name in the target spec json ([#186](https://github.com/rust-osdev/bootloader/pull/186))
   - This effectively changes the `relocation-model` from `pic` to `static`. Please report if you encounter any issues because of this.
   - This fixes the compilation warnings on the latest nightlies.
