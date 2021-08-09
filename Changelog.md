@@ -1,5 +1,9 @@
 # Unreleased
 
+- Fix `relocation-model` field name in the target spec json ([#186](https://github.com/rust-osdev/bootloader/pull/186))
+  - This effectively changes the `relocation-model` from `pic` to `static`. Please report if you encounter any issues because of this.
+  - This fixes the compilation warnings on the latest nightlies.
+
 # 0.10.6 – 2021-05-24
 
 - Identity-map GDT into kernel address space to fix `iretq` ([#175](https://github.com/rust-osdev/bootloader/pull/175))
