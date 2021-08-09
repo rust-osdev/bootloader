@@ -41,6 +41,12 @@
 - Rewrite for UEFI support ([#130](https://github.com/rust-osdev/bootloader/pull/130))
   - Includes a new build process that no longer uses the `bootimage` crate. See the Readme for details. 
 
+# 0.9.19 _(backport) – 2021-08-09
+
+- Set `relocation-model: static` and `panic-strategy: abort` and `fix .intel_syntax` warnings ([#185](https://github.com/rust-osdev/bootloader/pull/185))
+  - Fixes warnings on the latest Rust nightlies.
+  - This effectively changes the `relocation-model` and `panic-strategy`. Please report if you encounter any issues because of this.
+
 # 0.9.18 _(hotfix)_ – 2021-05-20
 
 - Fix nightly regression by manually passing --gc-sections ([#168](https://github.com/rust-osdev/bootloader/pull/168))
