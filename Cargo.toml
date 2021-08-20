@@ -1,6 +1,6 @@
 [package]
 name = "bootloader"
-version = "0.10.6"
+version = "0.10.7"
 authors = ["Philipp Oppermann <dev@phil-opp.com>"]
 license = "MIT/Apache-2.0"
 description = "An experimental x86_64 bootloader that works on both BIOS and UEFI systems."
@@ -92,4 +92,3 @@ pre-release-replacements = [
     { file="Changelog.md", search="# Unreleased", replace="# Unreleased\n\n# {{version}} – {{date}}", exactly=1 },
 ]
 pre-release-commit-message = "Release version {{version}}"
-disable-publish = true

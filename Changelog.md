@@ -1,5 +1,11 @@
 # Unreleased
 
+# 0.10.7 – 2021-08-09
+
+- Fix `relocation-model` field name in the target spec json ([#186](https://github.com/rust-osdev/bootloader/pull/186))
+  - This effectively changes the `relocation-model` from `pic` to `static`. Please report if you encounter any issues because of this.
+  - This fixes the compilation warnings on the latest nightlies.
+
 # 0.10.6 – 2021-05-24
 
 - Identity-map GDT into kernel address space to fix `iretq` ([#175](https://github.com/rust-osdev/bootloader/pull/175))
@@ -34,6 +40,12 @@
 
 - Rewrite for UEFI support ([#130](https://github.com/rust-osdev/bootloader/pull/130))
   - Includes a new build process that no longer uses the `bootimage` crate. See the Readme for details. 
+
+# 0.9.19 _(backport) – 2021-08-09
+
+- Set `relocation-model: static` and `panic-strategy: abort` and `fix .intel_syntax` warnings ([#185](https://github.com/rust-osdev/bootloader/pull/185))
+  - Fixes warnings on the latest Rust nightlies.
+  - This effectively changes the `relocation-model` and `panic-strategy`. Please report if you encounter any issues because of this.
 
 # 0.9.18 _(hotfix)_ – 2021-05-20
 
