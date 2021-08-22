@@ -1,5 +1,7 @@
 # Unreleased
 
+- Pad UEFI FAT file length ([#180](https://github.com/rust-osdev/bootloader/pull/180))
+
 # 0.10.7 – 2021-08-09
 
 - Fix `relocation-model` field name in the target spec json ([#186](https://github.com/rust-osdev/bootloader/pull/186))
