@@ -242,14 +242,13 @@ mod binary {
 
                 if manifest
                     .get("dependencies")
-                    .and_then(|d| {
-                        d.get("bootloader").or_else(|| {
-                            manifest
-                                .get("target")
-                                .and_then(|table| table.get(r#"cfg(target_arch = "x86_64")"#))
-                                .and_then(|table| table.get("dependencies"))
-                                .and_then(|table| table.get("bootloader"))
-                        })
+                    .and_then(|d| d.get("bootloader"))
+                    .or_else(|| {
+                        manifest
+                            .get("target")
+                            .and_then(|table| table.get(r#"cfg(target_arch = "x86_64")"#))
+                            .and_then(|table| table.get("dependencies"))
+                            .and_then(|table| table.get("bootloader"))
                     })
                     .is_some()
                 {
