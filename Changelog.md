@@ -1,6 +1,7 @@
 # Unreleased
 
 - Pad UEFI FAT file length ([#180](https://github.com/rust-osdev/bootloader/pull/180))
+- Also check cfg gated target field for bootloader dependency ([#182](https://github.com/rust-osdev/bootloader/pull/182)
 
 # 0.10.7 – 2021-08-09
 
