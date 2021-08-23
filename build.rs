@@ -319,9 +319,18 @@ mod binary {
         file.write_fmt(format_args!(
             "vesa_minx: .2byte {}\n\
             vesa_miny: .2byte {}",
-            config.as_ref().map(|c| c.desired_framebuffer_width).flatten().unwrap_or(640),
-            config.as_ref().map(|c| c.desired_framebuffer_height).flatten().unwrap_or(480)
-        )).expect("writing config failed");
+            config
+                .as_ref()
+                .map(|c| c.desired_framebuffer_width)
+                .flatten()
+                .unwrap_or(640),
+            config
+                .as_ref()
+                .map(|c| c.desired_framebuffer_height)
+                .flatten()
+                .unwrap_or(480)
+        ))
+        .expect("writing config failed");
 
         println!("cargo:rerun-if-env-changed=KERNEL");
         println!("cargo:rerun-if-env-changed=KERNEL_MANIFEST");
