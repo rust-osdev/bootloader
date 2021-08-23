@@ -8,7 +8,6 @@ fn main() {
 
 #[cfg(feature = "binary")]
 mod binary {
-    use proc_macro2::TokenStream;
     use quote::quote;
     use std::convert::TryInto;
 
@@ -289,29 +288,22 @@ mod binary {
         let config = config;
 
         // Write config to file
-        let write_config = |path: &str, import: TokenStream| {
-            let file_path = out_dir.join(path);
-            let mut file = File::create(file_path).expect("failed to create config file");
-            file.write_all(
-                quote::quote! {
-                    mod parsed_config {
-                        use #import;
-                        pub const CONFIG: Config = #config_stream;
-                    }
+        let file_path = out_dir.join("bootloader_config.rs");
+        let mut file = File::create(file_path).expect("failed to create config file");
+        file.write_all(
+            quote::quote! {
+                /// Module containing the user-supplied configuration.
+                /// Public so that `bin/uefi.rs` can read framebuffer configuration.
+                pub mod parsed_config {
+                    use crate::config::Config;
+                    /// The parsed configuration given by the user.
+                    pub const CONFIG: Config = #config_stream;
                 }
-                .to_string()
-                .as_bytes(),
-            )
-            .expect("writing config failed");
-        };
-        write_config(
-            "bootloader_config.rs",
-            quote::quote! { crate::config::Config },
-        );
-        write_config(
-            "kernel_bootloader_config.rs",
-            quote::quote! { bootloader::Config },
-        );
+            }
+            .to_string()
+            .as_bytes(),
+        )
+        .expect("writing config failed");
 
         // Write VESA framebuffer configuration
         let file_path = out_dir.join("vesa_config.s");

@@ -7,8 +7,6 @@
 
 // Defines the constants `KERNEL_BYTES` (array of `u8`) and `KERNEL_SIZE` (`usize`).
 include!(concat!(env!("OUT_DIR"), "/kernel_info.rs"));
-// Contains the bootloader configuration specified by the kernel crate (needed for GOP configuration)
-include!(concat!(env!("OUT_DIR"), "/kernel_bootloader_config.rs"));
 
 static KERNEL: PageAligned<[u8; KERNEL_SIZE]> = PageAligned(KERNEL_BYTES);
 
@@ -16,11 +14,10 @@ static KERNEL: PageAligned<[u8; KERNEL_SIZE]> = PageAligned(KERNEL_BYTES);
 struct PageAligned<T>(T);
 
 use bootloader::{
-    binary::{legacy_memory_region::LegacyFrameAllocator, SystemInfo},
+    binary::{legacy_memory_region::LegacyFrameAllocator, parsed_config::CONFIG, SystemInfo},
     boot_info::FrameBufferInfo,
 };
 use core::{mem, panic::PanicInfo, slice};
-use parsed_config::CONFIG;
 use uefi::{
     prelude::{entry, Boot, Handle, ResultExt, Status, SystemTable},
     proto::console::gop::{GraphicsOutput, PixelFormat},
