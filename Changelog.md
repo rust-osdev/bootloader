@@ -1,5 +1,10 @@
 # Unreleased
 
+# 0.10.8 – 2021-08-22
+
+- Pad UEFI FAT file length ([#180](https://github.com/rust-osdev/bootloader/pull/180))
+- Also check cfg gated target field for bootloader dependency ([#182](https://github.com/rust-osdev/bootloader/pull/182)
+
 # 0.10.7 – 2021-08-09
 
 - Fix `relocation-model` field name in the target spec json ([#186](https://github.com/rust-osdev/bootloader/pull/186))
@@ -29,7 +34,7 @@
 
 # 0.10.2 – 2021-04-30
 
-- Use new `asm!` syntax instead of deprecated `llvm_asm!` ([#148](https://github.com/rust-osdev/bootloader/154))
+- Use new `asm!` syntax instead of deprecated `llvm_asm!` ([#154](https://github.com/rust-osdev/bootloader/pull/154))
 - Reduce the number of used unstable features of x86_64 crate ([#155](https://github.com/rust-osdev/bootloader/pull/155))
 
 # 0.10.1 – 2021-04-07
