@@ -75,16 +75,16 @@ pub struct Config {
     ///
     /// Only considered if `map_framebuffer` is `true`.
     pub framebuffer_address: Option<u64>,
-    /// Desired height of the framebuffer mode.
+    /// Desired minimum height of the framebuffer mode.
     ///
-    /// Defaults to using the default mode if neither `desired_framebuffer_height` or
-    /// `desired_framebuffer_width` is supplied, and using the last available mode that
+    /// Defaults to using the default mode if neither `minimum_framebuffer_height` or
+    /// `minimum_framebuffer_width` is supplied, and using the last available mode that
     /// fits them if 1 or more is set.
-    pub desired_framebuffer_height: Option<usize>,
-    /// Desired width of the framebuffer mode.
+    pub minimum_framebuffer_height: Option<usize>,
+    /// Desired minimum width of the framebuffer mode.
     ///
-    /// Defaults to using the default mode if neither `desired_framebuffer_height` or
-    /// `desired_framebuffer_width` is supplied, and using the last available mode that
+    /// Defaults to using the default mode if neither `minimum_framebuffer_height` or
+    /// `minimum_framebuffer_width` is supplied, and using the last available mode that
     /// fits them if 1 or more is set.
-    pub desired_framebuffer_width: Option<usize>,
+    pub minimum_framebuffer_width: Option<usize>,
 }

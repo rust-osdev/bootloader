@@ -156,14 +156,17 @@ fn init_logger(st: &SystemTable<Boot>) -> (PhysAddr, FrameBufferInfo) {
     let mode = {
         let modes = gop.modes().map(Completion::unwrap);
         match (
-            CONFIG.desired_framebuffer_height,
-            CONFIG.desired_framebuffer_width,
+            CONFIG.minimum_framebuffer_height,
+            CONFIG.minimum_framebuffer_width,
         ) {
             (Some(height), Some(width)) => modes
-                .filter(|m| m.info().resolution() == (width, height))
+                .filter(|m| {
+                    let res = m.info().resolution();
+                    res.1 >= height && res.0 >= width
+                })
                 .last(),
-            (Some(height), None) => modes.filter(|m| m.info().resolution().1 == height).last(),
-            (None, Some(width)) => modes.filter(|m| m.info().resolution().0 == width).last(),
+            (Some(height), None) => modes.filter(|m| m.info().resolution().1 >= height).last(),
+            (None, Some(width)) => modes.filter(|m| m.info().resolution().0 >= width).last(),
             _ => None,
         }
     };

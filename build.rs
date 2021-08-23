@@ -321,12 +321,12 @@ mod binary {
             vesa_miny: .2byte {}",
             config
                 .as_ref()
-                .map(|c| c.desired_framebuffer_width)
+                .map(|c| c.minimum_framebuffer_width)
                 .flatten()
                 .unwrap_or(640),
             config
                 .as_ref()
-                .map(|c| c.desired_framebuffer_height)
+                .map(|c| c.minimum_framebuffer_height)
                 .flatten()
                 .unwrap_or(480)
         ))
@@ -363,8 +363,8 @@ mod binary {
         pub kernel_stack_address: Option<AlignedAddress>,
         pub boot_info_address: Option<AlignedAddress>,
         pub framebuffer_address: Option<AlignedAddress>,
-        pub desired_framebuffer_height: Option<usize>,
-        pub desired_framebuffer_width: Option<usize>,
+        pub minimum_framebuffer_height: Option<usize>,
+        pub minimum_framebuffer_width: Option<usize>,
     }
 
     /// Convert to tokens suitable for initializing the `Config` struct.
@@ -383,8 +383,8 @@ mod binary {
             let kernel_stack_address = optional(self.kernel_stack_address);
             let boot_info_address = optional(self.boot_info_address);
             let framebuffer_address = optional(self.framebuffer_address);
-            let desired_framebuffer_height = optional(self.desired_framebuffer_height);
-            let desired_framebuffer_width = optional(self.desired_framebuffer_width);
+            let minimum_framebuffer_height = optional(self.minimum_framebuffer_height);
+            let minimum_framebuffer_width = optional(self.minimum_framebuffer_width);
 
             tokens.extend(quote! { Config {
                 map_physical_memory: #map_physical_memory,
@@ -396,8 +396,8 @@ mod binary {
                 kernel_stack_address: #kernel_stack_address,
                 boot_info_address: #boot_info_address,
                 framebuffer_address: #framebuffer_address,
-                desired_framebuffer_height: #desired_framebuffer_height,
-                desired_framebuffer_width: #desired_framebuffer_width
+                minimum_framebuffer_height: #minimum_framebuffer_height,
+                minimum_framebuffer_width: #minimum_framebuffer_width
             }});
         }
     }
