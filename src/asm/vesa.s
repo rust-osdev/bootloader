@@ -124,9 +124,6 @@ vesa_returngood:
     xor eax, eax
     ret
 
-vesa_minx: .2byte 640
-vesa_miny: .2byte 480
-
 vesa_modeok:
     .ascii ": Is this OK? (s)ave/(y)es/(n)o    "
     .byte 8,8,8,8,0

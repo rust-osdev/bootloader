@@ -60,7 +60,6 @@ The purposes of the individual assembly stages in this project are the following
 
 ## Future Plans
 
-- [ ] Allow to configure the desired screen resolution. Right now we just use the first available VESA screen mode on BIOS and the default GOP mode on UEFI.
 - [ ] Create a `multiboot2` compatible disk image in addition to the BIOS and UEFI disk images. This would make it possible to use it on top of the GRUB bootloader.
 - [ ] Rewrite most of the BIOS assembly stages in Rust. This has already started.
 - [ ] Instead of linking the kernel bytes directly with the bootloader, use a filesystem (e.g. FAT) and load the kernel as a separate file.

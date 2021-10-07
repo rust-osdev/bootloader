@@ -14,7 +14,7 @@ static KERNEL: PageAligned<[u8; KERNEL_SIZE]> = PageAligned(KERNEL_BYTES);
 struct PageAligned<T>(T);
 
 use bootloader::{
-    binary::{legacy_memory_region::LegacyFrameAllocator, SystemInfo},
+    binary::{legacy_memory_region::LegacyFrameAllocator, parsed_config::CONFIG, SystemInfo},
     boot_info::FrameBufferInfo,
 };
 use core::{mem, panic::PanicInfo, slice};
@@ -22,6 +22,7 @@ use uefi::{
     prelude::{entry, Boot, Handle, ResultExt, Status, SystemTable},
     proto::console::gop::{GraphicsOutput, PixelFormat},
     table::boot::{MemoryDescriptor, MemoryType},
+    Completion,
 };
 use x86_64::{
     structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB},
@@ -148,6 +149,28 @@ fn init_logger(st: &SystemTable<Boot>) -> (PhysAddr, FrameBufferInfo) {
         .locate_protocol::<GraphicsOutput>()
         .expect_success("failed to locate gop");
     let gop = unsafe { &mut *gop.get() };
+
+    let mode = {
+        let modes = gop.modes().map(Completion::unwrap);
+        match (
+            CONFIG.minimum_framebuffer_height,
+            CONFIG.minimum_framebuffer_width,
+        ) {
+            (Some(height), Some(width)) => modes
+                .filter(|m| {
+                    let res = m.info().resolution();
+                    res.1 >= height && res.0 >= width
+                })
+                .last(),
+            (Some(height), None) => modes.filter(|m| m.info().resolution().1 >= height).last(),
+            (None, Some(width)) => modes.filter(|m| m.info().resolution().0 >= width).last(),
+            _ => None,
+        }
+    };
+    if let Some(mode) = mode {
+        gop.set_mode(&mode)
+            .expect_success("Failed to apply the desired display mode");
+    }
 
     let mode_info = gop.current_mode_info();
     let mut framebuffer = gop.frame_buffer();

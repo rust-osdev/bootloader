@@ -201,7 +201,8 @@ mod binary {
         }
 
         // Parse configuration from the kernel's Cargo.toml
-        let config = match env::var("KERNEL_MANIFEST") {
+        let mut config = None;
+        let config_stream = match env::var("KERNEL_MANIFEST") {
             Err(env::VarError::NotPresent) => {
                 panic!("The KERNEL_MANIFEST environment variable must be set for building the bootloader.\n\n\
                  Please use `cargo builder` for building.");
@@ -260,10 +261,14 @@ mod binary {
                         .cloned()
                         .unwrap_or_else(|| toml::Value::Table(toml::map::Map::new()));
 
-                    config_table
-                        .try_into::<ParsedConfig>()
-                        .map(|c| quote! { #c })
-                        .unwrap_or_else(|err| {
+                    let result = config_table.try_into::<ParsedConfig>();
+                    match result {
+                        Ok(p_config) => {
+                            let stream = quote! { #p_config };
+                            config = Some(p_config);
+                            stream
+                        }
+                        Err(err) => {
                             let err = format!(
                                 "failed to parse bootloader config in {}:\n\n{}",
                                 path,
@@ -272,7 +277,8 @@ mod binary {
                             quote! {
                                 compile_error!(#err)
                             }
-                        })
+                        }
+                    }
                 } else {
                     let err = format!(
                         "no bootloader dependency in {}\n\n  The \
@@ -286,21 +292,44 @@ mod binary {
                 }
             }
         };
+        let config = config;
 
         // Write config to file
         let file_path = out_dir.join("bootloader_config.rs");
-        let mut file = File::create(file_path).expect("failed to create bootloader_config.rs");
+        let mut file = File::create(file_path).expect("failed to create config file");
         file.write_all(
             quote::quote! {
-                mod parsed_config {
+                /// Module containing the user-supplied configuration.
+                /// Public so that `bin/uefi.rs` can read framebuffer configuration.
+                pub mod parsed_config {
                     use crate::config::Config;
-                    pub const CONFIG: Config = #config;
+                    /// The parsed configuration given by the user.
+                    pub const CONFIG: Config = #config_stream;
                 }
             }
             .to_string()
             .as_bytes(),
         )
-        .expect("write to bootloader_config.rs failed");
+        .expect("writing config failed");
+
+        // Write VESA framebuffer configuration
+        let file_path = out_dir.join("vesa_config.s");
+        let mut file = File::create(file_path).expect("failed to create vesa config file");
+        file.write_fmt(format_args!(
+            "vesa_minx: .2byte {}\n\
+            vesa_miny: .2byte {}",
+            config
+                .as_ref()
+                .map(|c| c.minimum_framebuffer_width)
+                .flatten()
+                .unwrap_or(640),
+            config
+                .as_ref()
+                .map(|c| c.minimum_framebuffer_height)
+                .flatten()
+                .unwrap_or(480)
+        ))
+        .expect("writing config failed");
 
         println!("cargo:rerun-if-env-changed=KERNEL");
         println!("cargo:rerun-if-env-changed=KERNEL_MANIFEST");
@@ -333,6 +362,8 @@ mod binary {
         pub kernel_stack_address: Option<AlignedAddress>,
         pub boot_info_address: Option<AlignedAddress>,
         pub framebuffer_address: Option<AlignedAddress>,
+        pub minimum_framebuffer_height: Option<usize>,
+        pub minimum_framebuffer_width: Option<usize>,
     }
 
     /// Convert to tokens suitable for initializing the `Config` struct.
@@ -351,6 +382,8 @@ mod binary {
             let kernel_stack_address = optional(self.kernel_stack_address);
             let boot_info_address = optional(self.boot_info_address);
             let framebuffer_address = optional(self.framebuffer_address);
+            let minimum_framebuffer_height = optional(self.minimum_framebuffer_height);
+            let minimum_framebuffer_width = optional(self.minimum_framebuffer_width);
 
             tokens.extend(quote! { Config {
                 map_physical_memory: #map_physical_memory,
@@ -362,6 +395,8 @@ mod binary {
                 kernel_stack_address: #kernel_stack_address,
                 boot_info_address: #boot_info_address,
                 framebuffer_address: #framebuffer_address,
+                minimum_framebuffer_height: #minimum_framebuffer_height,
+                minimum_framebuffer_width: #minimum_framebuffer_width
             }});
         }
     }
