@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.10.9 – 2021-10-07
+
 # 0.10.8 – 2021-08-22
 
 - Pad UEFI FAT file length ([#180](https://github.com/rust-osdev/bootloader/pull/180))
