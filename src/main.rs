@@ -1,6 +1,6 @@
 #![feature(lang_items)]
 #![feature(global_asm)]
-#![feature(llvm_asm)]
+#![feature(asm)]
 #![no_std]
 #![no_main]
 
@@ -42,8 +42,9 @@ global_asm!(include_str!("video_mode/vga_320x200.s"));
 global_asm!(include_str!("video_mode/vga_text_80x25.s"));
 
 unsafe fn context_switch(boot_info: VirtAddr, entry_point: VirtAddr, stack_pointer: VirtAddr) -> ! {
-    llvm_asm!("call $1; ${:private}.spin.${:uid}: jmp ${:private}.spin.${:uid}" ::
-         "{rsp}"(stack_pointer), "r"(entry_point), "{rdi}"(boot_info) :: "intel");
+    asm!("movq {1}, %rsp; callq *{0}; 0: jmp 0b",
+         in(reg) entry_point.as_u64(), in(reg) stack_pointer.as_u64(), in("rdi") boot_info.as_u64(),
+         options(att_syntax));
     ::core::hint::unreachable_unchecked()
 }
 
@@ -88,8 +89,12 @@ extern "C" {
 #[no_mangle]
 pub unsafe extern "C" fn stage_4() -> ! {
     // Set stack segment
-    llvm_asm!("mov bx, 0x0
-          mov ss, bx" ::: "bx" : "intel");
+    asm!(
+        "push rbx
+          mov bx, 0x0
+          mov ss, bx
+          pop rbx"
+    );
 
     let kernel_start = 0x400000;
     let kernel_size = &_kernel_size as *const _ as u64;
