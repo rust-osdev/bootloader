@@ -1,8 +1,6 @@
 #![feature(asm)]
 #![feature(split_array)]
-
 #![deny(unsafe_op_in_unsafe_fn)]
-
 #![cfg_attr(not(test), no_std)]
 
 pub use self::{config::BootloaderConfig, info::BootInfo};

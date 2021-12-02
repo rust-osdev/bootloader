@@ -90,23 +90,21 @@ fn main() {
 
     let mut code = String::new();
     for (i, j) in combinations {
-        
-            code += &format!(
-                "pub const fn concat_{i}_{j}(a: [u8; {i}], b: [u8; {j}]) -> [u8; {i} + {j}] {{
+        code += &format!(
+            "pub const fn concat_{i}_{j}(a: [u8; {i}], b: [u8; {j}]) -> [u8; {i} + {j}] {{
                     [{a}, {b}]
                 }}",
-                i = i,
-                j = j,
-                a = (0..i)
-                    .map(|idx| format!("a[{}]", idx))
-                    .collect::<Vec<_>>()
-                    .join(","),
-                b = (0..j)
-                    .map(|idx| format!("b[{}]", idx))
-                    .collect::<Vec<_>>()
-                    .join(","),
-            );
-    
+            i = i,
+            j = j,
+            a = (0..i)
+                .map(|idx| format!("a[{}]", idx))
+                .collect::<Vec<_>>()
+                .join(","),
+            b = (0..j)
+                .map(|idx| format!("b[{}]", idx))
+                .collect::<Vec<_>>()
+                .join(","),
+        );
     }
 
     fs::write(&dest_path, code).unwrap();
