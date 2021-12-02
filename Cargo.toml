@@ -10,6 +10,7 @@ build = "build.rs"
 
 [workspace]
 members = [
+    "api",
     "tests/runner",
     "tests/test_kernels/default_settings",
     "tests/test_kernels/map_phys_mem",
