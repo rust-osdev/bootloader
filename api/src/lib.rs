@@ -5,7 +5,7 @@
 
 #![cfg_attr(not(test), no_std)]
 
-pub use config::BootloaderConfig;
+pub use self::{config::BootloaderConfig, info::BootInfo};
 
 pub mod config;
 pub mod info;
