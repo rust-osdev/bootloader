@@ -11,8 +11,9 @@ use x86_64::{
     PhysAddr, VirtAddr,
 };
 use xmas_elf::{
-    header,
-    program::{self, ProgramHeader, Type},
+    dynamic, header,
+    program::{self, ProgramHeader, SegmentData, Type},
+    sections::Rela,
     ElfFile,
 };
 
@@ -23,6 +24,7 @@ struct Loader<'a, M, F> {
 
 struct Inner<'a, M, F> {
     kernel_offset: PhysAddr,
+    virtual_address_offset: u64,
     page_table: &'a mut M,
     frame_allocator: &'a mut F,
 }
@@ -44,11 +46,22 @@ where
         }
 
         let elf_file = ElfFile::new(bytes)?;
+
+        let virtual_address_offset = match elf_file.header.pt2.type_().as_type() {
+            header::Type::None => unimplemented!(),
+            header::Type::Relocatable => unimplemented!(),
+            header::Type::Executable => 0,
+            header::Type::SharedObject => 0x400000,
+            header::Type::Core => unimplemented!(),
+            header::Type::ProcessorSpecific(_) => unimplemented!(),
+        };
+
         header::sanity_check(&elf_file)?;
         let loader = Loader {
             elf_file,
             inner: Inner {
                 kernel_offset,
+                virtual_address_offset,
                 page_table,
                 frame_allocator,
             },
@@ -58,9 +71,21 @@ where
     }
 
     fn load_segments(&mut self) -> Result<Option<TlsTemplate>, &'static str> {
-        let mut tls_template = None;
         for program_header in self.elf_file.program_iter() {
             program::sanity_check(program_header, &self.elf_file)?;
+        }
+
+        // Apply relocations in physical memory.
+        for program_header in self.elf_file.program_iter() {
+            if let Type::Dynamic = program_header.get_type()? {
+                self.inner
+                    .handle_dynamic_segment(program_header, &self.elf_file)?
+            }
+        }
+
+        // Load the segments into virtual memory.
+        let mut tls_template = None;
+        for program_header in self.elf_file.program_iter() {
             match program_header.get_type()? {
                 Type::Load => self.inner.handle_load_segment(program_header)?,
                 Type::Tls => {
@@ -85,11 +110,14 @@ where
     }
 
     fn entry_point(&self) -> VirtAddr {
-        VirtAddr::new(self.elf_file.header.pt2.entry_point())
+        VirtAddr::new(self.elf_file.header.pt2.entry_point() + self.inner.virtual_address_offset)
     }
 
     fn used_level_4_entries(&self) -> UsedLevel4Entries {
-        UsedLevel4Entries::new(self.elf_file.program_iter())
+        UsedLevel4Entries::new(
+            self.elf_file.program_iter(),
+            self.inner.virtual_address_offset,
+        )
     }
 }
 
@@ -106,7 +134,7 @@ where
         let end_frame: PhysFrame =
             PhysFrame::containing_address(phys_start_addr + segment.file_size() - 1u64);
 
-        let virt_start_addr = VirtAddr::new(segment.virtual_addr());
+        let virt_start_addr = VirtAddr::new(segment.virtual_addr()) + self.virtual_address_offset;
         let start_page: Page = Page::containing_address(virt_start_addr);
 
         let mut segment_flags = Flags::PRESENT;
@@ -146,7 +174,7 @@ where
     ) -> Result<(), &'static str> {
         log::info!("Mapping bss section");
 
-        let virt_start_addr = VirtAddr::new(segment.virtual_addr());
+        let virt_start_addr = VirtAddr::new(segment.virtual_addr()) + self.virtual_address_offset;
         let phys_start_addr = self.kernel_offset + segment.offset();
         let mem_size = segment.mem_size();
         let file_size = segment.file_size();
@@ -262,11 +290,121 @@ where
 
     fn handle_tls_segment(&mut self, segment: ProgramHeader) -> Result<TlsTemplate, &'static str> {
         Ok(TlsTemplate {
-            start_addr: segment.virtual_addr(),
+            start_addr: segment.virtual_addr() + self.virtual_address_offset,
             mem_size: segment.mem_size(),
             file_size: segment.file_size(),
         })
     }
+
+    fn handle_dynamic_segment(
+        &mut self,
+        segment: ProgramHeader,
+        elf_file: &ElfFile,
+    ) -> Result<(), &'static str> {
+        let data = segment.get_data(elf_file)?;
+        let data = if let SegmentData::Dynamic64(data) = data {
+            data
+        } else {
+            unreachable!()
+        };
+
+        // Find the `Rela`, `RelaSize` and `RelaEnt` entries.
+        let mut rela = None;
+        let mut rela_size = None;
+        let mut rela_ent = None;
+        for rel in data {
+            let tag = rel.get_tag()?;
+            match tag {
+                dynamic::Tag::Rela => {
+                    let ptr = rel.get_ptr()?;
+                    let prev = rela.replace(ptr);
+                    if prev.is_some() {
+                        return Err("Dynamic section contains more than one Rela entry");
+                    }
+                }
+                dynamic::Tag::RelaSize => {
+                    let val = rel.get_val()?;
+                    let prev = rela_size.replace(val);
+                    if prev.is_some() {
+                        return Err("Dynamic section contains more than one RelaSize entry");
+                    }
+                }
+                dynamic::Tag::RelaEnt => {
+                    let val = rel.get_val()?;
+                    let prev = rela_ent.replace(val);
+                    if prev.is_some() {
+                        return Err("Dynamic section contains more than one RelaEnt entry");
+                    }
+                }
+                _ => {}
+            }
+        }
+        let offset = if let Some(rela) = rela {
+            rela
+        } else {
+            // The section doesn't contain any relocations.
+
+            assert_eq!(rela_size, None);
+            assert_eq!(rela_ent, None);
+
+            return Ok(());
+        };
+        let total_size = rela_size.ok_or("RelaSize entry is missing")?;
+        let entry_size = rela_ent.ok_or("RelaEnt entry is missing")?;
+
+        // Apply the mappings.
+        let entries = total_size / entry_size;
+        let relas = unsafe {
+            core::slice::from_raw_parts::<Rela<u64>>(
+                elf_file.input.as_ptr().add(offset as usize).cast(),
+                entries as usize,
+            )
+        };
+        for rela in relas {
+            let idx = rela.get_symbol_table_index();
+            assert_eq!(
+                idx, 0,
+                "relocations using the symbol table are not supported"
+            );
+
+            match rela.get_type() {
+                8 => {
+                    let offset_in_file = find_offset(elf_file, rela.get_offset())?
+                        .ok_or("Destination of relocation is not mapped in physical memory")?;
+                    let dest_addr = self.kernel_offset + offset_in_file;
+                    let dest_ptr = dest_addr.as_u64() as *mut u64;
+
+                    let value = self
+                        .virtual_address_offset
+                        .checked_add(rela.get_addend())
+                        .unwrap();
+
+                    unsafe {
+                        // write new value, utilizing that the address identity-mapped
+                        dest_ptr.write(value);
+                    }
+                }
+                ty => unimplemented!("relocation type {:x} not supported", ty),
+            }
+        }
+
+        Ok(())
+    }
+}
+
+/// Locate the offset into the elf file corresponding to a virtual address.
+fn find_offset(elf_file: &ElfFile, virt_offset: u64) -> Result<Option<u64>, &'static str> {
+    for program_header in elf_file.program_iter() {
+        if let Type::Load = program_header.get_type()? {
+            if program_header.virtual_addr() <= virt_offset {
+                let offset_in_segment = virt_offset - program_header.virtual_addr();
+                if offset_in_segment < program_header.file_size() {
+                    return Ok(Some(program_header.offset() + offset_in_segment));
+                }
+            }
+        }
+    }
+    Ok(None)
 }
 
 /// Loads the kernel ELF file given in `bytes` in the given `page_table`.
