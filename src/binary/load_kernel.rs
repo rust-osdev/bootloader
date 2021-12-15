@@ -368,6 +368,7 @@ where
             );
 
             match rela.get_type() {
+                // R_AMD64_RELATIVE
                 8 => {
                     let offset_in_file = find_offset(elf_file, rela.get_offset())?
                         .ok_or("Destination of relocation is not mapped in physical memory")?;
