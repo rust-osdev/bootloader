@@ -1,5 +1,7 @@
 # Unreleased
 
+- Update x86_64 dependency to v0.14.7 to fix nightly breakage ([#208](https://github.com/rust-osdev/bootloader/pull/208))
+
 # 0.9.19 – 2021-08-09
 
 - Set `relocation-model: static` and `panic-strategy: abort` and `fix .intel_syntax` warnings [#185](https://github.com/rust-osdev/bootloader/pull/185)
