@@ -2,6 +2,8 @@
 
 # 0.10.9 – 2021-10-07
 
+- Add support for framebuffer configuration ([#179](https://github.com/rust-osdev/bootloader/pull/179))
+
 # 0.10.8 – 2021-08-22
 
 - Pad UEFI FAT file length ([#180](https://github.com/rust-osdev/bootloader/pull/180))
