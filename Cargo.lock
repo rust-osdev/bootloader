@@ -45,12 +45,6 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 
 [[package]]
 name = "bit_field"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed8765909f9009617974ab6b7d332625b320b33c326b1e9321382ef1999b5d56"
-
-[[package]]
-name = "bit_field"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dcb6dd1c2376d2e096796e234a70e17e94cc2d5d54ff8ce42b28cef1d0d359a4"
@@ -67,7 +61,7 @@ version = "0.10.9"
 dependencies = [
  "anyhow",
  "argh",
- "bit_field 0.10.1",
+ "bit_field",
  "conquer-once",
  "displaydoc",
  "fatfs",
@@ -85,7 +79,7 @@ dependencies = [
  "toml",
  "uefi",
  "usize_conversions",
- "x86_64 0.13.6",
+ "x86_64",
  "xmas-elf",
 ]
 
@@ -365,7 +359,7 @@ version = "0.1.0"
 dependencies = [
  "bootloader",
  "uart_16550",
- "x86_64 0.13.6",
+ "x86_64",
 ]
 
 [[package]]
@@ -374,7 +368,7 @@ version = "0.1.0"
 dependencies = [
  "bootloader",
  "uart_16550",
- "x86_64 0.13.6",
+ "x86_64",
 ]
 
 [[package]]
@@ -383,7 +377,7 @@ version = "0.1.0"
 dependencies = [
  "bootloader",
  "uart_16550",
- "x86_64 0.13.6",
+ "x86_64",
 ]
 
 [[package]]
@@ -432,7 +426,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "503a6c0e6d82daa87985e662d120c0176b09587c92a68db22781b28ae95405dd"
 dependencies = [
  "bitflags",
- "x86_64 0.14.2",
+ "x86_64",
 ]
 
 [[package]]
@@ -441,7 +435,7 @@ version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bad643914094137d475641b6bab89462505316ec2ce70907ad20102d28a79ab8"
 dependencies = [
- "bit_field 0.10.1",
+ "bit_field",
 ]
 
 [[package]]
@@ -530,21 +524,11 @@ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 
 [[package]]
 name = "x86_64"
-version = "0.13.6"
+version = "0.14.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "021b49a4cb0a0d9490265cc169ca816014cbf61d3f3b75424815912977b81871"
+checksum = "fb611915c917c6296d11e23f71ff1ecfe49c5766daba92cd3df52df6b58285b6"
 dependencies = [
- "bit_field 0.9.0",
- "bitflags",
-]
-
-[[package]]
-name = "x86_64"
-version = "0.14.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13f09cffc08ee86bf5e4d147f107a43de0885c53ffad799b39f4ad203fb2a27d"
-dependencies = [
- "bit_field 0.9.0",
+ "bit_field",
  "bitflags",
  "volatile",
 ]
