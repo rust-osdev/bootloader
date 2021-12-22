@@ -17,7 +17,7 @@ use bootloader::{
     binary::{legacy_memory_region::LegacyFrameAllocator, parsed_config::CONFIG, SystemInfo},
     boot_info::FrameBufferInfo,
 };
-use core::{mem, panic::PanicInfo, slice};
+use core::{arch::asm, mem, panic::PanicInfo, slice};
 use uefi::{
     prelude::{entry, Boot, Handle, ResultExt, Status, SystemTable},
     proto::console::gop::{GraphicsOutput, PixelFormat},

@@ -3,6 +3,7 @@ use crate::{
     boot_info::{BootInfo, FrameBuffer, FrameBufferInfo, MemoryRegion, TlsTemplate},
 };
 use core::{
+    arch::asm,
     mem::{self, MaybeUninit},
     slice,
 };
