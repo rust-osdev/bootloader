@@ -1,5 +1,7 @@
 # Unreleased
 
+- Fix `asm` imports on latest nightly ([#209](https://github.com/rust-osdev/bootloader/pull/209))
+
 # 0.10.9 – 2021-10-07
 
 - Add support for framebuffer configuration ([#179](https://github.com/rust-osdev/bootloader/pull/179))
