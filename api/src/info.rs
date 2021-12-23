@@ -6,7 +6,7 @@ use core::{ops, slice};
 /// have the following signature:
 ///
 /// ```
-/// # use bootloader::BootInfo;
+/// # use bootloader_api::BootInfo;
 /// # type _SIGNATURE =
 /// extern "C" fn(boot_info: &'static mut BootInfo) -> !;
 /// ```
