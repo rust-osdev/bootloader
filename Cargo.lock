@@ -410,7 +410,7 @@ dependencies = [
 name = "test_kernel_default_settings"
 version = "0.1.0"
 dependencies = [
- "bootloader",
+ "bootloader_api",
  "uart_16550",
  "x86_64",
 ]
@@ -419,7 +419,7 @@ dependencies = [
 name = "test_kernel_higher_half"
 version = "0.1.0"
 dependencies = [
- "bootloader",
+ "bootloader_api",
  "uart_16550",
  "x86_64",
 ]
@@ -428,7 +428,7 @@ dependencies = [
 name = "test_kernel_map_phys_mem"
 version = "0.1.0"
 dependencies = [
- "bootloader",
+ "bootloader_api",
  "uart_16550",
  "x86_64",
 ]

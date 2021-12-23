@@ -11,4 +11,4 @@ members = [
 ]
 
 [dependencies]
-bootloader = { path = "../.." } # replace this with a version number
+bootloader_api = { path = "../../api" } # replace this with a version number

@@ -4,7 +4,7 @@
 #![test_runner(test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
-use bootloader::{entry_point, BootInfo};
+use bootloader_api::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 
 mod serial;

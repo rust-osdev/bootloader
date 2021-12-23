@@ -1,7 +1,7 @@
 use std::{
     io::Write,
     path::{Path, PathBuf},
-    process::{Command, Stdio},
+    process::Command,
 };
 
 const QEMU_ARGS: &[&str] = &[
