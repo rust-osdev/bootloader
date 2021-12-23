@@ -1,4 +1,3 @@
-#![feature(asm)]
 #![deny(unsafe_op_in_unsafe_fn)]
 #![cfg_attr(not(test), no_std)]
 
@@ -47,5 +46,5 @@ macro_rules! entry_point {
 #[doc(hidden)]
 pub fn __force_use(slice: &[u8]) {
     let force_use = &slice as *const _ as usize;
-    unsafe { asm!("add {0}, 0", in(reg) force_use, options(nomem, nostack)) };
+    unsafe { core::arch::asm!("add {0}, 0", in(reg) force_use, options(nomem, nostack)) };
 }
