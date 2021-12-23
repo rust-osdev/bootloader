@@ -18,10 +18,89 @@ mod concat {
 /// This macro just creates a function named `_start`, which the linker will use as the entry
 /// point. The advantage of using this macro instead of providing an own `_start` function is
 /// that the macro ensures that the function and argument types are correct.
+///
+/// ## Configuration
+///
+/// This macro supports an optional second parameter to configure how the bootloader should
+/// boot the kernel. The second parameter needs to be given as `config = ...` and be of type
+/// [`&BootloaderConfig`](crate::BootloaderConfig). If not given, the configuration defaults to
+/// [`BootloaderConfig::new_default`](crate::BootloaderConfig::new_default).
+///
+/// ## Examples
+///
+/// - With default configuration:
+///
+///   ```no_run
+///   #![no_std]
+///   #![no_main]
+///   # #![feature(lang_items)]
+///  
+///   bootloader_api::entry_point!(main);
+///  
+///   fn main(bootinfo: &'static mut bootloader_api::BootInfo) -> ! {
+///       loop {}
+///   }
+///
+///   #[panic_handler]
+///   fn panic(_info: &core::panic::PanicInfo) -> ! {
+///       loop {}
+///   }
+///
+///   # #[lang = "eh_personality"] fn eh_personality() {} // not needed when disabling unwinding
+///   ```
+///
+///   The name of the entry point function does not matter. For example, instead of `main`, we
+///   could also name it `fn my_entry_point(...) -> !`. We would then need to specify
+///   `entry_point!(my_entry_point)` of course.
+///
+/// - With custom configuration:
+///
+///   ```no_run
+///   #![no_std]
+///   #![no_main]
+///   # #![feature(lang_items)]
+///  
+///   use bootloader_api::{entry_point, BootloaderConfig};
+///   
+///   pub static BOOTLOADER_CONFIG: BootloaderConfig = {
+///       let mut config = BootloaderConfig::new_default();
+///       config.frame_buffer.minimum_framebuffer_height = Some(720);
+///       config
+///   };
+///
+///   entry_point!(main, config = &BOOTLOADER_CONFIG);
+///
+///   fn main(bootinfo: &'static mut bootloader_api::BootInfo) -> ! {
+///       loop {}
+///   }
+///
+///   #[panic_handler]
+///   fn panic(_info: &core::panic::PanicInfo) -> ! {
+///       loop {}
+///   }
+///
+///   # #[lang = "eh_personality"] fn eh_personality() {} // not needed when disabling unwinding
+///   ```
+///
+/// ## Implementation Notes
+///
+/// - **Start function:** The `entry_point` macro generates a small wrapper function named
+///   `_start` (without name mangling) that becomes the actual entry point function of the
+///   executable. This function doesn't do anything itself, it just calls into the function
+///   that is provided as macro argument. The purpose of this function is to use the correct
+///   ABI and parameter types required by this crate. A user-provided `_start` function could
+///   silently become incompatible on dependency updates since the Rust compiler cannot
+///   check the signature of custom entry point functions.
+/// - **Configuration:** Behind the scenes, the configuration struct is serialized using
+///   [`BootloaderConfig::serialize`](crate::BootloaderConfig::serialize). The resulting byte
+///   array is then stored as a static variable annotated with
+///   `#[link_section = ".bootloader-config"]`, which instructs the Rust compiler to store it
+///   in a special section of the resulting ELF executable. From there, the bootloader will
+///   automatically read it when loading the kernel.
 #[macro_export]
 macro_rules! entry_point {
     ($path:path) => {
-        entry_point!($path, config = &$crate::BootloaderConfig::new_default());
+        $crate::entry_point!($path, config = &$crate::BootloaderConfig::new_default());
     };
     ($path:path, config = $config:expr) => {
         #[link_section = ".bootloader-config"]
