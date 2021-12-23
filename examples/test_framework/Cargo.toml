@@ -12,6 +12,6 @@ members = [
 
 [dependencies]
 bootloader = { path = "../.." } # replace this with a version number
-x86_64 = "0.14.2"
+x86_64 = "0.14.7"
 uart_16550 = "0.2.14"
 spin = { version = "0.9.0", features = ["lazy"] }

@@ -11,8 +11,11 @@ use bootloader::{
     binary::SystemInfo,
     boot_info::{FrameBufferInfo, PixelFormat},
 };
-use core::panic::PanicInfo;
-use core::slice;
+use core::{
+    arch::{asm, global_asm},
+    panic::PanicInfo,
+    slice,
+};
 use usize_conversions::usize_from;
 use x86_64::structures::paging::{FrameAllocator, OffsetPageTable};
 use x86_64::structures::paging::{

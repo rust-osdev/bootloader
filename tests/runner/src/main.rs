@@ -1,6 +1,7 @@
 use std::{
+    io::Write,
     path::{Path, PathBuf},
-    process::Command,
+    process::{Command, Stdio},
 };
 
 const QEMU_ARGS: &[&str] = &[
@@ -28,8 +29,11 @@ fn main() {
     run_cmd.args(QEMU_ARGS);
     run_cmd.args(std::env::args().skip(2).collect::<Vec<_>>());
 
-    let exit_status = run_cmd.status().unwrap();
-    match exit_status.code() {
+    let child_output = run_cmd.output().unwrap();
+    std::io::stderr().write_all(&child_output.stderr).unwrap();
+    std::io::stderr().write_all(&child_output.stdout).unwrap();
+
+    match child_output.status.code() {
         Some(33) => {}                     // success
         Some(35) => panic!("Test failed"), // success
         other => panic!("Test failed with unexpected exit code `{:?}`", other),
