@@ -3,6 +3,7 @@
 
 pub use self::{config::BootloaderConfig, info::BootInfo};
 
+/// Contains the boot information struct sent by the bootloader to the kernel on startup.
 pub mod config;
 pub mod info;
 
