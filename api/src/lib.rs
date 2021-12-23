@@ -21,7 +21,7 @@ mod concat {
 #[macro_export]
 macro_rules! entry_point {
     ($path:path) => {
-        entry_point!($path, config = &crate::BootloaderConfig::new_default());
+        entry_point!($path, config = &$crate::BootloaderConfig::new_default());
     };
     ($path:path, config = $config:expr) => {
         #[link_section = ".bootloader-config"]
@@ -32,9 +32,9 @@ macro_rules! entry_point {
         };
 
         #[export_name = "_start"]
-        pub extern "C" fn __impl_start(boot_info: &'static mut $crate::info::BootInfo) -> ! {
+        pub extern "C" fn __impl_start(boot_info: &'static mut $crate::BootInfo) -> ! {
             // validate the signature of the program entry point
-            let f: fn(&'static mut $crate::info::BootInfo) -> ! = $path;
+            let f: fn(&'static mut $crate::BootInfo) -> ! = $path;
 
             // ensure that the config is used so that the linker keeps it
             $crate::__force_use(&__BOOTLOADER_CONFIG);
