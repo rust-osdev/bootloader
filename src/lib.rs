@@ -102,23 +102,3 @@ compile_error!(
     not(feature = "builder")
 ))]
 compile_error!("This crate only supports the x86_64 architecture.");
-
-/// Defines the entry point function.
-///
-/// The function must have the signature `fn(&'static mut BootInfo) -> !`.
-///
-/// This macro just creates a function named `_start`, which the linker will use as the entry
-/// point. The advantage of using this macro instead of providing an own `_start` function is
-/// that the macro ensures that the function and argument types are correct.
-#[macro_export]
-macro_rules! entry_point {
-    ($path:path) => {
-        #[export_name = "_start"]
-        pub extern "C" fn __impl_start(boot_info: &'static mut $crate::boot_info::BootInfo) -> ! {
-            // validate the signature of the program entry point
-            let f: fn(&'static mut $crate::boot_info::BootInfo) -> ! = $path;
-
-            f(boot_info)
-        }
-    };
-}
