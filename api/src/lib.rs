@@ -1,10 +1,15 @@
-#![deny(unsafe_op_in_unsafe_fn)]
+//! Provides the interface to make kernels compatible with the
+//! [**`bootloader`**](https://docs.rs/bootloader/latest/bootloader/) crate.
+
 #![cfg_attr(not(test), no_std)]
+#![deny(unsafe_op_in_unsafe_fn)]
+#![warn(missing_docs)]
 
 pub use self::{config::BootloaderConfig, info::BootInfo};
 
-/// Contains the boot information struct sent by the bootloader to the kernel on startup.
+/// Allows to configure the system environment set up by the bootloader.
 pub mod config;
+/// Contains the boot information struct sent by the bootloader to the kernel on startup.
 pub mod info;
 
 mod concat {
