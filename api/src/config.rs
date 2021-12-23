@@ -104,16 +104,16 @@ impl BootloaderConfig {
 
         let s = serialized;
 
-        let (uuid, s) = s.split_array_ref();
+        let (uuid, s) = split_array_ref(s);
         if uuid != &Self::UUID {
             return Err(());
         }
 
         let (version, s) = {
-            let (&major, s) = s.split_array_ref();
-            let (&minor, s) = s.split_array_ref();
-            let (&patch, s) = s.split_array_ref();
-            let (&pre, s) = s.split_array_ref();
+            let (&major, s) = split_array_ref(s);
+            let (&minor, s) = split_array_ref(s);
+            let (&patch, s) = split_array_ref(s);
+            let (&pre, s) = split_array_ref(s);
             let pre = match pre {
                 [0] => false,
                 [1] => true,
@@ -129,16 +129,16 @@ impl BootloaderConfig {
             (version, s)
         };
 
-        let (&kernel_stack_size, s) = s.split_array_ref();
+        let (&kernel_stack_size, s) = split_array_ref(s);
 
         let (mappings, s) = {
-            let (&kernel_stack, s) = s.split_array_ref();
-            let (&boot_info, s) = s.split_array_ref();
-            let (&framebuffer, s) = s.split_array_ref();
-            let (&physical_memory_some, s) = s.split_array_ref();
-            let (&physical_memory, s) = s.split_array_ref();
-            let (&page_table_recursive_some, s) = s.split_array_ref();
-            let (&page_table_recursive, s) = s.split_array_ref();
+            let (&kernel_stack, s) = split_array_ref(s);
+            let (&boot_info, s) = split_array_ref(s);
+            let (&framebuffer, s) = split_array_ref(s);
+            let (&physical_memory_some, s) = split_array_ref(s);
+            let (&physical_memory, s) = split_array_ref(s);
+            let (&page_table_recursive_some, s) = split_array_ref(s);
+            let (&page_table_recursive, s) = split_array_ref(s);
 
             let mappings = Mappings {
                 kernel_stack: Mapping::deserialize(&kernel_stack)?,
@@ -159,10 +159,10 @@ impl BootloaderConfig {
         };
 
         let (frame_buffer, s) = {
-            let (&min_framebuffer_height_some, s) = s.split_array_ref();
-            let (&min_framebuffer_height, s) = s.split_array_ref();
-            let (&min_framebuffer_width_some, s) = s.split_array_ref();
-            let (&min_framebuffer_width, s) = s.split_array_ref();
+            let (&min_framebuffer_height_some, s) = split_array_ref(s);
+            let (&min_framebuffer_height, s) = split_array_ref(s);
+            let (&min_framebuffer_width_some, s) = split_array_ref(s);
+            let (&min_framebuffer_width, s) = split_array_ref(s);
 
             let frame_buffer = FrameBuffer {
                 minimum_framebuffer_height: match min_framebuffer_height_some {
@@ -355,8 +355,8 @@ impl Mapping {
     }
 
     pub fn deserialize(serialized: &[u8; 9]) -> Result<Self, ()> {
-        let (&variant, s) = serialized.split_array_ref();
-        let (&addr, s) = s.split_array_ref();
+        let (&variant, s) = split_array_ref(serialized);
+        let (&addr, s) = split_array_ref(s);
         if !s.is_empty() {
             return Err(());
         }
@@ -373,6 +373,16 @@ impl Default for Mapping {
     fn default() -> Self {
         Self::new_default()
     }
+}
+
+/// Taken from https://github.com/rust-lang/rust/blob/e100ec5bc7cd768ec17d75448b29c9ab4a39272b/library/core/src/slice/mod.rs#L1673-L1677
+///
+/// TODO replace with `split_array` feature in stdlib as soon as it's stabilized,
+/// see https://github.com/rust-lang/rust/issues/90091
+fn split_array_ref<const N: usize, T>(slice: &[T]) -> (&[T; N], &[T]) {
+    let (a, b) = slice.split_at(N);
+    // SAFETY: a points to [T; N]? Yes it's [T] of length N (checked by split_at)
+    unsafe { (&*(a.as_ptr() as *const [T; N]), b) }
 }
 
 #[cfg(test)]
