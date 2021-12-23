@@ -15,10 +15,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          override: true
       - name: "Run `cargo check`"
         uses: actions-rs/cargo@v1
         with:
@@ -36,11 +32,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          override: true
-          components: rust-src, llvm-tools-preview
 
       # install QEMU
       - name: Install QEMU (Linux)
@@ -80,11 +71,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          override: true
-          components: rustfmt
       - name: Run `cargo fmt --all -- --check`
         uses: actions-rs/cargo@v1
         with:
@@ -96,11 +82,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          override: true
-          components: clippy
       - name: Run `cargo clippy`
         uses: actions-rs/cargo@v1
         with:
