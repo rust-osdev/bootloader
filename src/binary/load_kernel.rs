@@ -52,12 +52,28 @@ where
         }
 
         let elf_file = ElfFile::new(bytes)?;
+        for program_header in elf_file.program_iter() {
+            program::sanity_check(program_header, &elf_file)?;
+        }
 
         let virtual_address_offset = match elf_file.header.pt2.type_().as_type() {
             header::Type::None => unimplemented!(),
             header::Type::Relocatable => unimplemented!(),
             header::Type::Executable => 0,
-            header::Type::SharedObject => used_entries.get_free_address().as_u64(),
+            header::Type::SharedObject => {
+                // Find the highest virtual memory address and the biggest alignment.
+                let load_program_headers = elf_file
+                    .program_iter()
+                    .filter(|h| matches!(h.get_type(), Ok(Type::Load)));
+                let size = load_program_headers
+                    .clone()
+                    .map(|h| h.virtual_addr() + h.mem_size())
+                    .max()
+                    .unwrap_or(0);
+                let align = load_program_headers.map(|h| h.align()).max().unwrap_or(1);
+
+                used_entries.get_free_address(size, align).as_u64()
+            }
             header::Type::Core => unimplemented!(),
             header::Type::ProcessorSpecific(_) => unimplemented!(),
         };
@@ -79,10 +95,6 @@ where
     }
 
     fn load_segments(&mut self) -> Result<Option<TlsTemplate>, &'static str> {
-        for program_header in self.elf_file.program_iter() {
-            program::sanity_check(program_header, &self.elf_file)?;
-        }
-
         // Load the segments into virtual memory.
         let mut tls_template = None;
         for program_header in self.elf_file.program_iter() {

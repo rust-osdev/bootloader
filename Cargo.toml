@@ -34,7 +34,7 @@ name = "uefi"
 required-features = ["uefi_bin"]
 
 [dependencies]
-xmas-elf = { version = "0.6.2", optional = true }
+xmas-elf = { version = "0.8.0", optional = true }
 x86_64 = { version = "0.14.7", optional = true, default-features = false, features = ["instructions", "inline_asm"] }
 usize_conversions = { version = "0.2.0", optional = true }
 bit_field = { version = "0.10.0", optional = true }
@@ -51,6 +51,9 @@ json = { version = "0.12.4", optional = true }
 rsdp = { version = "1.0.0", optional = true }
 fatfs = { version = "0.3.4", optional = true }
 gpt = { version = "2.0.0", optional = true }
+raw-cpuid = { version = "10.2.0", optional = true }
+rand = { version = "0.8.4", optional = true, default-features = false }
+rand_chacha = { version = "0.3.1", optional = true, default-features = false }
 
 [dependencies.noto-sans-mono-bitmap]
 version = "0.1.2"
@@ -72,7 +75,8 @@ bios_bin = ["binary", "rsdp"]
 uefi_bin = ["binary", "uefi"]
 binary = [
     "llvm-tools-build", "x86_64", "toml", "xmas-elf", "usize_conversions", "log", "conquer-once",
-    "spinning_top", "serde", "noto-sans-mono-bitmap", "quote", "proc-macro2",
+    "spinning_top", "serde", "noto-sans-mono-bitmap", "quote", "proc-macro2", "raw-cpuid", "rand",
+    "rand_chacha"
 ]
 
 [profile.dev]

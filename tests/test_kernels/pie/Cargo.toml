@@ -8,3 +8,6 @@ edition = "2018"
 bootloader = { path = "../../.." }
 x86_64 = { version = "0.14.7", default-features = false, features = ["instructions", "inline_asm"] }
 uart_16550 = "0.2.10"
+
+[package.metadata.bootloader]
+aslr = true

@@ -50,6 +50,12 @@ pub struct Config {
     ///
     /// Defaults to `false`.
     pub map_page_table_recursively: bool,
+    /// Whether to randomize non-statically configured addresses.
+    /// The kernel base address will be randomized when it's compiled as
+    /// a position independent executable.
+    ///
+    /// Defaults to `false`.
+    pub aslr: bool,
     /// Create the recursive mapping in at the given entry of the level 4 page table.
     ///
     /// If not given, the bootloader searches for a free level 4 entry dynamically.
