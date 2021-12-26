@@ -1,4 +1,4 @@
-use crate::concat::*;
+use crate::{concat::*, version_info};
 
 /// Allows configuring the bootloader behavior.
 ///
@@ -251,7 +251,7 @@ pub(crate) struct ApiVersion {
     version_minor: u16,
     /// Bootloader version (patch).
     version_patch: u16,
-    /// Whether the bootloader version is a pre-release.
+    /// Whether the bootloader API version is a pre-release.
     ///
     /// We can't store the full prerelease string of the version number since it could be
     /// arbitrarily long.
@@ -259,13 +259,12 @@ pub(crate) struct ApiVersion {
 }
 
 impl ApiVersion {
-    const fn new_default() -> Self {
+    pub(crate) const fn new_default() -> Self {
         Self {
-            // todo: generate these from build script
-            version_major: 0,
-            version_minor: 0,
-            version_patch: 0,
-            pre_release: true,
+            version_major: version_info::VERSION_MAJOR,
+            version_minor: version_info::VERSION_MINOR,
+            version_patch: version_info::VERSION_PATCH,
+            pre_release: version_info::VERSION_PRE,
         }
     }
 
@@ -277,6 +276,22 @@ impl ApiVersion {
             version_patch: rand::random(),
             pre_release: rand::random(),
         }
+    }
+
+    pub fn version_major(&self) -> u16 {
+        self.version_major
+    }
+
+    pub fn version_minor(&self) -> u16 {
+        self.version_minor
+    }
+
+    pub fn version_patch(&self) -> u16 {
+        self.version_patch
+    }
+
+    pub fn pre_release(&self) -> bool {
+        self.pre_release
     }
 }
 

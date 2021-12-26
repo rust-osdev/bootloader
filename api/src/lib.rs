@@ -16,6 +16,10 @@ mod concat {
     include!(concat!(env!("OUT_DIR"), "/concat.rs"));
 }
 
+mod version_info {
+    include!(concat!(env!("OUT_DIR"), "/version_info.rs"));
+}
+
 /// Defines the entry point function.
 ///
 /// The function must have the signature `fn(&'static mut BootInfo) -> !`.
