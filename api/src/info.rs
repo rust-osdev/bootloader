@@ -53,6 +53,20 @@ pub struct BootInfo {
     pub tls_template: Optional<TlsTemplate>,
 }
 
+impl BootInfo {
+    pub fn new(memory_regions: MemoryRegions) -> Self {
+        Self {
+            api_version: ApiVersion::new_default(),
+            memory_regions,
+            framebuffer: Optional::None,
+            physical_memory_offset: Optional::None,
+            recursive_index: Optional::None,
+            rsdp_addr: Optional::None,
+            tls_template: Optional::None,
+        }
+    }
+}
+
 /// FFI-safe slice of [`MemoryRegion`] structs, semantically equivalent to
 /// `&'static mut [MemoryRegion]`.
 ///

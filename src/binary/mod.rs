@@ -346,24 +346,21 @@ where
     log::info!("Create bootinfo");
 
     // create boot info
-    let boot_info = boot_info.write(BootInfo {
-        version_major: env!("CARGO_PKG_VERSION_MAJOR").parse().unwrap(),
-        version_minor: env!("CARGO_PKG_VERSION_MINOR").parse().unwrap(),
-        version_patch: env!("CARGO_PKG_VERSION_PATCH").parse().unwrap(),
-        pre_release: !env!("CARGO_PKG_VERSION_PRE").is_empty(),
-        memory_regions: memory_regions.into(),
-        framebuffer: mappings
+    let boot_info = boot_info.write({
+        let mut info = BootInfo::new(memory_regions.into());
+        info.framebuffer = mappings
             .framebuffer
             .map(|addr| FrameBuffer {
                 buffer_start: addr.as_u64(),
                 buffer_byte_len: system_info.framebuffer_info.byte_len,
                 info: system_info.framebuffer_info,
             })
-            .into(),
-        physical_memory_offset: mappings.physical_memory_offset.map(VirtAddr::as_u64).into(),
-        recursive_index: mappings.recursive_index.map(Into::into).into(),
-        rsdp_addr: system_info.rsdp_addr.map(|addr| addr.as_u64()).into(),
-        tls_template: mappings.tls_template.into(),
+            .into();
+        info.physical_memory_offset = mappings.physical_memory_offset.map(VirtAddr::as_u64).into();
+        info.recursive_index = mappings.recursive_index.map(Into::into).into();
+        info.rsdp_addr = system_info.rsdp_addr.map(|addr| addr.as_u64()).into();
+        info.tls_template = mappings.tls_template.into();
+        info
     });
 
     boot_info
@@ -429,7 +426,7 @@ struct Addresses {
     page_table: PhysFrame,
     stack_top: VirtAddr,
     entry_point: VirtAddr,
-    boot_info: &'static mut crate::boot_info::BootInfo,
+    boot_info: &'static mut BootInfo,
 }
 
 fn boot_info_location(used_entries: &mut UsedLevel4Entries) -> VirtAddr {
