@@ -244,7 +244,8 @@ impl Default for BootloaderConfig {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub(crate) struct ApiVersion {
+#[repr(C)]
+pub struct ApiVersion {
     /// Bootloader version (major).
     version_major: u16,
     /// Bootloader version (minor).

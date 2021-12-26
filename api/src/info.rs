@@ -1,5 +1,7 @@
 use core::{ops, slice};
 
+use crate::config::ApiVersion;
+
 /// This structure represents the information that the bootloader passes to the kernel.
 ///
 /// The information is passed as an argument to the entry point. The entry point function must
@@ -18,17 +20,7 @@ use core::{ops, slice};
 #[repr(C)]
 #[non_exhaustive]
 pub struct BootInfo {
-    /// Bootloader version (major).
-    pub version_major: u16,
-    /// Bootloader version (minor).
-    pub version_minor: u16,
-    /// Bootloader version (patch).
-    pub version_patch: u16,
-    /// Whether the bootloader version is a pre-release.
-    ///
-    /// We can't store the full prerelease string of the version number since it could be
-    /// arbitrarily long.
-    pub pre_release: bool,
+    pub api_version: ApiVersion,
     /// A map of the physical memory regions of the underlying machine.
     ///
     /// The bootloader queries this information from the BIOS/UEFI firmware and translates this
