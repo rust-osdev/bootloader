@@ -71,11 +71,6 @@ for all possible configuration options.
 #![deny(unsafe_op_in_unsafe_fn)]
 #![warn(missing_docs)]
 
-pub use crate::config::Config;
-
-/// Configuration options for the bootloader.
-mod config;
-
 /// Contains the actual bootloader implementation ("bootloader as a binary").
 ///
 /// Useful for reusing part of the bootloader implementation for other crates.

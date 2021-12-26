@@ -8,7 +8,6 @@ use core::{
     slice,
 };
 use level_4_entries::UsedLevel4Entries;
-use parsed_config::CONFIG;
 use usize_conversions::FromUsize;
 use x86_64::{
     structures::paging::{
@@ -34,19 +33,6 @@ pub mod level_4_entries;
 pub mod load_kernel;
 /// Provides a logger type that logs output as text to pixel-based framebuffers.
 pub mod logger;
-
-// Contains the parsed configuration table from the kernel's Cargo.toml.
-//
-// The layout of the file is the following:
-//
-// ```
-// mod parsed_config {
-//    pub const CONFIG: Config = Config { … };
-// }
-// ```
-//
-// The module file is created by the build script.
-include!(concat!(env!("OUT_DIR"), "/bootloader_config.rs"));
 
 const PAGE_SIZE: u64 = 4096;
 

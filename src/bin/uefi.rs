@@ -4,11 +4,6 @@
 #![feature(maybe_uninit_extra)]
 #![deny(unsafe_op_in_unsafe_fn)]
 
-// Defines the constants `KERNEL_BYTES` (array of `u8`) and `KERNEL_SIZE` (`usize`).
-include!(concat!(env!("OUT_DIR"), "/kernel_info.rs"));
-
-static KERNEL: PageAligned<[u8; KERNEL_SIZE]> = PageAligned(KERNEL_BYTES);
-
 #[repr(align(4096))]
 struct PageAligned<T>(T);
 
