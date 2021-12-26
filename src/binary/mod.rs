@@ -1,6 +1,7 @@
-use crate::{
-    binary::legacy_memory_region::{LegacyFrameAllocator, LegacyMemoryRegion},
-    boot_info::{BootInfo, FrameBuffer, FrameBufferInfo, MemoryRegion, TlsTemplate},
+use crate::binary::legacy_memory_region::{LegacyFrameAllocator, LegacyMemoryRegion};
+use bootloader_api::{
+    info::{FrameBuffer, FrameBufferInfo, MemoryRegion, TlsTemplate},
+    BootInfo,
 };
 use core::{
     arch::asm,

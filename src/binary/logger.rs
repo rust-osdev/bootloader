@@ -1,4 +1,4 @@
-use crate::boot_info::{FrameBufferInfo, PixelFormat};
+use bootloader_api::info::{FrameBufferInfo, PixelFormat};
 use conquer_once::spin::OnceCell;
 use core::{
     fmt::{self, Write},

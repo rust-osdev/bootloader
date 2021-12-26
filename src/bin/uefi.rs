@@ -7,10 +7,7 @@
 #[repr(align(4096))]
 struct PageAligned<T>(T);
 
-use bootloader::{
-    binary::{legacy_memory_region::LegacyFrameAllocator, parsed_config::CONFIG, SystemInfo},
-    boot_info::FrameBufferInfo,
-};
+use bootloader::binary::{legacy_memory_region::LegacyFrameAllocator, SystemInfo};
 use core::{arch::asm, mem, panic::PanicInfo, slice};
 use uefi::{
     prelude::{entry, Boot, Handle, ResultExt, Status, SystemTable},

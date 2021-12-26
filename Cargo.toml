@@ -30,6 +30,7 @@ name = "uefi"
 required-features = ["uefi_bin"]
 
 [dependencies]
+bootloader_api = { path = "api", version = "0.1.0" }
 xmas-elf = { version = "0.6.2", optional = true }
 x86_64 = { version = "0.14.7", optional = true, default-features = false, features = [
     "instructions",

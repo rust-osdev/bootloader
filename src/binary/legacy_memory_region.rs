@@ -1,4 +1,4 @@
-use crate::boot_info::{MemoryRegion, MemoryRegionKind};
+use bootloader_api::info::{MemoryRegion, MemoryRegionKind};
 use core::mem::MaybeUninit;
 use x86_64::{
     structures::paging::{FrameAllocator, PhysFrame, Size4KiB},

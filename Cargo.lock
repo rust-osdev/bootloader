@@ -62,6 +62,7 @@ dependencies = [
  "anyhow",
  "argh",
  "bit_field",
+ "bootloader_api",
  "conquer-once",
  "displaydoc",
  "fatfs",
