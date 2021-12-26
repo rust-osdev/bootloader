@@ -15,10 +15,7 @@ members = [
     "tests/test_kernels/map_phys_mem",
     "tests/test_kernels/higher_half",
 ]
-exclude = [
-    "examples/basic",
-    "examples/test_framework",
-]
+exclude = ["examples/basic", "examples/test_framework"]
 
 [[bin]]
 name = "builder"
@@ -34,7 +31,10 @@ required-features = ["uefi_bin"]
 
 [dependencies]
 xmas-elf = { version = "0.6.2", optional = true }
-x86_64 = { version = "0.14.7", optional = true, default-features = false, features = ["instructions", "inline_asm"] }
+x86_64 = { version = "0.14.7", optional = true, default-features = false, features = [
+    "instructions",
+    "inline_asm",
+] }
 usize_conversions = { version = "0.2.0", optional = true }
 bit_field = { version = "0.10.0", optional = true }
 log = { version = "0.4.8", optional = true }
@@ -60,18 +60,37 @@ optional = true
 [build-dependencies]
 llvm-tools-build = { version = "0.1", optional = true, package = "llvm-tools" }
 toml = { version = "0.5.1", optional = true }
-serde = { version = "1.0", features = ["derive"], optional = true}
-quote = { version = "1.0", optional = true}
-proc-macro2 = { version = "1.0", optional = true}
+serde = { version = "1.0", features = ["derive"], optional = true }
+quote = { version = "1.0", optional = true }
+proc-macro2 = { version = "1.0", optional = true }
 
 [features]
 default = []
-builder = ["argh", "thiserror", "displaydoc", "anyhow", "llvm-tools", "json", "fatfs", "gpt"]
+builder = [
+    "argh",
+    "thiserror",
+    "displaydoc",
+    "anyhow",
+    "llvm-tools",
+    "json",
+    "fatfs",
+    "gpt",
+]
 bios_bin = ["binary", "rsdp"]
 uefi_bin = ["binary", "uefi"]
 binary = [
-    "llvm-tools-build", "x86_64", "toml", "xmas-elf", "usize_conversions", "log", "conquer-once",
-    "spinning_top", "serde", "font8x8", "quote", "proc-macro2",
+    "llvm-tools-build",
+    "x86_64",
+    "toml",
+    "xmas-elf",
+    "usize_conversions",
+    "log",
+    "conquer-once",
+    "spinning_top",
+    "serde",
+    "font8x8",
+    "quote",
+    "proc-macro2",
 ]
 
 [profile.dev]
@@ -89,6 +108,6 @@ default-target = "x86_64-unknown-linux-gnu"
 [package.metadata.release]
 no-dev-version = true
 pre-release-replacements = [
-    { file="Changelog.md", search="# Unreleased", replace="# Unreleased\n\n# {{version}} – {{date}}", exactly=1 },
+    { file = "Changelog.md", search = "# Unreleased", replace = "# Unreleased\n\n# {{version}} – {{date}}", exactly = 1 },
 ]
 pre-release-commit-message = "Release version {{version}}"
