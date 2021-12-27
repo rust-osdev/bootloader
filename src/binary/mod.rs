@@ -59,8 +59,8 @@ pub struct SystemInfo {
 }
 
 pub struct Kernel<'a> {
-    elf: ElfFile<'a>,
-    config: BootloaderConfig,
+    pub elf: ElfFile<'a>,
+    pub config: BootloaderConfig,
 }
 
 /// Loads the kernel ELF executable into memory and switches to it.

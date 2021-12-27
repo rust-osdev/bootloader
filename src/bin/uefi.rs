@@ -7,24 +7,113 @@
 #[repr(align(4096))]
 struct PageAligned<T>(T);
 
-use bootloader::binary::{legacy_memory_region::LegacyFrameAllocator, SystemInfo};
-use bootloader_api::info::FrameBufferInfo;
-use core::{arch::asm, mem, panic::PanicInfo, slice};
+use bootloader::binary::{legacy_memory_region::LegacyFrameAllocator, Kernel, SystemInfo};
+use bootloader_api::{info::FrameBufferInfo, BootloaderConfig};
+use core::{arch::asm, mem, panic::PanicInfo, ptr, slice};
 use uefi::{
     prelude::{entry, Boot, Handle, ResultExt, Status, SystemTable},
-    proto::console::gop::{GraphicsOutput, PixelFormat},
-    table::boot::{MemoryDescriptor, MemoryType},
-    Completion,
+    proto::{
+        console::gop::{GraphicsOutput, PixelFormat},
+        device_path::DevicePath,
+        loaded_image::LoadedImage,
+        media::{
+            file::{File, FileAttribute, FileInfo, FileMode},
+            fs::SimpleFileSystem,
+        },
+    },
+    table::boot::{AllocateType, MemoryDescriptor, MemoryType},
+    CStr16, Completion,
 };
 use x86_64::{
     structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB},
     PhysAddr, VirtAddr,
 };
+use xmas_elf::ElfFile;
 
 #[entry]
 fn efi_main(image: Handle, st: SystemTable<Boot>) -> Status {
-    let (framebuffer_addr, framebuffer_info) = init_logger(&st);
-    log::info!("Hello World from UEFI bootloader!");
+    main_inner(image, st)
+}
+
+fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
+    let mut buf = [0; 100];
+    st.stdout()
+        .output_string(
+            CStr16::from_str_with_buf("UEFI bootloader started; trying to load kernel", &mut buf)
+                .unwrap(),
+        )
+        .unwrap()
+        .unwrap();
+
+    let file_system_raw = {
+        let ref this = st.boot_services();
+        let loaded_image = this
+            .handle_protocol::<LoadedImage>(image)?
+            .expect("Failed to retrieve `LoadedImage` protocol from handle");
+        let loaded_image = unsafe { &*loaded_image.get() };
+
+        let device_handle = loaded_image.device();
+
+        let device_path = this
+            .handle_protocol::<DevicePath>(device_handle)?
+            .expect("Failed to retrieve `DevicePath` protocol from image's device handle");
+        let mut device_path = unsafe { &*device_path.get() };
+
+        let device_handle = this
+            .locate_device_path::<SimpleFileSystem>(&mut device_path)?
+            .expect("Failed to locate `SimpleFileSystem` protocol on device path");
+
+        this.handle_protocol::<SimpleFileSystem>(device_handle)
+    }
+    .unwrap()
+    .unwrap();
+    let file_system = unsafe { &mut *file_system_raw.get() };
+
+    let mut root = file_system.open_volume().unwrap().unwrap();
+    let kernel_file_handle = root
+        .open("kernel-x86_64", FileMode::Read, FileAttribute::empty())
+        .unwrap()
+        .unwrap();
+    let mut kernel_file = match kernel_file_handle.into_type().unwrap().unwrap() {
+        uefi::proto::media::file::FileType::Regular(f) => f,
+        uefi::proto::media::file::FileType::Dir(_) => panic!(),
+    };
+
+    let mut buf = [0; 100];
+    let kernel_info: &mut FileInfo = kernel_file.get_info(&mut buf).unwrap().unwrap();
+    let kernel_size = usize::try_from(kernel_info.file_size()).unwrap();
+
+    let kernel_ptr = st
+        .boot_services()
+        .allocate_pages(
+            AllocateType::AnyPages,
+            MemoryType::LOADER_DATA,
+            ((kernel_size - 1) / 4096) + 1,
+        )
+        .unwrap()
+        .unwrap() as *mut u8;
+    unsafe { ptr::write_bytes(kernel_ptr, 0, kernel_size) };
+    let kernel_slice = unsafe { slice::from_raw_parts_mut(kernel_ptr, kernel_size) };
+    kernel_file.read(kernel_slice).unwrap().unwrap();
+
+    let kernel_elf = ElfFile::new(kernel_slice).unwrap();
+
+    let config = {
+        let section = kernel_elf
+            .find_section_by_name(".bootloader-config")
+            .unwrap();
+        let raw = section.raw_data(&kernel_elf);
+        BootloaderConfig::deserialize(raw).unwrap()
+    };
+
+    let kernel = Kernel {
+        elf: kernel_elf,
+        config,
+    };
+
+    let (framebuffer_addr, framebuffer_info) = init_logger(&st, config);
+    log::info!("UEFI bootloader started");
+    log::info!("Reading kernel and configuration from disk was successful");
     log::info!("Using framebuffer at {:#x}", framebuffer_addr);
 
     let mmap_storage = {
@@ -62,7 +151,7 @@ fn efi_main(image: Handle, st: SystemTable<Boot>) -> Status {
     };
 
     bootloader::binary::load_and_switch_to_kernel(
-        &KERNEL.0,
+        kernel,
         frame_allocator,
         page_tables,
         system_info,
@@ -135,7 +224,7 @@ fn create_page_tables(
     }
 }
 
-fn init_logger(st: &SystemTable<Boot>) -> (PhysAddr, FrameBufferInfo) {
+fn init_logger(st: &SystemTable<Boot>, config: BootloaderConfig) -> (PhysAddr, FrameBufferInfo) {
     let gop = st
         .boot_services()
         .locate_protocol::<GraphicsOutput>()
@@ -145,8 +234,14 @@ fn init_logger(st: &SystemTable<Boot>) -> (PhysAddr, FrameBufferInfo) {
     let mode = {
         let modes = gop.modes().map(Completion::unwrap);
         match (
-            CONFIG.minimum_framebuffer_height,
-            CONFIG.minimum_framebuffer_width,
+            config
+                .frame_buffer
+                .minimum_framebuffer_height
+                .map(|v| usize::try_from(v).unwrap()),
+            config
+                .frame_buffer
+                .minimum_framebuffer_width
+                .map(|v| usize::try_from(v).unwrap()),
         ) {
             (Some(height), Some(width)) => modes
                 .filter(|m| {
