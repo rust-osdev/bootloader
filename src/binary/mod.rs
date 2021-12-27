@@ -350,10 +350,12 @@ where
         let mut info = BootInfo::new(memory_regions.into());
         info.framebuffer = mappings
             .framebuffer
-            .map(|addr| FrameBuffer {
-                buffer_start: addr.as_u64(),
-                buffer_byte_len: system_info.framebuffer_info.byte_len,
-                info: system_info.framebuffer_info,
+            .map(|addr| {
+                FrameBuffer::new(
+                    addr.as_u64(),
+                    system_info.framebuffer_info.byte_len,
+                    system_info.framebuffer_info,
+                )
             })
             .into();
         info.physical_memory_offset = mappings.physical_memory_offset.map(VirtAddr::as_u64).into();

@@ -8,6 +8,7 @@
 struct PageAligned<T>(T);
 
 use bootloader::binary::{legacy_memory_region::LegacyFrameAllocator, SystemInfo};
+use bootloader_api::info::FrameBufferInfo;
 use core::{arch::asm, mem, panic::PanicInfo, slice};
 use uefi::{
     prelude::{entry, Boot, Handle, ResultExt, Status, SystemTable},
@@ -171,8 +172,8 @@ fn init_logger(st: &SystemTable<Boot>) -> (PhysAddr, FrameBufferInfo) {
         horizontal_resolution: mode_info.resolution().0,
         vertical_resolution: mode_info.resolution().1,
         pixel_format: match mode_info.pixel_format() {
-            PixelFormat::Rgb => bootloader::boot_info::PixelFormat::BGR,
-            PixelFormat::Bgr => bootloader::boot_info::PixelFormat::BGR,
+            PixelFormat::Rgb => bootloader_api::info::PixelFormat::Rgb,
+            PixelFormat::Bgr => bootloader_api::info::PixelFormat::Bgr,
             PixelFormat::Bitmask | PixelFormat::BltOnly => {
                 panic!("Bitmask and BltOnly framebuffers are not supported")
             }

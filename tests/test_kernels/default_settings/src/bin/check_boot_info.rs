@@ -35,7 +35,7 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     if ![640, 1024].contains(&framebuffer.info().stride) {
         panic!("unexpected stride `{}`", framebuffer.info().stride);
     }
-    assert_eq!(framebuffer.info().pixel_format, PixelFormat::BGR);
+    assert_eq!(framebuffer.info().pixel_format, PixelFormat::Bgr);
     assert_eq!(
         framebuffer.buffer().len(),
         framebuffer.info().stride

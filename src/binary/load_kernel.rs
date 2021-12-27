@@ -14,6 +14,8 @@ use xmas_elf::{
     ElfFile,
 };
 
+use super::Kernel;
+
 struct Loader<'a, M, F> {
     elf_file: ElfFile<'a>,
     inner: Inner<'a, M, F>,

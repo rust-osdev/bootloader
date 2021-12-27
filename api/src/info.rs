@@ -165,6 +165,14 @@ pub struct FrameBuffer {
 }
 
 impl FrameBuffer {
+    pub fn new(buffer_start: u64, buffer_byte_len: usize, info: FrameBufferInfo) -> Self {
+        Self {
+            buffer_start,
+            buffer_byte_len,
+            info,
+        }
+    }
+
     /// Returns the raw bytes of the framebuffer as slice.
     pub fn buffer(&self) -> &[u8] {
         unsafe { self.create_buffer() }
@@ -216,12 +224,12 @@ pub enum PixelFormat {
     ///
     /// Length might be larger than 3, check [`bytes_per_pixel`][FrameBufferInfo::bytes_per_pixel]
     /// for this.
-    RGB,
+    Rgb,
     /// One byte blue, then one byte green, then one byte red.
     ///
     /// Length might be larger than 3, check [`bytes_per_pixel`][FrameBufferInfo::bytes_per_pixel]
     /// for this.
-    BGR,
+    Bgr,
     /// A single byte, representing the grayscale value.
     ///
     /// Length might be larger than 1, check [`bytes_per_pixel`][FrameBufferInfo::bytes_per_pixel]

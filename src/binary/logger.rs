@@ -127,9 +127,15 @@ impl Logger {
     fn write_pixel(&mut self, x: usize, y: usize, intensity: u8) {
         let pixel_offset = y * self.info.stride + x;
         let color = match self.info.pixel_format {
-            PixelFormat::RGB => [intensity, intensity, intensity / 2, 0],
-            PixelFormat::BGR => [intensity / 2, intensity, intensity, 0],
+            PixelFormat::Rgb => [intensity, intensity, intensity / 2, 0],
+            PixelFormat::Bgr => [intensity / 2, intensity, intensity, 0],
             PixelFormat::U8 => [if intensity > 200 { 0xf } else { 0 }, 0, 0, 0],
+            other => {
+                // set a supported (but invalid) pixel format before panicking to avoid a double
+                // panic; it might not be readable though
+                self.info.pixel_format = PixelFormat::Rgb;
+                panic!("pixel format {:?} not supported in logger", other)
+            }
         };
         let bytes_per_pixel = self.info.bytes_per_pixel;
         let byte_offset = pixel_offset * bytes_per_pixel;
