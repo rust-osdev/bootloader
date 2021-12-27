@@ -4,7 +4,7 @@ use crate::{concat::*, version_info};
 ///
 /// TODO: describe use together with `entry_point` macro
 /// TODO: example
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[non_exhaustive]
 pub struct BootloaderConfig {
     /// The version of the bootloader API.
@@ -243,7 +243,7 @@ impl Default for BootloaderConfig {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[repr(C)]
 pub struct ApiVersion {
     /// Bootloader version (major).
@@ -303,7 +303,7 @@ impl Default for ApiVersion {
 }
 
 /// Allows to configure the virtual memory mappings created by the bootloader.
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
 #[non_exhaustive]
 pub struct Mappings {
     /// Configures how the kernel stack should be mapped.
@@ -363,7 +363,7 @@ impl Mappings {
 }
 
 /// Configuration for the frame buffer used for graphical output.
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
 #[non_exhaustive]
 pub struct FrameBuffer {
     /// Instructs the bootloader to set up a framebuffer format that has at least the given height.
