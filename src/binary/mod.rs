@@ -1,7 +1,8 @@
 use crate::binary::legacy_memory_region::{LegacyFrameAllocator, LegacyMemoryRegion};
 use bootloader_api::{
+    config::Mapping,
     info::{FrameBuffer, FrameBufferInfo, MemoryRegion, TlsTemplate},
-    BootInfo,
+    BootInfo, BootloaderConfig,
 };
 use core::{
     arch::asm,
@@ -12,11 +13,12 @@ use level_4_entries::UsedLevel4Entries;
 use usize_conversions::FromUsize;
 use x86_64::{
     structures::paging::{
-        FrameAllocator, Mapper, OffsetPageTable, Page, PageTableFlags, PageTableIndex, PhysFrame,
-        Size2MiB,
+        page_table::PageTableLevel, FrameAllocator, Mapper, OffsetPageTable, Page, PageTableFlags,
+        PageTableIndex, PhysFrame, Size2MiB,
     },
     PhysAddr, VirtAddr,
 };
+use xmas_elf::ElfFile;
 
 /// Provides BIOS-specific types and trait implementations.
 #[cfg(feature = "bios_bin")]
@@ -56,13 +58,18 @@ pub struct SystemInfo {
     pub rsdp_addr: Option<PhysAddr>,
 }
 
+pub struct Kernel<'a> {
+    elf: ElfFile<'a>,
+    config: BootloaderConfig,
+}
+
 /// Loads the kernel ELF executable into memory and switches to it.
 ///
 /// This function is a convenience function that first calls [`set_up_mappings`], then
 /// [`create_boot_info`], and finally [`switch_to_kernel`]. The given arguments are passed
 /// directly to these functions, so see their docs for more info.
 pub fn load_and_switch_to_kernel<I, D>(
-    kernel_bytes: &[u8],
+    kernel: Kernel,
     mut frame_allocator: LegacyFrameAllocator<I, D>,
     mut page_tables: PageTables,
     system_info: SystemInfo,
@@ -71,14 +78,16 @@ where
     I: ExactSizeIterator<Item = D> + Clone,
     D: LegacyMemoryRegion,
 {
+    let config = kernel.config;
     let mut mappings = set_up_mappings(
-        kernel_bytes,
+        kernel,
         &mut frame_allocator,
         &mut page_tables,
         system_info.framebuffer_addr,
         system_info.framebuffer_info.byte_len,
     );
     let boot_info = create_boot_info(
+        &config,
         frame_allocator,
         &mut page_tables,
         &mut mappings,
@@ -102,7 +111,7 @@ where
 /// This function reacts to unexpected situations (e.g. invalid kernel ELF file) with a panic, so
 /// errors are not recoverable.
 pub fn set_up_mappings<I, D>(
-    kernel_bytes: &[u8],
+    kernel: Kernel,
     frame_allocator: &mut LegacyFrameAllocator<I, D>,
     page_tables: &mut PageTables,
     framebuffer_addr: PhysAddr,
@@ -119,16 +128,17 @@ where
     // Make the kernel respect the write-protection bits even when in ring 0 by default
     enable_write_protect_bit();
 
+    let config = kernel.config;
     let (entry_point, tls_template, mut used_entries) =
-        load_kernel::load_kernel(kernel_bytes, kernel_page_table, frame_allocator)
+        load_kernel::load_kernel(kernel, kernel_page_table, frame_allocator)
             .expect("no entry point");
     log::info!("Entry point at: {:#x}", entry_point.as_u64());
 
     // create a stack
-    let stack_start_addr = kernel_stack_start_location(&mut used_entries);
+    let stack_start_addr = mapping_addr(config.mappings.kernel_stack, &mut used_entries);
     let stack_start: Page = Page::containing_address(stack_start_addr);
     let stack_end = {
-        let end_addr = stack_start_addr + CONFIG.kernel_stack_size.unwrap_or(20 * PAGE_SIZE);
+        let end_addr = stack_start_addr + config.kernel_stack_size;
         Page::containing_address(end_addr - 1u64)
     };
     for page in Page::range_inclusive(stack_start, stack_end) {
@@ -172,13 +182,14 @@ where
     }
 
     // map framebuffer
-    let framebuffer_virt_addr = if CONFIG.map_framebuffer {
+    let framebuffer_virt_addr = {
         log::info!("Map framebuffer");
 
         let framebuffer_start_frame: PhysFrame = PhysFrame::containing_address(framebuffer_addr);
         let framebuffer_end_frame =
             PhysFrame::containing_address(framebuffer_addr + framebuffer_size - 1u64);
-        let start_page = Page::containing_address(frame_buffer_location(&mut used_entries));
+        let start_page =
+            Page::containing_address(mapping_addr(config.mappings.framebuffer, &mut used_entries));
         for (i, frame) in
             PhysFrame::range_inclusive(framebuffer_start_frame, framebuffer_end_frame).enumerate()
         {
@@ -194,16 +205,11 @@ where
         }
         let framebuffer_virt_addr = start_page.start_address();
         Some(framebuffer_virt_addr)
-    } else {
-        None
     };
 
-    let physical_memory_offset = if CONFIG.map_physical_memory {
+    let physical_memory_offset = if let Some(mapping) = config.mappings.physical_memory {
         log::info!("Map physical memory");
-        let offset = CONFIG
-            .physical_memory_offset
-            .map(VirtAddr::new)
-            .unwrap_or_else(|| used_entries.get_free_address());
+        let offset = mapping_addr(mapping, &mut used_entries);
 
         let start_frame = PhysFrame::containing_address(PhysAddr::new(0));
         let max_phys = frame_allocator.max_phys_addr();
@@ -225,12 +231,19 @@ where
         None
     };
 
-    let recursive_index = if CONFIG.map_page_table_recursively {
+    let recursive_index = if let Some(mapping) = config.mappings.page_table_recursive {
         log::info!("Map page table recursively");
-        let index = CONFIG
-            .recursive_index
-            .map(PageTableIndex::new)
-            .unwrap_or_else(|| used_entries.get_free_entry());
+        let offset = mapping_addr(mapping, &mut used_entries);
+        let table_level = PageTableLevel::Four;
+        if !offset.is_aligned(table_level.entry_address_space_alignment()) {
+            panic!(
+                "Offset for recursive mapping must be properly aligned (must be \
+                a multiple of {:#x})",
+                table_level.entry_address_space_alignment()
+            );
+        }
+
+        let index = offset.p4_index();
 
         let entry = &mut kernel_page_table.level_4_table()[index];
         if !entry.is_unused() {
@@ -284,6 +297,7 @@ pub struct Mappings {
 /// reference that is valid in both address spaces. The necessary physical frames
 /// are taken from the given `frame_allocator`.
 pub fn create_boot_info<I, D>(
+    config: &BootloaderConfig,
     mut frame_allocator: LegacyFrameAllocator<I, D>,
     page_tables: &mut PageTables,
     mappings: &mut Mappings,
@@ -297,7 +311,7 @@ where
 
     // allocate and map space for the boot info
     let (boot_info, memory_regions) = {
-        let boot_info_addr = boot_info_location(&mut mappings.used_entries);
+        let boot_info_addr = mapping_addr(config.mappings.boot_info, &mut mappings.used_entries);
         let boot_info_end = boot_info_addr + mem::size_of::<BootInfo>();
         let memory_map_regions_addr =
             boot_info_end.align_up(u64::from_usize(mem::align_of::<MemoryRegion>()));
@@ -431,25 +445,11 @@ struct Addresses {
     boot_info: &'static mut BootInfo,
 }
 
-fn boot_info_location(used_entries: &mut UsedLevel4Entries) -> VirtAddr {
-    CONFIG
-        .boot_info_address
-        .map(VirtAddr::new)
-        .unwrap_or_else(|| used_entries.get_free_address())
-}
-
-fn frame_buffer_location(used_entries: &mut UsedLevel4Entries) -> VirtAddr {
-    CONFIG
-        .framebuffer_address
-        .map(VirtAddr::new)
-        .unwrap_or_else(|| used_entries.get_free_address())
-}
-
-fn kernel_stack_start_location(used_entries: &mut UsedLevel4Entries) -> VirtAddr {
-    CONFIG
-        .kernel_stack_address
-        .map(VirtAddr::new)
-        .unwrap_or_else(|| used_entries.get_free_address())
+fn mapping_addr(mapping: Mapping, used_entries: &mut UsedLevel4Entries) -> VirtAddr {
+    match mapping {
+        Mapping::FixedAddress(addr) => VirtAddr::new(addr),
+        Mapping::Dynamic => used_entries.get_free_address(),
+    }
 }
 
 fn enable_nxe_bit() {

@@ -33,17 +33,17 @@ where
     F: FrameAllocator<Size4KiB>,
 {
     fn new(
-        bytes: &'a [u8],
+        kernel: Kernel<'a>,
         page_table: &'a mut M,
         frame_allocator: &'a mut F,
     ) -> Result<Self, &'static str> {
-        log::info!("Elf file loaded at {:#p}", bytes);
-        let kernel_offset = PhysAddr::new(&bytes[0] as *const u8 as u64);
+        log::info!("Elf file loaded at {:#p}", kernel.elf.input);
+        let kernel_offset = PhysAddr::new(&kernel.elf.input[0] as *const u8 as u64);
         if !kernel_offset.is_aligned(PAGE_SIZE) {
             return Err("Loaded kernel ELF file is not sufficiently aligned");
         }
 
-        let elf_file = ElfFile::new(bytes)?;
+        let elf_file = kernel.elf;
         header::sanity_check(&elf_file)?;
         let loader = Loader {
             elf_file,
@@ -274,11 +274,11 @@ where
 /// Returns the kernel entry point address, it's thread local storage template (if any),
 /// and a structure describing which level 4 page table entries are in use.  
 pub fn load_kernel(
-    bytes: &[u8],
+    kernel: Kernel<'_>,
     page_table: &mut impl MapperAllSizes,
     frame_allocator: &mut impl FrameAllocator<Size4KiB>,
 ) -> Result<(VirtAddr, Option<TlsTemplate>, UsedLevel4Entries), &'static str> {
-    let mut loader = Loader::new(bytes, page_table, frame_allocator)?;
+    let mut loader = Loader::new(kernel, page_table, frame_allocator)?;
     let tls_template = loader.load_segments()?;
     let used_entries = loader.used_level_4_entries();
 
