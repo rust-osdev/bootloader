@@ -305,7 +305,7 @@ where
         let data = if let SegmentData::Dynamic64(data) = data {
             data
         } else {
-            unreachable!()
+            panic!("expected Dynamic64 segment")
         };
 
         // Find the `Rela`, `RelaSize` and `RelaEnt` entries.
