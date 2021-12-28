@@ -353,13 +353,27 @@ where
         let entry_size = rela_ent.ok_or("RelaEnt entry is missing")?;
 
         // Apply the mappings.
-        let entries = total_size / entry_size;
-        let relas = unsafe {
-            core::slice::from_raw_parts::<Rela<u64>>(
-                elf_file.input.as_ptr().add(offset as usize).cast(),
-                entries as usize,
-            )
-        };
+        let entries = (total_size / entry_size) as usize;
+        let rela_start = elf_file
+            .input
+            .as_ptr()
+            .wrapping_add(offset as usize)
+            .cast::<Rela<u64>>();
+
+        // Make sure the relocations are inside the elf file.
+        let rela_end = rela_start.wrapping_add(entries);
+        assert!(rela_start <= rela_end);
+        let file_ptr_range = elf_file.input.as_ptr_range();
+        assert!(
+            file_ptr_range.start <= rela_start.cast(),
+            "the relocation table must start in the elf file"
+        );
+        assert!(
+            rela_end.cast() <= file_ptr_range.end,
+            "the relocation table must end in the elf file"
+        );
+
+        let relas = unsafe { core::slice::from_raw_parts(rela_start, entries) };
         for rela in relas {
             let idx = rela.get_symbol_table_index();
             assert_eq!(
