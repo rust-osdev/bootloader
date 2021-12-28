@@ -6,12 +6,8 @@ version = 3
 name = "basic_example"
 version = "0.1.0"
 dependencies = [
- "bootloader",
+ "bootloader_api",
 ]
-
-[[package]]
-name = "bootloader"
-version = "0.10.4"
 
 [[package]]
 name = "bootloader-locator"
@@ -21,6 +17,10 @@ checksum = "aaaa9db3339d32c2622f2e5d0731eb82a468d3439797c9d4fe426744fe2bd551"
 dependencies = [
  "json",
 ]
+
+[[package]]
+name = "bootloader_api"
+version = "0.1.0"
 
 [[package]]
 name = "json"
