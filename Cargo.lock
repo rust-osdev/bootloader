@@ -386,7 +386,7 @@ version = "0.1.0"
 dependencies = [
  "bootloader",
  "uart_16550",
- "x86_64 0.13.6",
+ "x86_64",
 ]
 
 [[package]]

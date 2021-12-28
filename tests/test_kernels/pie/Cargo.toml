@@ -6,5 +6,5 @@ edition = "2018"
 
 [dependencies]
 bootloader = { path = "../../.." }
-x86_64 = { version = "0.13.2", default-features = false, features = ["instructions", "inline_asm"] }
+x86_64 = { version = "0.14.7", default-features = false, features = ["instructions", "inline_asm"] }
 uart_16550 = "0.2.10"
