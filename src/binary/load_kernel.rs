@@ -344,8 +344,9 @@ where
         } else {
             // The section doesn't contain any relocations.
 
-            assert_eq!(rela_size, None);
-            assert_eq!(rela_ent, None);
+            if rela_size.is_some() || rela_ent.is_some() {
+                return Err("Rela entry is missing but RelaSize or RelaEnt have been provided");
+            }
 
             return Ok(());
         };
