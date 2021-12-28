@@ -1,10 +1,8 @@
 .section .boot, "awx"
 .global _start
-.intel_syntax noprefix
 .code16
 
-# This stage initializes the stack, enables the A20 line, loads the rest of
-# the bootloader from disk, and jumps to stage_2.
+# This stage initializes the stack, enables the A20 line
 
 _start:
     # zero segment registers
@@ -75,17 +73,7 @@ check_int13h_extensions:
 
 rust:
     # push arguments
-arg_0:
     push dx     # disk number
-    lea eax, _bootloader_start
-arg_1:
-    push eax
-    lea eax, _second_stage_end
-arg_2:
-    push eax
-    lea eax, _second_stage_start
-arg_3:
-    push eax
     call first_stage
 
 spin:

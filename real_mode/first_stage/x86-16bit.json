@@ -1,7 +1,7 @@
 {
 	"arch": "x86",
 	"cpu": "i386",
-	"data-layout": "e-m:e-p:32:32-f64:32:64-f80:32-n8:16:32-S128",
+	"data-layout": "e-m:e-p:32:32-p270:32:32-p271:32:32-p272:64:64-f64:32:64-f80:32-n8:16:32-S128",
 	"dynamic-linking": false,
 	"executables": true,
 	"linker-flavor": "ld.lld",
@@ -16,6 +16,10 @@
 	"panic-strategy": "abort",
 	"os": "none",
 	"vendor": "unknown",
-	"relocation_model": "static",
-	"eliminate_frame_pointer": true
+	"relocation-model": "static",
+	"pre-link-args": {
+		"ld.lld": [
+			"--script=16-bit-linker.ld"
+		]
+	}
 }

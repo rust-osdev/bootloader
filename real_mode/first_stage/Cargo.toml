@@ -2,19 +2,14 @@
 name = "first_stage"
 version = "0.1.0"
 authors = ["Philipp Oppermann <dev@phil-opp.com>"]
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[lib]
-name = "first_stage"
-crate-type = ["staticlib"]
-
 [dependencies]
 
-
 [profile.release]
-opt-level = "s"
+opt-level = "z"
 lto = true
 codegen-units = 1
-debug = true
+# debug = true
