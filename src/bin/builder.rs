@@ -15,10 +15,6 @@ type ExitCode = i32;
 #[derive(FromArgs)]
 /// Build the bootloader
 struct BuildArguments {
-    /// path to the `Cargo.toml` of the kernel
-    #[argh(option)]
-    kernel_manifest: PathBuf,
-
     /// path to the kernel ELF binary
     #[argh(option)]
     kernel_binary: PathBuf,
@@ -107,8 +103,6 @@ fn main() -> anyhow::Result<()> {
         if args.quiet {
             cmd.arg("--quiet");
         }
-        cmd.env("KERNEL", &args.kernel_binary);
-        cmd.env("KERNEL_MANIFEST", &args.kernel_manifest);
         assert!(cmd.status()?.success());
 
         // Retrieve binary paths
@@ -155,7 +149,7 @@ fn main() -> anyhow::Result<()> {
 
         if let Some(out_dir) = &args.out_dir {
             let efi_file = out_dir.join(format!("boot-{}-{}.efi", executable_name, kernel_name));
-            create_uefi_disk_image(&executable_path, &efi_file)
+            create_uefi_disk_image(&executable_path, &efi_file, &args.kernel_binary)
                 .context("failed to create UEFI disk image")?;
         }
     }
@@ -176,8 +170,6 @@ fn main() -> anyhow::Result<()> {
         if args.quiet {
             cmd.arg("--quiet");
         }
-        cmd.env("KERNEL", &args.kernel_binary);
-        cmd.env("KERNEL_MANIFEST", &args.kernel_manifest);
         cmd.env("RUSTFLAGS", "-C opt-level=s");
         assert!(cmd.status()?.success());
 
@@ -233,11 +225,19 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn create_uefi_disk_image(executable_path: &Path, efi_file: &Path) -> anyhow::Result<()> {
+fn create_uefi_disk_image(
+    executable_path: &Path,
+    efi_file: &Path,
+    kernel_binary: &Path,
+) -> anyhow::Result<()> {
     fs::copy(&executable_path, &efi_file).context("failed to copy efi file to out dir")?;
 
     let efi_size = fs::metadata(&efi_file)
         .context("failed to read metadata of efi file")?
+        .len();
+
+    let kernel_size = fs::metadata(&kernel_binary)
+        .context("failed to read metadata of kernel binary")?
         .len();
 
     // create fat partition
@@ -252,9 +252,10 @@ fn create_uefi_disk_image(executable_path: &Path, efi_file: &Path) -> anyhow::Re
             .truncate(true)
             .open(&fat_path)
             .context("Failed to create UEFI FAT file")?;
-        let efi_size_padded_and_rounded = ((efi_size + 1024 * 64 - 1) / MB + 1) * MB;
+        let fat_size = efi_size + kernel_size;
+        let fat_size_padded_and_rounded = ((fat_size + 1024 * 64 - 1) / MB + 1) * MB;
         fat_file
-            .set_len(efi_size_padded_and_rounded)
+            .set_len(fat_size_padded_and_rounded)
             .context("failed to set UEFI FAT file length")?;
 
         // create new FAT partition
@@ -271,6 +272,11 @@ fn create_uefi_disk_image(executable_path: &Path, efi_file: &Path) -> anyhow::Re
         let mut bootx64 = root_dir.create_file("efi/boot/bootx64.efi")?;
         bootx64.truncate()?;
         io::copy(&mut fs::File::open(&executable_path)?, &mut bootx64)?;
+
+        // copy kernel to FAT filesystem
+        let mut kernel_file = root_dir.create_file("kernel-x86_64")?;
+        kernel_file.truncate()?;
+        io::copy(&mut fs::File::open(&kernel_binary)?, &mut kernel_file)?;
 
         fat_path
     };
@@ -315,7 +321,7 @@ fn create_uefi_disk_image(executable_path: &Path, efi_file: &Path) -> anyhow::Re
 
         // add add EFI system partition
         let partition_id = disk
-            .add_partition("boot", partition_size, gpt::partition_types::EFI, 0)
+            .add_partition("boot", partition_size, gpt::partition_types::EFI, 0, None)
             .context("failed to add boot partition")?;
 
         let partition = disk
