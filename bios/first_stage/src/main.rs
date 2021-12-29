@@ -37,7 +37,7 @@ pub extern "C" fn first_stage(disk_number: u16) {
     let dap = dap::DiskAddressPacket::from_lba(
         partition_buf,
         partition.logical_block_address.into(),
-        partition.sector_count.try_into().unwrap_or_fail(b'b'),
+        1, // partition.sector_count.try_into().unwrap_or_fail(b'b'),
     );
     unsafe {
         dap.perform_load(disk_number);
