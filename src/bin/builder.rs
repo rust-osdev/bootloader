@@ -156,12 +156,9 @@ fn main() -> anyhow::Result<()> {
 
     if args.firmware.bios() {
         let mut cmd = Command::new(env!("CARGO"));
-        cmd.arg("build").arg("--bin").arg("bios");
-        cmd.arg("--profile").arg("release");
-        cmd.arg("-Z").arg("unstable-options");
-        cmd.arg("--target").arg("x86_64-bootloader.json");
-        cmd.arg("--features")
-            .arg(args.features.join(" ") + " bios_bin");
+        cmd.arg("build").arg("-p").arg("bootloader_first_stage");
+        cmd.arg("--profile").arg("first-stage");
+        cmd.arg("--target").arg("bios/first_stage/x86-16bit.json");
         cmd.arg("-Zbuild-std=core");
         cmd.arg("-Zbuild-std-features=compiler-builtins-mem");
         if let Some(target_dir) = &args.target_dir {
@@ -170,7 +167,6 @@ fn main() -> anyhow::Result<()> {
         if args.quiet {
             cmd.arg("--quiet");
         }
-        cmd.env("RUSTFLAGS", "-C opt-level=s");
         assert!(cmd.status()?.success());
 
         // Retrieve binary paths
@@ -201,7 +197,7 @@ fn main() -> anyhow::Result<()> {
             .unwrap()
             .join(format!("boot-{}-{}.img", executable_name, kernel_name));
 
-        create_disk_image(&executable_path, &output_bin_path)
+        create_disk_image(&executable_path, &output_bin_path, &args.kernel_binary)
             .context("Failed to create bootable disk image")?;
 
         if let Some(out_dir) = &args.out_dir {
