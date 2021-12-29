@@ -27,6 +27,15 @@ SECTIONS {
     }
     _mbr_end = .;
 
+    . = 0x7c00 + 446;
+    .partition_table :
+    {
+        SHORT(0x0000)       /* partition table entry 0 */
+        SHORT(0x0000)       /* partition table entry 1 */
+        SHORT(0x0000)       /* partition table entry 2 */
+        SHORT(0x0000)       /* partition table entry 3 */
+    }
+
     . = 0x7c00 + 510;
 
     .magic_number :
