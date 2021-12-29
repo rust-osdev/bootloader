@@ -19,7 +19,7 @@
 	"relocation-model": "static",
 	"pre-link-args": {
 		"ld.lld": [
-			"--script=16-bit-linker.ld"
+			"--script=bios/first_stage/16-bit-linker.ld"
 		]
 	}
 }

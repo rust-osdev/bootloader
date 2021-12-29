@@ -10,6 +10,7 @@ edition = "2021"
 [workspace]
 members = [
     "api",
+    "bios/first_stage",
     "tests/runner",
     "tests/test_kernels/default_settings",
     "tests/test_kernels/map_phys_mem",
@@ -102,6 +103,15 @@ panic = "abort"
 lto = false
 debug = true
 overflow-checks = true
+
+[profile.first-stage]
+inherits = "release"
+opt-level = "s"
+lto = true
+codegen-units = 1
+debug = false
+overflow-checks = false
+
 
 [package.metadata.docs.rs]
 default-target = "x86_64-unknown-linux-gnu"

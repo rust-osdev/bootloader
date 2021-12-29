@@ -101,6 +101,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "bootloader_first_stage"
+version = "0.1.0"
+
+[[package]]
 name = "build_const"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
