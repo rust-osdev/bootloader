@@ -1,5 +1,36 @@
 // Based on https://docs.rs/mbr-nostd
 
+use super::fail::{fail, UnwrapOrFail};
+
+pub fn get_partition(buffer: &[u8], index: usize) -> PartitionTableEntry {
+    if buffer.len() < BUFFER_SIZE {
+        fail(b'a');
+    } else if buffer.get(BUFFER_SIZE - SUFFIX_BYTES.len()..BUFFER_SIZE) != Some(&SUFFIX_BYTES[..]) {
+        fail(b'b');
+    }
+
+    let offset = TABLE_OFFSET + index * ENTRY_SIZE;
+    let buffer = buffer.get(offset..).unwrap_or_fail(b'c');
+
+    let partition_type = *buffer.get(4).unwrap_or_fail(b'd');
+
+    let lba = u32::from_le_bytes(
+        buffer
+            .get(8..)
+            .and_then(|s| s.get(..4))
+            .and_then(|s| s.try_into().ok())
+            .unwrap_or_fail(b'e'),
+    );
+    let len = u32::from_le_bytes(
+        buffer
+            .get(12..)
+            .and_then(|s| s.get(..4))
+            .and_then(|s| s.try_into().ok())
+            .unwrap_or_fail(b'f'),
+    );
+    PartitionTableEntry::new(partition_type, lba, len)
+}
+
 /// A struct representing an MBR partition table.
 pub struct MasterBootRecord {
     entries: [PartitionTableEntry; MAX_ENTRIES],
@@ -16,26 +47,38 @@ impl MasterBootRecord {
 
     pub fn from_bytes(buffer: &[u8]) -> MasterBootRecord {
         if buffer.len() < BUFFER_SIZE {
-            panic!();
-        } else if buffer[BUFFER_SIZE - SUFFIX_BYTES.len()..BUFFER_SIZE] != SUFFIX_BYTES[..] {
-            panic!();
+            fail(b'1');
+        } else if buffer.get(BUFFER_SIZE - SUFFIX_BYTES.len()..BUFFER_SIZE)
+            != Some(&SUFFIX_BYTES[..])
+        {
+            fail(b'2');
         }
         let mut entries = [PartitionTableEntry::empty(); MAX_ENTRIES];
+
         for idx in 0..MAX_ENTRIES {
             let offset = TABLE_OFFSET + idx * ENTRY_SIZE;
-            let partition_type = PartitionType::from_mbr_tag_byte(buffer[offset + 4]);
-            if let PartitionType::Unknown(c) = partition_type {
-                panic!();
-            }
-            let lba =
-                u32::from_le_bytes(buffer[offset + 8..].try_into().unwrap_or_else(|_| panic!()));
-            let len = u32::from_le_bytes(
-                buffer[offset + 12..]
-                    .try_into()
-                    .unwrap_or_else(|_| panic!()),
+            let buffer = buffer.get(offset..).unwrap_or_fail(b'8');
+
+            let partition_type = *buffer.get(4).unwrap_or_fail(b'4');
+
+            let lba = u32::from_le_bytes(
+                buffer
+                    .get(8..)
+                    .and_then(|s| s.get(..4))
+                    .and_then(|s| s.try_into().ok())
+                    .unwrap_or_fail(b'5'),
             );
-            entries[idx] = PartitionTableEntry::new(partition_type, lba, len);
+            let len = u32::from_le_bytes(
+                buffer
+                    .get(12..)
+                    .and_then(|s| s.get(..4))
+                    .and_then(|s| s.try_into().ok())
+                    .unwrap_or_fail(b'6'),
+            );
+            *entries.get_mut(idx).unwrap_or_fail(b'7') =
+                PartitionTableEntry::new(partition_type, lba, len);
         }
+
         MasterBootRecord { entries }
     }
 
@@ -45,7 +88,7 @@ impl MasterBootRecord {
 }
 
 /// The type of a particular partition.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub enum PartitionType {
     Unused,
     Unknown(u8),
@@ -72,13 +115,22 @@ impl PartitionType {
             _ => PartitionType::Unknown(tag),
         }
     }
+
+    pub fn known_type(tag: u8) -> bool {
+        match tag {
+            0x0 | 0x01 | 0x04 | 0x06 | 0x0e | 0x0b | 0x0c | 0x1b | 0x1c | 0x83 | 0x07 | 0xaf => {
+                true
+            }
+            _ => false,
+        }
+    }
 }
 
 /// An entry in a partition table.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub struct PartitionTableEntry {
     /// The type of partition in this entry.
-    pub partition_type: PartitionType,
+    pub partition_type: u8,
 
     /// The index of the first block of this entry.
     pub logical_block_address: u32,
@@ -89,7 +141,7 @@ pub struct PartitionTableEntry {
 
 impl PartitionTableEntry {
     pub fn new(
-        partition_type: PartitionType,
+        partition_type: u8,
         logical_block_address: u32,
         sector_count: u32,
     ) -> PartitionTableEntry {
@@ -101,6 +153,6 @@ impl PartitionTableEntry {
     }
 
     pub fn empty() -> PartitionTableEntry {
-        PartitionTableEntry::new(PartitionType::Unused, 0, 0)
+        PartitionTableEntry::new(0, 0, 0)
     }
 }

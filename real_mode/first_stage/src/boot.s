@@ -65,11 +65,13 @@ unreal_mode:
     mov word ptr ds:[eax], bx
 
 check_int13h_extensions:
+    push 'y'    # error code
     mov ah, 0x41
     mov bx, 0x55aa
     # dl contains drive number
     int 0x13
-    jc no_int13h_extensions
+    jc fail
+    pop ax      # pop error code again
 
 rust:
     # push arguments

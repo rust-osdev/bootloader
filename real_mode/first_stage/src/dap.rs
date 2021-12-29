@@ -41,10 +41,13 @@ impl DiskAddressPacket {
 
     pub unsafe fn perform_load(&self, disk_number: u16) {
         let self_addr = self as *const Self as u16;
-        asm!("mov {1:x}, si",
+        asm!(
+            "push 0x7a", // error code `z`, passed to `fail` on error
+            "mov {1:x}, si",
             "mov si, {0:x}",
             "int 0x13",
-            "jc dap_load_failed",
+            "jc fail",
+            "pop si", // remove error code again
             "mov si, {1:x}",
             in(reg) self_addr,
             out(reg) _,

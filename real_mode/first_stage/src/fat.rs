@@ -1,5 +1,7 @@
 // based on https://github.com/rafalh/rust-fatfs/
 
+use super::split_array_ref;
+
 pub(crate) struct BootSector {
     bootjmp: [u8; 3],
     oem_name: [u8; 8],
@@ -156,14 +158,4 @@ impl BiosParameterBlock {
         // this provides a simple way to detect FAT32
         self.sectors_per_fat_16 == 0
     }
-}
-
-/// Taken from https://github.com/rust-lang/rust/blob/e100ec5bc7cd768ec17d75448b29c9ab4a39272b/library/core/src/slice/mod.rs#L1673-L1677
-///
-/// TODO replace with `split_array` feature in stdlib as soon as it's stabilized,
-/// see https://github.com/rust-lang/rust/issues/90091
-fn split_array_ref<const N: usize, T>(slice: &[T]) -> (&[T; N], &[T]) {
-    let (a, b) = slice.split_at(N);
-    // SAFETY: a points to [T; N]? Yes it's [T] of length N (checked by split_at)
-    unsafe { (&*(a.as_ptr() as *const [T; N]), b) }
 }
