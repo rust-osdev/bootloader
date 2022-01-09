@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.9.21 – 2022-01-09
+
 - Use new inline assembly syntax ([#204](https://github.com/rust-osdev/bootloader/pull/204))
 
 # 0.9.20 – 2021-12-20
