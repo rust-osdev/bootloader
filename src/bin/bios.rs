@@ -1,6 +1,3 @@
-#![feature(lang_items)]
-#![feature(global_asm)]
-#![feature(asm)]
 #![no_std]
 #![no_main]
 

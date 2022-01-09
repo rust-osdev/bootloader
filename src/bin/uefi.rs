@@ -1,7 +1,6 @@
 #![no_std]
 #![no_main]
 #![feature(abi_efiapi)]
-#![feature(asm)]
 #![feature(maybe_uninit_extra)]
 #![deny(unsafe_op_in_unsafe_fn)]
 
