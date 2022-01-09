@@ -1,0 +1,10 @@
+[package]
+name = "test_kernel_pie"
+version = "0.1.0"
+authors = ["Tom Dohrmann <erbse.13@gmx.de>"]
+edition = "2018"
+
+[dependencies]
+bootloader = { path = "../../.." }
+x86_64 = { version = "0.14.7", default-features = false, features = ["instructions", "inline_asm"] }
+uart_16550 = "0.2.10"

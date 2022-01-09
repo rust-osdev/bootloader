@@ -381,6 +381,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "test_kernel_pie"
+version = "0.1.0"
+dependencies = [
+ "bootloader",
+ "uart_16550",
+ "x86_64",
+]
+
+[[package]]
 name = "thiserror"
 version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
