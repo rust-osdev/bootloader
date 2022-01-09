@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.10.11 – 2022-01-09
+
 - Remove feature flag for `lang_items`, `asm` and `global_asm` ([#210](https://github.com/rust-osdev/bootloader/pull/210))
 - Use `set_reg` method of `CS`, `DS`, `ES` and `SS` segment structs ([#211](https://github.com/rust-osdev/bootloader/pull/211))
 
