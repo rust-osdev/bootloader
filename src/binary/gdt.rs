@@ -1,5 +1,5 @@
 use x86_64::{
-    instructions::segmentation,
+    instructions::segmentation::{Segment, CS, DS, ES, SS},
     structures::{
         gdt::{Descriptor, GlobalDescriptorTable},
         paging::PhysFrame,
@@ -24,9 +24,9 @@ pub fn create_and_load(frame: PhysFrame) {
 
     gdt.load();
     unsafe {
-        segmentation::set_cs(code_selector);
-        segmentation::load_ds(data_selector);
-        segmentation::load_es(data_selector);
-        segmentation::load_ss(data_selector);
+        CS::set_reg(code_selector);
+        DS::set_reg(data_selector);
+        ES::set_reg(data_selector);
+        SS::set_reg(data_selector);
     }
 }
