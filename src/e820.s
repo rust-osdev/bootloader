@@ -51,4 +51,5 @@ do_e820:
 	stc			# "function unsupported" error exit
 	ret
 
+.global mmap_ent
 mmap_ent: .word 0
