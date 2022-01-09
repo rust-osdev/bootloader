@@ -232,7 +232,7 @@ where
             let new_bytes_ptr = new_frame.start_address().as_u64() as *mut u8;
             unsafe {
                 core::ptr::write_bytes(
-                    new_bytes_ptr.add(data_bytes_before_zero),
+                    new_bytes_ptr.add(data_bytes_before_zero as usize),
                     0,
                     (Size4KiB::SIZE - data_bytes_before_zero) as usize,
                 );
