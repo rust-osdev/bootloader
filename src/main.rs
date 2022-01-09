@@ -11,8 +11,7 @@ extern crate rlibc;
 
 use bootloader::bootinfo::{BootInfo, FrameRange};
 use core::arch::asm;
-use core::convert::TryInto;
-use core::panic::PanicInfo;
+use core::{arch::global_asm, convert::TryInto, panic::PanicInfo};
 use core::{mem, slice};
 use fixedvec::alloc_stack;
 use usize_conversions::usize_from;

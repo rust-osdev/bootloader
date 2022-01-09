@@ -5,4 +5,4 @@ authors = ["Philipp Oppermann <dev@phil-opp.com>"]
 edition = "2018"
 
 [dependencies]
-x86_64 = { version = "0.13.2", default-features = false, features = ["instructions", "inline_asm"] }
+x86_64 = { version = "0.14.7", default-features = false, features = ["instructions", "inline_asm"] }
