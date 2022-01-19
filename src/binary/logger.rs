@@ -4,7 +4,7 @@ use core::{
     fmt::{self, Write},
     ptr,
 };
-use font8x8::UnicodeFonts;
+use noto_sans_mono_bitmap::{get_bitmap, get_bitmap_width, BitmapChar, BitmapHeight, FontWeight};
 use spinning_top::Spinlock;
 
 /// The global logger instance used for the `log` crate.
@@ -68,7 +68,7 @@ impl Logger {
     }
 
     fn newline(&mut self) {
-        self.y_pos += 8 + LINE_SPACING;
+        self.y_pos += 14 + LINE_SPACING;
         self.carriage_return()
     }
 
@@ -103,25 +103,24 @@ impl Logger {
                 if self.x_pos >= self.width() {
                     self.newline();
                 }
-                if self.y_pos >= (self.height() - 8) {
+                const BITMAP_LETTER_WIDTH: usize =
+                    get_bitmap_width(FontWeight::Regular, BitmapHeight::Size14);
+                if self.y_pos >= (self.height() - BITMAP_LETTER_WIDTH) {
                     self.clear();
                 }
-                let rendered = font8x8::BASIC_FONTS
-                    .get(c)
-                    .expect("character not found in basic font");
-                self.write_rendered_char(rendered);
+                let bitmap_char = get_bitmap(c, FontWeight::Regular, BitmapHeight::Size14).unwrap();
+                self.write_rendered_char(bitmap_char);
             }
         }
     }
 
-    fn write_rendered_char(&mut self, rendered_char: [u8; 8]) {
-        for (y, byte) in rendered_char.iter().enumerate() {
-            for (x, bit) in (0..8).enumerate() {
-                let alpha = if *byte & (1 << bit) == 0 { 0 } else { 255 };
-                self.write_pixel(self.x_pos + x, self.y_pos + y, alpha);
+    fn write_rendered_char(&mut self, rendered_char: BitmapChar) {
+        for (y, row) in rendered_char.bitmap().iter().enumerate() {
+            for (x, byte) in row.iter().enumerate() {
+                self.write_pixel(self.x_pos + x, self.y_pos + y, *byte);
             }
         }
-        self.x_pos += 8;
+        self.x_pos += rendered_char.width();
     }
 
     fn write_pixel(&mut self, x: usize, y: usize, intensity: u8) {
