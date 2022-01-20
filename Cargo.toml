@@ -52,10 +52,10 @@ rsdp = { version = "1.0.0", optional = true }
 fatfs = { version = "0.3.4", optional = true }
 gpt = { version = "2.0.0", optional = true }
 
-[dependencies.font8x8]
-version = "0.2.5"
+[dependencies.noto-sans-mono-bitmap]
+version = "0.1.2"
 default-features = false
-features = ["unicode"]
+features = ["regular", "size_14"]
 optional = true
 
 [build-dependencies]
@@ -72,7 +72,7 @@ bios_bin = ["binary", "rsdp"]
 uefi_bin = ["binary", "uefi"]
 binary = [
     "llvm-tools-build", "x86_64", "toml", "xmas-elf", "usize_conversions", "log", "conquer-once",
-    "spinning_top", "serde", "font8x8", "quote", "proc-macro2",
+    "spinning_top", "serde", "noto-sans-mono-bitmap", "quote", "proc-macro2",
 ]
 
 [profile.dev]
