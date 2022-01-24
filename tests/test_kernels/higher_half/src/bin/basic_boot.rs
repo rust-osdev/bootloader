@@ -7,12 +7,8 @@ use test_kernel_higher_half::{exit_qemu, QemuExitCode};
 
 entry_point!(kernel_main);
 
-fn kernel_main(_boot_info: &'static mut BootInfo) -> ! {
-    exit_qemu(QemuExitCode::Success);
-}
+fn kernel_main(_boot_info: &'static mut BootInfo) -> ! { exit_qemu(QemuExitCode::Success); }
 
 /// This function is called on panic.
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-    exit_qemu(QemuExitCode::Failed);
-}
+fn panic(_info: &PanicInfo) -> ! { exit_qemu(QemuExitCode::Failed); }

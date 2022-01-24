@@ -8,11 +8,9 @@ use test_kernel_default_settings::{exit_qemu, QemuExitCode};
 entry_point!(kernel_main);
 
 fn kernel_main(_boot_info: &'static mut BootInfo) -> ! {
-    panic!();
+	panic!();
 }
 
 /// This function is called on panic.
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-    exit_qemu(QemuExitCode::Success);
-}
+fn panic(_info: &PanicInfo) -> ! { exit_qemu(QemuExitCode::Success); }
