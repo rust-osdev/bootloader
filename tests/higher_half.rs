@@ -13,12 +13,12 @@ fn check_boot_info() { run_test_binary("check_boot_info"); }
 fn verify_higher_half() { run_test_binary("verify_higher_half"); }
 
 fn run_test_binary(bin_name: &str) {
-	let mut cmd = Command::new(env!("CARGO"));
-	cmd.current_dir("tests/test_kernels/higher_half");
-	cmd.arg("run");
-	cmd.arg("--bin").arg(bin_name);
-	cmd.arg("--target").arg("x86_64-higher_half.json");
-	cmd.arg("-Zbuild-std=core");
-	cmd.arg("-Zbuild-std-features=compiler-builtins-mem");
-	assert!(cmd.status().unwrap().success());
+    let mut cmd = Command::new(env!("CARGO"));
+    cmd.current_dir("tests/test_kernels/higher_half");
+    cmd.arg("run");
+    cmd.arg("--bin").arg(bin_name);
+    cmd.arg("--target").arg("x86_64-higher_half.json");
+    cmd.arg("-Zbuild-std=core");
+    cmd.arg("-Zbuild-std-features=compiler-builtins-mem");
+    assert!(cmd.status().unwrap().success());
 }

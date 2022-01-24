@@ -18,49 +18,49 @@ use core::{ops, slice};
 #[repr(C)]
 #[non_exhaustive]
 pub struct BootInfo {
-	/// Bootloader version (major).
-	pub version_major:          u16,
-	/// Bootloader version (minor).
-	pub version_minor:          u16,
-	/// Bootloader version (patch).
-	pub version_patch:          u16,
-	/// Whether the bootloader version is a pre-release.
-	///
-	/// We can't store the full prerelease string of the version number since it could be
-	/// arbitrarily long.
-	pub pre_release:            bool,
-	/// A map of the physical memory regions of the underlying machine.
-	///
-	/// The bootloader queries this information from the BIOS/UEFI firmware and translates
-	/// this information to Rust types. It also marks any memory regions that the
-	/// bootloader uses in the memory map before passing it to the kernel. Regions marked
-	/// as usable can be freely used by the kernel.
-	pub memory_regions:         MemoryRegions,
-	/// Information about the framebuffer for screen output if available.
-	pub framebuffer:            Optional<FrameBuffer>,
-	/// The virtual address at which the mapping of the physical memory starts.
-	///
-	/// Physical addresses can be converted to virtual addresses by adding this offset to
-	/// them.
-	///
-	/// The mapping of the physical memory allows to access arbitrary physical frames.
-	/// Accessing frames that are also mapped at other virtual addresses can easily break
-	/// memory safety and cause undefined behavior. Only frames reported as `USABLE` by
-	/// the memory map in the `BootInfo` can be safely accessed.
-	///
-	/// Only available if the `map-physical-memory` config option is enabled.
-	pub physical_memory_offset: Optional<u64>,
-	/// The virtual address of the recursively mapped level 4 page table.
-	///
-	/// Only available if the `map-page-table-recursively` config option is enabled.
-	pub recursive_index:        Optional<u16>,
-	/// The address of the `RSDP` data structure, which can be use to find the ACPI
-	/// tables.
-	///
-	/// This field is `None` if no `RSDP` was found (for BIOS) or reported (for UEFI).
-	pub rsdp_addr:              Optional<u64>,
-	/// The thread local storage (TLS) template of the kernel executable, if present.
-	pub tls_template:           Optional<TlsTemplate>,
+    /// Bootloader version (major).
+    pub version_major:          u16,
+    /// Bootloader version (minor).
+    pub version_minor:          u16,
+    /// Bootloader version (patch).
+    pub version_patch:          u16,
+    /// Whether the bootloader version is a pre-release.
+    ///
+    /// We can't store the full prerelease string of the version number since it could be
+    /// arbitrarily long.
+    pub pre_release:            bool,
+    /// A map of the physical memory regions of the underlying machine.
+    ///
+    /// The bootloader queries this information from the BIOS/UEFI firmware and translates
+    /// this information to Rust types. It also marks any memory regions that the
+    /// bootloader uses in the memory map before passing it to the kernel. Regions marked
+    /// as usable can be freely used by the kernel.
+    pub memory_regions:         MemoryRegions,
+    /// Information about the framebuffer for screen output if available.
+    pub framebuffer:            Optional<FrameBuffer>,
+    /// The virtual address at which the mapping of the physical memory starts.
+    ///
+    /// Physical addresses can be converted to virtual addresses by adding this offset to
+    /// them.
+    ///
+    /// The mapping of the physical memory allows to access arbitrary physical frames.
+    /// Accessing frames that are also mapped at other virtual addresses can easily break
+    /// memory safety and cause undefined behavior. Only frames reported as `USABLE` by
+    /// the memory map in the `BootInfo` can be safely accessed.
+    ///
+    /// Only available if the `map-physical-memory` config option is enabled.
+    pub physical_memory_offset: Optional<u64>,
+    /// The virtual address of the recursively mapped level 4 page table.
+    ///
+    /// Only available if the `map-page-table-recursively` config option is enabled.
+    pub recursive_index:        Optional<u16>,
+    /// The address of the `RSDP` data structure, which can be use to find the ACPI
+    /// tables.
+    ///
+    /// This field is `None` if no `RSDP` was found (for BIOS) or reported (for UEFI).
+    pub rsdp_addr:              Optional<u64>,
+    /// The thread local storage (TLS) template of the kernel executable, if present.
+    pub tls_template:           Optional<TlsTemplate>,
 }
 
 /// FFI-safe slice of [`MemoryRegion`] structs, semantically equivalent to
@@ -73,58 +73,58 @@ pub struct BootInfo {
 #[derive(Debug)]
 #[repr(C)]
 pub struct MemoryRegions {
-	pub(crate) ptr: *mut MemoryRegion,
-	pub(crate) len: usize,
+    pub(crate) ptr: *mut MemoryRegion,
+    pub(crate) len: usize,
 }
 
 impl ops::Deref for MemoryRegions {
-	type Target = [MemoryRegion];
+    type Target = [MemoryRegion];
 
-	fn deref(&self) -> &Self::Target { unsafe { slice::from_raw_parts(self.ptr, self.len) } }
+    fn deref(&self) -> &Self::Target { unsafe { slice::from_raw_parts(self.ptr, self.len) } }
 }
 
 impl ops::DerefMut for MemoryRegions {
-	fn deref_mut(&mut self) -> &mut Self::Target { unsafe { slice::from_raw_parts_mut(self.ptr, self.len) } }
+    fn deref_mut(&mut self) -> &mut Self::Target { unsafe { slice::from_raw_parts_mut(self.ptr, self.len) } }
 }
 
 impl From<&'static mut [MemoryRegion]> for MemoryRegions {
-	fn from(regions: &'static mut [MemoryRegion]) -> Self {
-		MemoryRegions {
-			ptr: regions.as_mut_ptr(),
-			len: regions.len(),
-		}
-	}
+    fn from(regions: &'static mut [MemoryRegion]) -> Self {
+        MemoryRegions {
+            ptr: regions.as_mut_ptr(),
+            len: regions.len(),
+        }
+    }
 }
 
 impl From<MemoryRegions> for &'static mut [MemoryRegion] {
-	fn from(regions: MemoryRegions) -> &'static mut [MemoryRegion] {
-		unsafe { slice::from_raw_parts_mut(regions.ptr, regions.len) }
-	}
+    fn from(regions: MemoryRegions) -> &'static mut [MemoryRegion] {
+        unsafe { slice::from_raw_parts_mut(regions.ptr, regions.len) }
+    }
 }
 
 /// Represent a physical memory region.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[repr(C)]
 pub struct MemoryRegion {
-	/// The physical start address of the region.
-	pub start: u64,
-	/// The physical end address (exclusive) of the region.
-	pub end:   u64,
-	/// The memory type of the memory region.
-	///
-	/// Only [`Usable`][MemoryRegionKind::Usable] regions can be freely used.
-	pub kind:  MemoryRegionKind,
+    /// The physical start address of the region.
+    pub start: u64,
+    /// The physical end address (exclusive) of the region.
+    pub end:   u64,
+    /// The memory type of the memory region.
+    ///
+    /// Only [`Usable`][MemoryRegionKind::Usable] regions can be freely used.
+    pub kind:  MemoryRegionKind,
 }
 
 impl MemoryRegion {
-	/// Creates a new empty memory region (with length 0).
-	pub const fn empty() -> Self {
-		MemoryRegion {
-			start: 0,
-			end:   0,
-			kind:  MemoryRegionKind::Bootloader,
-		}
-	}
+    /// Creates a new empty memory region (with length 0).
+    pub const fn empty() -> Self {
+        MemoryRegion {
+            start: 0,
+            end:   0,
+            kind:  MemoryRegionKind::Bootloader,
+        }
+    }
 }
 
 /// Represents the different types of memory.
@@ -132,68 +132,68 @@ impl MemoryRegion {
 #[non_exhaustive]
 #[repr(C)]
 pub enum MemoryRegionKind {
-	/// Unused conventional memory, can be used by the kernel.
-	Usable,
-	/// Memory mappings created by the bootloader, including the kernel and boot info
-	/// mappings.
-	///
-	/// This memory should _not_ be used by the kernel.
-	Bootloader,
-	/// An unknown memory region reported by the UEFI firmware.
-	///
-	/// This should only be used if the UEFI memory type is known as usable.
-	UnknownUefi(u32),
-	/// An unknown memory region reported by the BIOS firmware.
-	///
-	/// This should only be used if the BIOS memory type is known as usable.
-	UnknownBios(u32),
+    /// Unused conventional memory, can be used by the kernel.
+    Usable,
+    /// Memory mappings created by the bootloader, including the kernel and boot info
+    /// mappings.
+    ///
+    /// This memory should _not_ be used by the kernel.
+    Bootloader,
+    /// An unknown memory region reported by the UEFI firmware.
+    ///
+    /// This should only be used if the UEFI memory type is known as usable.
+    UnknownUefi(u32),
+    /// An unknown memory region reported by the BIOS firmware.
+    ///
+    /// This should only be used if the BIOS memory type is known as usable.
+    UnknownBios(u32),
 }
 
 /// A pixel-based framebuffer that controls the screen output.
 #[derive(Debug)]
 #[repr(C)]
 pub struct FrameBuffer {
-	pub(crate) buffer_start:    u64,
-	pub(crate) buffer_byte_len: usize,
-	pub(crate) info:            FrameBufferInfo,
+    pub(crate) buffer_start:    u64,
+    pub(crate) buffer_byte_len: usize,
+    pub(crate) info:            FrameBufferInfo,
 }
 
 impl FrameBuffer {
-	/// Returns the raw bytes of the framebuffer as slice.
-	pub fn buffer(&self) -> &[u8] { unsafe { self.create_buffer() } }
+    /// Returns the raw bytes of the framebuffer as slice.
+    pub fn buffer(&self) -> &[u8] { unsafe { self.create_buffer() } }
 
-	/// Returns the raw bytes of the framebuffer as mutable slice.
-	pub fn buffer_mut(&mut self) -> &mut [u8] { unsafe { self.create_buffer() } }
+    /// Returns the raw bytes of the framebuffer as mutable slice.
+    pub fn buffer_mut(&mut self) -> &mut [u8] { unsafe { self.create_buffer() } }
 
-	unsafe fn create_buffer<'a>(&self) -> &'a mut [u8] {
-		unsafe { slice::from_raw_parts_mut(self.buffer_start as *mut u8, self.buffer_byte_len) }
-	}
+    unsafe fn create_buffer<'a>(&self) -> &'a mut [u8] {
+        unsafe { slice::from_raw_parts_mut(self.buffer_start as *mut u8, self.buffer_byte_len) }
+    }
 
-	/// Returns layout and pixel format information of the framebuffer.
-	pub fn info(&self) -> FrameBufferInfo { self.info }
+    /// Returns layout and pixel format information of the framebuffer.
+    pub fn info(&self) -> FrameBufferInfo { self.info }
 }
 
 /// Describes the layout and pixel format of a framebuffer.
 #[derive(Debug, Clone, Copy)]
 #[repr(C)]
 pub struct FrameBufferInfo {
-	/// The total size in bytes.
-	pub byte_len:              usize,
-	/// The width in pixels.
-	pub horizontal_resolution: usize,
-	/// The height in pixels.
-	pub vertical_resolution:   usize,
-	/// The color format of each pixel.
-	pub pixel_format:          PixelFormat,
-	/// The number of bytes per pixel.
-	pub bytes_per_pixel:       usize,
-	/// Number of pixels between the start of a line and the start of the next.
-	///
-	/// Some framebuffers use additional padding at the end of a line, so this
-	/// value might be larger than `horizontal_resolution`. It is
-	/// therefore recommended to use this field for calculating the start address of a
-	/// line.
-	pub stride:                usize,
+    /// The total size in bytes.
+    pub byte_len:              usize,
+    /// The width in pixels.
+    pub horizontal_resolution: usize,
+    /// The height in pixels.
+    pub vertical_resolution:   usize,
+    /// The color format of each pixel.
+    pub pixel_format:          PixelFormat,
+    /// The number of bytes per pixel.
+    pub bytes_per_pixel:       usize,
+    /// Number of pixels between the start of a line and the start of the next.
+    ///
+    /// Some framebuffers use additional padding at the end of a line, so this
+    /// value might be larger than `horizontal_resolution`. It is
+    /// therefore recommended to use this field for calculating the start address of a
+    /// line.
+    pub stride:                usize,
 }
 
 /// Color format of pixels in the framebuffer.
@@ -201,21 +201,21 @@ pub struct FrameBufferInfo {
 #[non_exhaustive]
 #[repr(C)]
 pub enum PixelFormat {
-	/// One byte red, then one byte green, then one byte blue.
-	///
-	/// Length might be larger than 3, check
-	/// [`bytes_per_pixel`][FrameBufferInfo::bytes_per_pixel] for this.
-	RGB,
-	/// One byte blue, then one byte green, then one byte red.
-	///
-	/// Length might be larger than 3, check
-	/// [`bytes_per_pixel`][FrameBufferInfo::bytes_per_pixel] for this.
-	BGR,
-	/// A single byte, representing the grayscale value.
-	///
-	/// Length might be larger than 1, check
-	/// [`bytes_per_pixel`][FrameBufferInfo::bytes_per_pixel] for this.
-	U8,
+    /// One byte red, then one byte green, then one byte blue.
+    ///
+    /// Length might be larger than 3, check
+    /// [`bytes_per_pixel`][FrameBufferInfo::bytes_per_pixel] for this.
+    RGB,
+    /// One byte blue, then one byte green, then one byte red.
+    ///
+    /// Length might be larger than 3, check
+    /// [`bytes_per_pixel`][FrameBufferInfo::bytes_per_pixel] for this.
+    BGR,
+    /// A single byte, representing the grayscale value.
+    ///
+    /// Length might be larger than 1, check
+    /// [`bytes_per_pixel`][FrameBufferInfo::bytes_per_pixel] for this.
+    U8,
 }
 
 /// Information about the thread local storage (TLS) template.
@@ -228,16 +228,16 @@ pub enum PixelFormat {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 pub struct TlsTemplate {
-	/// The virtual start address of the thread local storage template.
-	pub start_addr: u64,
-	/// The number of data bytes in the template.
-	///
-	/// Corresponds to the length of the `.tdata` section.
-	pub file_size:  u64,
-	/// The total number of bytes that the TLS segment should have in memory.
-	///
-	/// Corresponds to the combined length of the `.tdata` and `.tbss` sections.
-	pub mem_size:   u64,
+    /// The virtual start address of the thread local storage template.
+    pub start_addr: u64,
+    /// The number of data bytes in the template.
+    ///
+    /// Corresponds to the length of the `.tdata` section.
+    pub file_size:  u64,
+    /// The total number of bytes that the TLS segment should have in memory.
+    ///
+    /// Corresponds to the combined length of the `.tdata` and `.tbss` sections.
+    pub mem_size:   u64,
 }
 
 /// FFI-safe variant of [`Option`].
@@ -247,55 +247,55 @@ pub struct TlsTemplate {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(C)]
 pub enum Optional<T> {
-	/// Some value `T`
-	Some(T),
-	/// No value
-	None,
+    /// Some value `T`
+    Some(T),
+    /// No value
+    None,
 }
 
 impl<T> Optional<T> {
-	/// Converts the `Optional` to an [`Option`].
-	pub fn into_option(self) -> Option<T> { self.into() }
+    /// Converts the `Optional` to an [`Option`].
+    pub fn into_option(self) -> Option<T> { self.into() }
 
-	/// Converts from `&Optional<T>` to `Option<&T>`.
-	///
-	/// For convenience, this method directly performs the conversion to the standard
-	/// [`Option`] type.
-	pub const fn as_ref(&self) -> Option<&T> {
-		match self {
-			Self::Some(x) => Some(x),
-			Self::None => None,
-		}
-	}
+    /// Converts from `&Optional<T>` to `Option<&T>`.
+    ///
+    /// For convenience, this method directly performs the conversion to the standard
+    /// [`Option`] type.
+    pub const fn as_ref(&self) -> Option<&T> {
+        match self {
+            Self::Some(x) => Some(x),
+            Self::None => None,
+        }
+    }
 
-	/// Converts from `&mut Optional<T>` to `Option<&mut T>`.
-	///
-	/// For convenience, this method directly performs the conversion to the standard
-	/// [`Option`] type.
-	pub fn as_mut(&mut self) -> Option<&mut T> {
-		match self {
-			Self::Some(x) => Some(x),
-			Self::None => None,
-		}
-	}
+    /// Converts from `&mut Optional<T>` to `Option<&mut T>`.
+    ///
+    /// For convenience, this method directly performs the conversion to the standard
+    /// [`Option`] type.
+    pub fn as_mut(&mut self) -> Option<&mut T> {
+        match self {
+            Self::Some(x) => Some(x),
+            Self::None => None,
+        }
+    }
 }
 
 impl<T> From<Option<T>> for Optional<T> {
-	fn from(v: Option<T>) -> Self {
-		match v {
-			Some(v) => Optional::Some(v),
-			None => Optional::None,
-		}
-	}
+    fn from(v: Option<T>) -> Self {
+        match v {
+            Some(v) => Optional::Some(v),
+            None => Optional::None,
+        }
+    }
 }
 
 impl<T> From<Optional<T>> for Option<T> {
-	fn from(optional: Optional<T>) -> Option<T> {
-		match optional {
-			Optional::Some(v) => Some(v),
-			Optional::None => None,
-		}
-	}
+    fn from(optional: Optional<T>) -> Option<T> {
+        match optional {
+            Optional::Some(v) => Some(v),
+            Optional::None => None,
+        }
+    }
 }
 
 /// Check that bootinfo is FFI-safe

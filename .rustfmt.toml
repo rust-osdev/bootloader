@@ -13,7 +13,7 @@ newline_style                = "Auto"
 hex_literal_case             = "Upper"
 binop_separator              = "Front"
 
-hard_tabs                    = true
+hard_tabs                    = false
 format_code_in_doc_comments  = false
 combine_control_expr         = false
 reorder_imports              = false

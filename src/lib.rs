@@ -108,9 +108,9 @@ compile_error!(
 );
 
 #[cfg(all(
-	not(target_arch = "x86_64"),
-	not(target_arch = "x86"),
-	not(feature = "builder")
+    not(target_arch = "x86_64"),
+    not(target_arch = "x86"),
+    not(feature = "builder")
 ))]
 compile_error!("This crate only supports the x86_64 architecture.");
 
@@ -123,13 +123,13 @@ compile_error!("This crate only supports the x86_64 architecture.");
 /// function is that the macro ensures that the function and argument types are correct.
 #[macro_export]
 macro_rules! entry_point {
-	($path:path) => {
-		#[export_name = "_start"]
-		pub extern "C" fn __impl_start(boot_info: &'static mut $crate::boot_info::BootInfo) -> ! {
-			// validate the signature of the program entry point
-			let f: fn(&'static mut $crate::boot_info::BootInfo) -> ! = $path;
+    ($path:path) => {
+        #[export_name = "_start"]
+        pub extern "C" fn __impl_start(boot_info: &'static mut $crate::boot_info::BootInfo) -> ! {
+            // validate the signature of the program entry point
+            let f: fn(&'static mut $crate::boot_info::BootInfo) -> ! = $path;
 
-			f(boot_info)
-		}
-	};
+            f(boot_info)
+        }
+    };
 }

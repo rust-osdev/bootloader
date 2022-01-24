@@ -17,7 +17,6 @@ indent_size          = 2
 # -------------------------------------------------
 
 [*.{rs,S,asm,ld}]
-indent_style = tab
 indent_size = 4
 
 [Makefile]
