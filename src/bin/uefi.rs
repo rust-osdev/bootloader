@@ -1,7 +1,8 @@
 #![no_std]
 #![no_main]
 #![feature(abi_efiapi)]
-#![feature(maybe_uninit_extra)]
+#![feature(cfg_version)]
+#![cfg_attr(not(version("1.60")), feature(maybe_uninit_extra))]
 #![deny(unsafe_op_in_unsafe_fn)]
 
 // Defines the constants `KERNEL_BYTES` (array of `u8`) and `KERNEL_SIZE` (`usize`).
