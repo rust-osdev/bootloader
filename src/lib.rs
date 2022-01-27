@@ -66,7 +66,9 @@ for all possible configuration options.
 */
 
 #![cfg_attr(not(feature = "builder"), no_std)]
-#![feature(maybe_uninit_extra)]
+#![feature(cfg_version)]
+
+#![cfg_attr(not(version("1.60"), feature(maybe_uninit_extra))]
 #![feature(maybe_uninit_slice)]
 #![deny(unsafe_op_in_unsafe_fn)]
 #![warn(missing_docs)]
