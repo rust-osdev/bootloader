@@ -1,3 +1,4 @@
+pub use crate::logger;
 use crate::{
     binary::legacy_memory_region::{LegacyFrameAllocator, LegacyMemoryRegion},
     boot_info::{BootInfo, FrameBuffer, FrameBufferInfo, MemoryRegion, TlsTemplate},
@@ -17,7 +18,6 @@ use x86_64::{
     },
     PhysAddr, VirtAddr,
 };
-pub use crate::logger;
 
 /// Provides BIOS-specific types and trait implementations.
 #[cfg(feature = "bios_bin")]
