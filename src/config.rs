@@ -1,3 +1,5 @@
+const PAGE_SIZE: u64 = 4096;
+
 /// Allows configuring the bootloader behavior.
 ///
 /// To control these, use a `[package.metadata.bootloader]` table in the `Cargo.toml` of
@@ -87,4 +89,10 @@ pub struct Config {
     /// `minimum_framebuffer_width` is supplied, and using the last available mode that
     /// fits them if 1 or more is set.
     pub minimum_framebuffer_width: Option<usize>,
+}
+
+impl Config {
+    pub(crate) fn kernel_stack_size(&self) -> u64 {
+        self.kernel_stack_size.unwrap_or(20 * PAGE_SIZE)
+    }
 }
