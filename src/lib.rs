@@ -89,6 +89,9 @@ pub mod boot_info;
 #[cfg(feature = "binary")]
 pub mod binary;
 
+/// Provides a logger type that logs output as text to pixel-based framebuffers.
+pub mod logger;
+
 /// Provides a function to turn a bootloader executable into a disk image.
 ///
 /// Used by the `builder` binary. Only available when the `builder` feature is enabled.

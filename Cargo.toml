@@ -66,13 +66,12 @@ quote = { version = "1.0", optional = true}
 proc-macro2 = { version = "1.0", optional = true}
 
 [features]
-default = []
+default = ["log", "conquer-once", "noto-sans-mono-bitmap", "spinning_top"]
 builder = ["argh", "thiserror", "displaydoc", "anyhow", "llvm-tools", "json", "fatfs", "gpt"]
 bios_bin = ["binary", "rsdp"]
 uefi_bin = ["binary", "uefi"]
 binary = [
-    "llvm-tools-build", "x86_64", "toml", "xmas-elf", "usize_conversions", "log", "conquer-once",
-    "spinning_top", "serde", "noto-sans-mono-bitmap", "quote", "proc-macro2",
+    "llvm-tools-build", "x86_64", "toml", "xmas-elf", "usize_conversions", "log", "serde", "quote", "proc-macro2",
 ]
 
 [profile.dev]

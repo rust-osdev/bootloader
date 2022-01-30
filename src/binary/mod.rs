@@ -17,6 +17,7 @@ use x86_64::{
     },
     PhysAddr, VirtAddr,
 };
+pub use crate::logger;
 
 /// Provides BIOS-specific types and trait implementations.
 #[cfg(feature = "bios_bin")]
@@ -32,8 +33,6 @@ pub mod legacy_memory_region;
 pub mod level_4_entries;
 /// Implements a loader for the kernel ELF binary.
 pub mod load_kernel;
-/// Provides a logger type that logs output as text to pixel-based framebuffers.
-pub mod logger;
 
 // Contains the parsed configuration table from the kernel's Cargo.toml.
 //
