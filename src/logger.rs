@@ -30,6 +30,11 @@ impl LockedLogger {
     pub unsafe fn force_unlock(&self) {
         unsafe { self.0.force_unlock() };
     }
+
+    /// Returns a SpinLock containing the Logger itself
+    pub fn get_lock(&self) -> &Spinlock<Logger> {
+        &self.0
+    }
 }
 
 impl log::Log for LockedLogger {
