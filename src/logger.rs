@@ -75,16 +75,19 @@ impl Logger {
         logger
     }
 
-    fn newline(&mut self) {
+    /// Starts a new line
+    pub fn newline(&mut self) {
         self.y_pos += 14 + LINE_SPACING;
         self.carriage_return()
     }
 
-    fn add_vspace(&mut self, space: usize) {
+    /// Moves down by `space` number of pixels
+    pub fn add_vspace(&mut self, space: usize) {
         self.y_pos += space;
     }
 
-    fn carriage_return(&mut self) {
+    /// Moves to the beginning of the line
+    pub fn carriage_return(&mut self) {
         self.x_pos = 0;
     }
 
@@ -95,15 +98,18 @@ impl Logger {
         self.framebuffer.fill(0);
     }
 
-    fn width(&self) -> usize {
+    /// Gets the width of the screen
+    pub fn width(&self) -> usize {
         self.info.horizontal_resolution
     }
 
-    fn height(&self) -> usize {
+    /// Gets the height of the screen
+    pub fn height(&self) -> usize {
         self.info.vertical_resolution
     }
 
-    fn write_char(&mut self, c: char) {
+    /// Writes a character on the screen
+    pub fn write_char(&mut self, c: char) {
         match c {
             '\n' => self.newline(),
             '\r' => self.carriage_return(),
@@ -122,7 +128,8 @@ impl Logger {
         }
     }
 
-    fn write_rendered_char(&mut self, rendered_char: BitmapChar) {
+    /// Renders characters using the Noto Sans Mono font
+    pub fn write_rendered_char(&mut self, rendered_char: BitmapChar) {
         for (y, row) in rendered_char.bitmap().iter().enumerate() {
             for (x, byte) in row.iter().enumerate() {
                 self.write_pixel(self.x_pos + x, self.y_pos + y, *byte);
@@ -131,7 +138,8 @@ impl Logger {
         self.x_pos += rendered_char.width();
     }
 
-    fn write_pixel(&mut self, x: usize, y: usize, intensity: u8) {
+    /// Draws pixels on the screen
+    pub fn write_pixel(&mut self, x: usize, y: usize, intensity: u8) {
         let pixel_offset = y * self.info.stride + x;
         let color = match self.info.pixel_format {
             PixelFormat::RGB => [intensity, intensity, intensity / 2, 0],
