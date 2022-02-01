@@ -43,7 +43,10 @@ impl log::Log for LockedLogger {
         logger.add_vspace(LOG_SPACING);
     }
 
-    fn flush(&self) {}
+    fn flush(&self) {
+        let mut logger = self.0.lock();
+        logger.clear();
+    }
 }
 
 /// Allows logging text to a pixel-based framebuffer.
