@@ -117,6 +117,7 @@ compile_error!("This crate only supports the x86_64 architecture.");
 #[macro_export]
 macro_rules! entry_point {
     ($path:path) => {
+        /// Kernel entry point.
         #[export_name = "_start"]
         pub extern "C" fn __impl_start(boot_info: &'static mut $crate::boot_info::BootInfo) -> ! {
             // validate the signature of the program entry point
