@@ -1,3 +1,4 @@
+#[cfg(feature = "binary")]
 const PAGE_SIZE: u64 = 4096;
 
 /// Allows configuring the bootloader behavior.
@@ -91,6 +92,7 @@ pub struct Config {
     pub minimum_framebuffer_width: Option<usize>,
 }
 
+#[cfg(feature = "binary")]
 impl Config {
     pub(crate) fn kernel_stack_size(&self) -> u64 {
         self.kernel_stack_size.unwrap_or(20 * PAGE_SIZE)
