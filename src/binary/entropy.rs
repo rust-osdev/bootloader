@@ -20,7 +20,7 @@ pub fn build_rng() -> ChaCha20Rng {
     ChaCha20Rng::from_seed(seed)
 }
 
-/// Gather entropy by requesting random numbers with `rdrand` instruction if it's available.
+/// Gather entropy by requesting random numbers with `RDRAND` instruction if it's available.
 ///
 /// This function provides excellent entropy (unless you don't trust the CPU vendors).
 fn rd_rand_entropy() -> [u8; 32] {
@@ -41,7 +41,7 @@ fn rd_rand_entropy() -> [u8; 32] {
     entropy
 }
 
-/// Gather entropy by reading the current time with the `rdtsc` instruction if it's available.
+/// Gather entropy by reading the current time with the `RDTSC` instruction if it's available.
 ///
 /// This function doesn't provide particulary good entropy, but it's better than nothing.
 fn tsc_entropy() -> [u8; 32] {
