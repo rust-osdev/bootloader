@@ -29,16 +29,26 @@ fn rd_rand_entropy() -> [u8; 32] {
     // Check if the CPU supports `RDRAND`.
     if let Some(rd_rand) = RdRand::new() {
         for i in 0..4 {
-            let value = loop {
-                if let Some(value) = rd_rand.get_u64() {
-                    break value;
-                }
-            };
-            entropy[i * 8..(i + 1) * 8].copy_from_slice(&value.to_ne_bytes());
+            if let Some(value) = get_random_64(rd_rand) {
+                entropy[i * 8..(i + 1) * 8].copy_from_slice(&value.to_ne_bytes());
+            }
         }
     }
 
     entropy
+}
+
+/// Try to fetch a 64 bit random value with a retry count limit of 10.
+///
+/// This function is a port of the C implementation provided in Intel's Software Developer's Manual, Volume 1, 7.3.17.1.
+fn get_random_64(rd_rand: RdRand) -> Option<u64> {
+    const RETRY_LIMIT: u32 = 10;
+    for _ in 0..RETRY_LIMIT {
+        if let Some(value) = rd_rand.get_u64() {
+            return Some(value);
+        }
+    }
+    None
 }
 
 /// Gather entropy by reading the current time with the `RDTSC` instruction if it's available.
