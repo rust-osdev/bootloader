@@ -1,5 +1,8 @@
 use core::{alloc::Layout, convert::TryInto};
-use rand::distributions::{Distribution, Uniform};
+use rand::{
+    distributions::{Distribution, Uniform},
+    seq::IteratorRandom,
+};
 use rand_chacha::ChaCha20Rng;
 use usize_conversions::IntoUsize;
 use x86_64::{
@@ -121,23 +124,14 @@ impl UsedLevel4Entries {
             .map(|(idx, _)| idx);
 
         // Choose the free entry index.
-        let idx = if let Some(rng) = self.rng.as_mut() {
-            // Count the entries and randomly choose an index in `[0..count)`.
-            let count = free_entries.clone().count();
-            if count == 0 {
-                panic!("no usable level 4 entries found")
-            }
-            let distribution = Uniform::from(0..count);
-            let idx = distribution.sample(rng);
-
-            // Get the index of the free entry.
-            free_entries.nth(idx).unwrap()
+        let idx_opt = if let Some(rng) = self.rng.as_mut() {
+            // Randomly choose an index.
+            free_entries.choose(rng)
         } else {
             // Choose the first index.
-            free_entries
-                .next()
-                .expect("no usable level 4 entries found")
+            free_entries.next()
         };
+        let idx = idx_opt.expect("no usable level 4 entry found");
 
         // Mark the entry as used.
         self.entry_state[idx] = true;
