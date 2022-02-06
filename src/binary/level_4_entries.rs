@@ -109,7 +109,8 @@ impl UsedLevel4Entries {
         }
     }
 
-    /// Returns a unused level 4 entry and marks it as used.
+    /// Returns a unused level 4 entry and marks it as used. If `CONFIG.aslr` is
+    /// enabled, this will return a random available entry.
     ///
     /// Since this method marks each returned index as used, it can be used multiple times
     /// to determine multiple unused virtual memory regions.
