@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.10.12 – 2022-02-06
+
 - Add support for position independent executables ([#206](https://github.com/rust-osdev/bootloader/pull/206))
 - Add optional ASLR ([#221](https://github.com/rust-osdev/bootloader/pull/221))
 - Logger: nicer font rendering into framebuffer ([#213](https://github.com/rust-osdev/bootloader/pull/213))
