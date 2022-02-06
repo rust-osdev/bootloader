@@ -356,6 +356,8 @@ mod binary {
         pub map_page_table_recursively: bool,
         #[serde(default = "val_true")]
         pub map_framebuffer: bool,
+        #[serde(default)]
+        pub aslr: bool,
         pub kernel_stack_size: Option<AlignedAddress>,
         pub physical_memory_offset: Option<AlignedAddress>,
         pub recursive_index: Option<u16>,
@@ -376,6 +378,7 @@ mod binary {
             let map_physical_memory = self.map_physical_memory;
             let map_page_table_recursively = self.map_page_table_recursively;
             let map_framebuffer = self.map_framebuffer;
+            let aslr = self.aslr;
             let kernel_stack_size = optional(self.kernel_stack_size);
             let physical_memory_offset = optional(self.physical_memory_offset);
             let recursive_index = optional(self.recursive_index);
@@ -389,6 +392,7 @@ mod binary {
                 map_physical_memory: #map_physical_memory,
                 map_page_table_recursively: #map_page_table_recursively,
                 map_framebuffer: #map_framebuffer,
+                aslr: #aslr,
                 kernel_stack_size: #kernel_stack_size,
                 physical_memory_offset: #physical_memory_offset,
                 recursive_index: #recursive_index,

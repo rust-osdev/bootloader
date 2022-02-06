@@ -8,8 +8,8 @@ use parsed_config::CONFIG;
 use usize_conversions::FromUsize;
 use x86_64::{
     structures::paging::{
-        FrameAllocator, Mapper, OffsetPageTable, Page, PageTableFlags, PageTableIndex, PhysFrame,
-        Size2MiB,
+        FrameAllocator, Mapper, OffsetPageTable, Page, PageSize, PageTableFlags, PageTableIndex,
+        PhysFrame, Size2MiB, Size4KiB,
     },
     PhysAddr, VirtAddr,
 };
@@ -21,6 +21,8 @@ pub mod bios;
 #[cfg(feature = "uefi_bin")]
 mod uefi;
 
+/// Provides a function to gather entropy and build a RNG.
+mod entropy;
 mod gdt;
 /// Provides a frame allocator based on a BIOS or UEFI memory map.
 pub mod legacy_memory_region;
@@ -147,7 +149,7 @@ where
     let stack_start_addr = kernel_stack_start_location(&mut used_entries);
     let stack_start: Page = Page::containing_address(stack_start_addr);
     let stack_end = {
-        let end_addr = stack_start_addr + CONFIG.kernel_stack_size.unwrap_or(20 * PAGE_SIZE);
+        let end_addr = stack_start_addr + CONFIG.kernel_stack_size();
         Page::containing_address(end_addr - 1u64)
     };
     for page in Page::range_inclusive(stack_start, stack_end) {
@@ -197,7 +199,9 @@ where
         let framebuffer_start_frame: PhysFrame = PhysFrame::containing_address(framebuffer_addr);
         let framebuffer_end_frame =
             PhysFrame::containing_address(framebuffer_addr + framebuffer_size - 1u64);
-        let start_page = Page::containing_address(frame_buffer_location(&mut used_entries));
+        let start_page =
+            Page::from_start_address(frame_buffer_location(&mut used_entries, framebuffer_size))
+                .expect("the framebuffer address must be page aligned");
         for (i, frame) in
             PhysFrame::range_inclusive(framebuffer_start_frame, framebuffer_end_frame).enumerate()
         {
@@ -219,14 +223,18 @@ where
 
     let physical_memory_offset = if CONFIG.map_physical_memory {
         log::info!("Map physical memory");
-        let offset = CONFIG
-            .physical_memory_offset
-            .map(VirtAddr::new)
-            .unwrap_or_else(|| used_entries.get_free_address());
 
         let start_frame = PhysFrame::containing_address(PhysAddr::new(0));
         let max_phys = frame_allocator.max_phys_addr();
         let end_frame: PhysFrame<Size2MiB> = PhysFrame::containing_address(max_phys - 1u64);
+
+        let size = max_phys.as_u64();
+        let alignment = Size2MiB::SIZE;
+        let offset = CONFIG
+            .physical_memory_offset
+            .map(VirtAddr::new)
+            .unwrap_or_else(|| used_entries.get_free_address(size, alignment));
+
         for frame in PhysFrame::range_inclusive(start_frame, end_frame) {
             let page = Page::containing_address(offset + frame.start_address().as_u64());
             let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
@@ -322,7 +330,7 @@ where
         let (combined, memory_regions_offset) =
             boot_info_layout.extend(memory_regions_layout).unwrap();
 
-        let boot_info_addr = boot_info_location(&mut mappings.used_entries);
+        let boot_info_addr = boot_info_location(&mut mappings.used_entries, combined);
         assert!(
             boot_info_addr.is_aligned(u64::from_usize(combined.align())),
             "boot info addr is not properly aligned"
@@ -458,25 +466,35 @@ struct Addresses {
     boot_info: &'static mut crate::boot_info::BootInfo,
 }
 
-fn boot_info_location(used_entries: &mut UsedLevel4Entries) -> VirtAddr {
+fn boot_info_location(used_entries: &mut UsedLevel4Entries, layout: Layout) -> VirtAddr {
     CONFIG
         .boot_info_address
         .map(VirtAddr::new)
-        .unwrap_or_else(|| used_entries.get_free_address())
+        .unwrap_or_else(|| {
+            used_entries.get_free_address(
+                u64::from_usize(layout.size()),
+                u64::from_usize(layout.align()),
+            )
+        })
 }
 
-fn frame_buffer_location(used_entries: &mut UsedLevel4Entries) -> VirtAddr {
+fn frame_buffer_location(
+    used_entries: &mut UsedLevel4Entries,
+    framebuffer_size: usize,
+) -> VirtAddr {
     CONFIG
         .framebuffer_address
         .map(VirtAddr::new)
-        .unwrap_or_else(|| used_entries.get_free_address())
+        .unwrap_or_else(|| {
+            used_entries.get_free_address(u64::from_usize(framebuffer_size), Size4KiB::SIZE)
+        })
 }
 
 fn kernel_stack_start_location(used_entries: &mut UsedLevel4Entries) -> VirtAddr {
     CONFIG
         .kernel_stack_address
         .map(VirtAddr::new)
-        .unwrap_or_else(|| used_entries.get_free_address())
+        .unwrap_or_else(|| used_entries.get_free_address(CONFIG.kernel_stack_size(), 16))
 }
 
 fn enable_nxe_bit() {
