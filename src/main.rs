@@ -1,4 +1,3 @@
-#![feature(lang_items)]
 #![no_std]
 #![no_main]
 
@@ -375,12 +374,6 @@ fn enable_write_protect_bit() {
 pub fn panic(info: &PanicInfo) -> ! {
     use core::fmt::Write;
     write!(printer::Printer, "{}", info).unwrap();
-    loop {}
-}
-
-#[lang = "eh_personality"]
-#[no_mangle]
-pub extern "C" fn eh_personality() {
     loop {}
 }
 
