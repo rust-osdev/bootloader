@@ -1,4 +1,7 @@
-use crate::binary::legacy_memory_region::{LegacyFrameAllocator, LegacyMemoryRegion};
+#![no_std]
+#![deny(unsafe_op_in_unsafe_fn)]
+
+use crate::legacy_memory_region::{LegacyFrameAllocator, LegacyMemoryRegion};
 use bootloader_api::{
     config::Mapping,
     info::{FrameBuffer, FrameBufferInfo, MemoryRegion, TlsTemplate},
@@ -61,6 +64,23 @@ pub struct SystemInfo {
 pub struct Kernel<'a> {
     pub elf: ElfFile<'a>,
     pub config: BootloaderConfig,
+}
+
+impl<'a> Kernel<'a> {
+    pub fn parse(kernel_slice: &'a [u8]) -> Self {
+        let kernel_elf = ElfFile::new(kernel_slice).unwrap();
+        let config = {
+            let section = kernel_elf
+                .find_section_by_name(".bootloader-config")
+                .unwrap();
+            let raw = section.raw_data(&kernel_elf);
+            BootloaderConfig::deserialize(raw).unwrap()
+        };
+        Kernel {
+            elf: kernel_elf,
+            config,
+        }
+    }
 }
 
 /// Loads the kernel ELF executable into memory and switches to it.

@@ -65,35 +65,9 @@ The bootloader can be configured through a `[package.metadata.bootloader]` table
 for all possible configuration options.
 */
 
-#![cfg_attr(not(feature = "builder"), no_std)]
-#![feature(maybe_uninit_extra)]
-#![feature(maybe_uninit_slice)]
-#![deny(unsafe_op_in_unsafe_fn)]
 #![warn(missing_docs)]
-
-/// Contains the actual bootloader implementation ("bootloader as a binary").
-///
-/// Useful for reusing part of the bootloader implementation for other crates.
-///
-/// Only available when the `binary` feature is enabled.
-#[cfg(feature = "binary")]
-pub mod binary;
 
 /// Provides a function to turn a bootloader executable into a disk image.
 ///
 /// Used by the `builder` binary. Only available when the `builder` feature is enabled.
-#[cfg(feature = "builder")]
 pub mod disk_image;
-
-#[cfg(all(target_arch = "x86", not(feature = "builder")))]
-compile_error!(
-    "This crate currently does not support 32-bit protected mode. \
-         See https://github.com/rust-osdev/bootloader/issues/70 for more information."
-);
-
-#[cfg(all(
-    not(target_arch = "x86_64"),
-    not(target_arch = "x86"),
-    not(feature = "builder")
-))]
-compile_error!("This crate only supports the x86_64 architecture.");

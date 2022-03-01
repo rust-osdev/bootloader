@@ -127,7 +127,6 @@ where
                     }
                 }
                 // some mappings created by the UEFI firmware become usable again at this point
-                #[cfg(feature = "uefi_bin")]
                 MemoryRegionKind::UnknownUefi(other) => {
                     use uefi::table::boot::MemoryType as M;
                     match M(other) {
@@ -152,7 +151,11 @@ where
         }
 
         let initialized = &mut regions[..next_index];
-        unsafe { MaybeUninit::slice_assume_init_mut(initialized) }
+        unsafe {
+            // inlined variant of: `MaybeUninit::slice_assume_init_mut(initialized)`
+            // TODO: undo inlining when `slice_assume_init_mut` becomes stable
+            &mut *(initialized as *mut [_] as *mut [_])
+        }
     }
 
     fn add_region(

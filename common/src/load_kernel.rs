@@ -1,4 +1,4 @@
-use crate::binary::{level_4_entries::UsedLevel4Entries, PAGE_SIZE};
+use crate::{level_4_entries::UsedLevel4Entries, PAGE_SIZE};
 use bootloader_api::info::TlsTemplate;
 use x86_64::{
     align_up,

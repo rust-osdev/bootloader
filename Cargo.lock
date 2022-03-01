@@ -61,27 +61,16 @@ version = "0.10.10"
 dependencies = [
  "anyhow",
  "argh",
- "bit_field",
- "bootloader_api",
- "conquer-once",
  "displaydoc",
  "fatfs",
- "font8x8",
  "gpt",
  "json",
  "llvm-tools",
- "log",
  "proc-macro2",
  "quote",
- "rsdp",
  "serde",
- "spinning_top",
  "thiserror",
  "toml",
- "uefi",
- "usize_conversions",
- "x86_64",
- "xmas-elf",
 ]
 
 [[package]]
@@ -91,6 +80,44 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aaaa9db3339d32c2622f2e5d0731eb82a468d3439797c9d4fe426744fe2bd551"
 dependencies = [
  "json",
+]
+
+[[package]]
+name = "bootloader-x86_64-bios"
+version = "0.1.0"
+dependencies = [
+ "bootloader-x86_64-common",
+ "bootloader_api",
+ "log",
+ "rsdp",
+ "usize_conversions",
+ "x86_64",
+]
+
+[[package]]
+name = "bootloader-x86_64-common"
+version = "0.1.0"
+dependencies = [
+ "bootloader_api",
+ "conquer-once",
+ "font8x8",
+ "log",
+ "spinning_top",
+ "uefi",
+ "usize_conversions",
+ "x86_64",
+ "xmas-elf",
+]
+
+[[package]]
+name = "bootloader-x86_64-uefi"
+version = "0.1.0"
+dependencies = [
+ "bootloader-x86_64-common",
+ "bootloader_api",
+ "log",
+ "uefi",
+ "x86_64",
 ]
 
 [[package]]
@@ -137,18 +164,18 @@ dependencies = [
 
 [[package]]
 name = "conquer-once"
-version = "0.2.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96eb12fb69466716fbae9009d389e6a30830ae8975e170eff2d2cff579f9efa3"
+checksum = "7c6d3a9775a69f6d1fe2cc888999b67ed30257d3da4d2af91984e722f2ec918a"
 dependencies = [
  "conquer-util",
 ]
 
 [[package]]
 name = "conquer-util"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "654fb2472cc369d311c547103a1fa81d467bef370ae7a0680f65939895b1182a"
+checksum = "e763eef8846b13b380f37dfecda401770b0ca4e56e95170237bd7c25c7db3582"
 
 [[package]]
 name = "crc"
@@ -184,9 +211,9 @@ dependencies = [
 
 [[package]]
 name = "font8x8"
-version = "0.2.7"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e63201c624b8c8883921b1a1accc8916c4fa9dbfb15d122b26e4dde945b86bbf"
+checksum = "875488b8711a968268c7cf5d139578713097ca4635a76044e8fe8eedf831d07e"
 
 [[package]]
 name = "getrandom"
@@ -350,9 +377,9 @@ dependencies = [
 
 [[package]]
 name = "rsdp"
-version = "1.1.0"
+version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f4f3deb5b80701c91a04117876f7d44996b2da123a822054166180e970f5226"
+checksum = "66d3add2fc55ef37511bcf81a08ee7a09eff07b23aae38b06a29024a38c604b1"
 dependencies = [
  "log",
 ]
@@ -582,9 +609,9 @@ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 
 [[package]]
 name = "x86_64"
-version = "0.14.7"
+version = "0.14.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb611915c917c6296d11e23f71ff1ecfe49c5766daba92cd3df52df6b58285b6"
+checksum = "958ab3202b01bc43ba2eb832102c4a487ed93151667a2289062e5f2b00058be2"
 dependencies = [
  "bit_field",
  "bitflags",
@@ -593,9 +620,9 @@ dependencies = [
 
 [[package]]
 name = "xmas-elf"
-version = "0.6.2"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22678df5df766e8d1e5d609da69f0c3132d794edf6ab5e75e7abcd2270d4cf58"
+checksum = "8d29b4d8e7beaceb4e77447ba941a7600d23d0319ab52da0461abea214832d5a"
 dependencies = [
  "zero",
 ]

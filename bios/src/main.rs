@@ -2,12 +2,10 @@
 #![no_std]
 #![no_main]
 
-#[cfg(not(target_os = "none"))]
-compile_error!("The bootloader crate must be compiled for the `x86_64-bootloader.json` target");
-
-use bootloader::{
-    binary::SystemInfo,
-    boot_info::{FrameBufferInfo, PixelFormat},
+use crate::memory_descriptor::E820MemoryRegion;
+use bootloader_api::info::{FrameBufferInfo, PixelFormat};
+use bootloader_x86_64_common::{
+    load_and_switch_to_kernel, logger::LOGGER, Kernel, PageTables, SystemInfo,
 };
 use core::{
     arch::{asm, global_asm},
@@ -21,12 +19,13 @@ use x86_64::structures::paging::{
 };
 use x86_64::{PhysAddr, VirtAddr};
 
-global_asm!(include_str!("../asm/stage_1.s"));
-global_asm!(include_str!("../asm/stage_2.s"));
-global_asm!(include_str!(concat!(env!("OUT_DIR"), "/vesa_config.s")));
-global_asm!(include_str!("../asm/vesa.s"));
-global_asm!(include_str!("../asm/e820.s"));
-global_asm!(include_str!("../asm/stage_3.s"));
+mod memory_descriptor;
+
+global_asm!(include_str!("asm/stage_1.s"));
+global_asm!(include_str!("asm/stage_2.s"));
+global_asm!(include_str!("asm/vesa.s"));
+global_asm!(include_str!("asm/e820.s"));
+global_asm!(include_str!("asm/stage_3.s"));
 
 // values defined in `vesa.s`
 extern "C" {
@@ -76,9 +75,7 @@ fn bootloader_main(
     memory_map_addr: VirtAddr,
     memory_map_entry_count: u64,
 ) -> ! {
-    use bootloader::binary::{
-        bios::memory_descriptor::E820MemoryRegion, legacy_memory_region::LegacyFrameAllocator,
-    };
+    use bootloader_x86_64_common::legacy_memory_region::LegacyFrameAllocator;
 
     let e820_memory_map = {
         let ptr = usize_from(memory_map_addr.as_u64()) as *const E820MemoryRegion;
@@ -141,11 +138,11 @@ fn bootloader_main(
                 VBEModeInfo_greenfieldposition,
                 VBEModeInfo_bluefieldposition,
             ) {
-                (0, 8, 16) => PixelFormat::RGB,
-                (16, 8, 0) => PixelFormat::BGR,
+                (0, 8, 16) => PixelFormat::Rgb,
+                (16, 8, 0) => PixelFormat::Bgr,
                 (r, g, b) => {
                     error = Some(("invalid rgb field positions", r, g, b));
-                    PixelFormat::RGB // default to RBG so that we can print something
+                    PixelFormat::Rgb // default to RBG so that we can print something
                 }
             },
         )
@@ -159,10 +156,11 @@ fn bootloader_main(
 
     let page_tables = create_page_tables(&mut frame_allocator);
 
-    let kernel = {
+    let kernel_slice = {
         let ptr = kernel_start.as_u64() as *const u8;
         unsafe { slice::from_raw_parts(ptr, usize_from(kernel_size)) }
     };
+    let kernel = Kernel::parse(kernel_slice);
 
     let system_info = SystemInfo {
         framebuffer_addr,
@@ -170,12 +168,7 @@ fn bootloader_main(
         rsdp_addr: detect_rsdp(),
     };
 
-    bootloader::binary::load_and_switch_to_kernel(
-        kernel,
-        frame_allocator,
-        page_tables,
-        system_info,
-    );
+    load_and_switch_to_kernel(kernel, frame_allocator, page_tables, system_info);
 }
 
 fn init_logger(
@@ -190,7 +183,7 @@ fn init_logger(
     let ptr = framebuffer_start.as_u64() as *mut u8;
     let slice = unsafe { slice::from_raw_parts_mut(ptr, framebuffer_size) };
 
-    let info = bootloader::boot_info::FrameBufferInfo {
+    let info = FrameBufferInfo {
         byte_len: framebuffer_size,
         horizontal_resolution,
         vertical_resolution,
@@ -199,15 +192,13 @@ fn init_logger(
         pixel_format,
     };
 
-    bootloader::binary::init_logger(slice, info);
+    bootloader_x86_64_common::init_logger(slice, info);
 
     info
 }
 
 /// Creates page table abstraction types for both the bootloader and kernel page tables.
-fn create_page_tables(
-    frame_allocator: &mut impl FrameAllocator<Size4KiB>,
-) -> bootloader::binary::PageTables {
+fn create_page_tables(frame_allocator: &mut impl FrameAllocator<Size4KiB>) -> PageTables {
     // We identity-mapped all memory, so the offset between physical and virtual addresses is 0
     let phys_offset = VirtAddr::new(0);
 
@@ -235,7 +226,7 @@ fn create_page_tables(
         )
     };
 
-    bootloader::binary::PageTables {
+    PageTables {
         bootloader: bootloader_page_table,
         kernel: kernel_page_table,
         kernel_level_4_frame,
@@ -257,32 +248,28 @@ fn detect_rsdp() -> Option<PhysAddr> {
             physical_address: usize,
             size: usize,
         ) -> PhysicalMapping<Self, T> {
-            PhysicalMapping {
-                physical_start: physical_address,
-                virtual_start: NonNull::new(physical_address as *mut _).unwrap(),
-                region_length: size,
-                mapped_length: size,
-                handler: Self,
-            }
+            PhysicalMapping::new(
+                physical_address,
+                NonNull::new(physical_address as *mut _).unwrap(),
+                size,
+                size,
+                Self,
+            )
         }
 
-        fn unmap_physical_region<T>(&self, _region: &PhysicalMapping<Self, T>) {}
+        fn unmap_physical_region<T>(_region: &PhysicalMapping<Self, T>) {}
     }
 
     unsafe {
         Rsdp::search_for_on_bios(IdentityMapped)
             .ok()
-            .map(|mapping| PhysAddr::new(mapping.physical_start as u64))
+            .map(|mapping| PhysAddr::new(mapping.physical_start() as u64))
     }
 }
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    unsafe {
-        bootloader::binary::logger::LOGGER
-            .get()
-            .map(|l| l.force_unlock())
-    };
+    unsafe { LOGGER.get().map(|l| l.force_unlock()) };
     log::error!("{}", info);
     loop {
         unsafe { asm!("cli; hlt") };

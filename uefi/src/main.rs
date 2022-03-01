@@ -1,11 +1,11 @@
 #![no_std]
 #![no_main]
 #![feature(abi_efiapi)]
-#![feature(maybe_uninit_extra)]
 #![deny(unsafe_op_in_unsafe_fn)]
 
-use bootloader::binary::{legacy_memory_region::LegacyFrameAllocator, Kernel, SystemInfo};
+use crate::memory_descriptor::UefiMemoryDescriptor;
 use bootloader_api::{info::FrameBufferInfo, BootloaderConfig};
+use bootloader_x86_64_common::{legacy_memory_region::LegacyFrameAllocator, Kernel, SystemInfo};
 use core::{arch::asm, cell::UnsafeCell, fmt::Write, mem, panic::PanicInfo, ptr, slice};
 use uefi::{
     prelude::{entry, Boot, Handle, ResultExt, Status, SystemTable},
@@ -25,7 +25,8 @@ use x86_64::{
     structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB},
     PhysAddr, VirtAddr,
 };
-use xmas_elf::ElfFile;
+
+mod memory_descriptor;
 
 static SYSTEM_TABLE: VeryUnsafeCell<Option<SystemTable<Boot>>> = VeryUnsafeCell::new(None);
 
@@ -93,7 +94,8 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
         .exit_boot_services(image, mmap_storage)
         .expect_success("Failed to exit boot services");
 
-    let mut frame_allocator = LegacyFrameAllocator::new(memory_map.copied());
+    let mut frame_allocator =
+        LegacyFrameAllocator::new(memory_map.copied().map(UefiMemoryDescriptor));
 
     let page_tables = create_page_tables(&mut frame_allocator);
 
@@ -112,7 +114,7 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
         },
     };
 
-    bootloader::binary::load_and_switch_to_kernel(
+    bootloader_x86_64_common::load_and_switch_to_kernel(
         kernel,
         frame_allocator,
         page_tables,
@@ -172,26 +174,13 @@ fn load_kernel(image: Handle, st: &SystemTable<Boot>) -> Kernel<'static> {
     let kernel_slice = unsafe { slice::from_raw_parts_mut(kernel_ptr, kernel_size) };
     kernel_file.read(kernel_slice).unwrap().unwrap();
 
-    let kernel_elf = ElfFile::new(kernel_slice).unwrap();
-
-    let config = {
-        let section = kernel_elf
-            .find_section_by_name(".bootloader-config")
-            .unwrap();
-        let raw = section.raw_data(&kernel_elf);
-        BootloaderConfig::deserialize(raw).unwrap()
-    };
-
-    Kernel {
-        elf: kernel_elf,
-        config,
-    }
+    Kernel::parse(kernel_slice)
 }
 
 /// Creates page table abstraction types for both the bootloader and kernel page tables.
 fn create_page_tables(
     frame_allocator: &mut impl FrameAllocator<Size4KiB>,
-) -> bootloader::binary::PageTables {
+) -> bootloader_x86_64_common::PageTables {
     // UEFI identity-maps all memory, so the offset between physical and virtual addresses is 0
     let phys_offset = VirtAddr::new(0);
 
@@ -247,7 +236,7 @@ fn create_page_tables(
         )
     };
 
-    bootloader::binary::PageTables {
+    bootloader_x86_64_common::PageTables {
         bootloader: bootloader_page_table,
         kernel: kernel_page_table,
         kernel_level_4_frame,
@@ -309,7 +298,7 @@ fn init_logger(st: &SystemTable<Boot>, config: BootloaderConfig) -> (PhysAddr, F
 
     log::info!("UEFI boot");
 
-    bootloader::binary::init_logger(slice, info);
+    bootloader_x86_64_common::init_logger(slice, info);
 
     (PhysAddr::new(framebuffer.as_mut_ptr() as u64), info)
 }
@@ -321,7 +310,7 @@ fn panic(info: &PanicInfo) -> ! {
     }
 
     unsafe {
-        bootloader::binary::logger::LOGGER
+        bootloader_x86_64_common::logger::LOGGER
             .get()
             .map(|l| l.force_unlock())
     };

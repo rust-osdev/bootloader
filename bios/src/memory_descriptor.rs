@@ -1,4 +1,5 @@
-use crate::{binary::legacy_memory_region::LegacyMemoryRegion, boot_info::MemoryRegionKind};
+use bootloader_api::info::MemoryRegionKind;
+use bootloader_x86_64_common::legacy_memory_region::LegacyMemoryRegion;
 use x86_64::PhysAddr;
 
 impl LegacyMemoryRegion for E820MemoryRegion {

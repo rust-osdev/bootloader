@@ -1,0 +1,21 @@
+[package]
+name = "bootloader-x86_64-common"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bootloader_api = { version = "0.1.0", path = "../api" }
+conquer-once = { version = "0.3.2", default-features = false }
+log = "0.4.14"
+spinning_top = "0.2.4"
+uefi = "0.13"
+usize_conversions = "0.2.0"
+x86_64 = { version = "0.14.8", default-features = false }
+xmas-elf = "0.8.0"
+
+[dependencies.font8x8]
+version = "0.3.1"
+default-features = false
+features = ["unicode"]
