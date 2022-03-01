@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.9.22 – 2022-03-01
+
 - Remove the `asm` and `global_asm` features, which are now stable ([#227](https://github.com/rust-osdev/bootloader/pull/227))
 
 # 0.9.21 – 2022-01-09
