@@ -154,8 +154,7 @@ zero_idt:
 
 gdt_64:
     .quad 0x0000000000000000          # Null Descriptor - should be present.
-    .quad 0x00209A0000000000          # 64-bit code descriptor (exec/read).
-    .quad 0x0000920000000000          # 64-bit data descriptor (read/write).
+    .quad 0x0020980000000000          # 64-bit code descriptor (exec/read).
 
 .align 4
     .word 0                              # Padding to make the "address of the GDT" field aligned on a 4-byte boundary
