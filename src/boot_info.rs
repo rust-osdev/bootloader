@@ -177,6 +177,15 @@ impl FrameBuffer {
     pub fn info(&self) -> FrameBufferInfo {
         self.info
     }
+
+    /// Creates a new `FrameBuffer` instance using `info` as input
+    pub fn from_info(&self, info: FrameBufferInfo) -> Self {
+        FrameBuffer {
+            buffer_start: self.buffer_start,
+            buffer_byte_len: self.buffer_start as usize + info.byte_len as usize,
+            info: info,
+        }
+    }
 }
 
 /// Describes the layout and pixel format of a framebuffer.
