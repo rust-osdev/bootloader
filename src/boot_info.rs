@@ -150,7 +150,7 @@ pub enum MemoryRegionKind {
 }
 
 /// A pixel-based framebuffer that controls the screen output.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 #[repr(C)]
 pub struct FrameBuffer {
     pub(crate) buffer_start: u64,
