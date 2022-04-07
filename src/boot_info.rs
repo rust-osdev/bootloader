@@ -178,12 +178,12 @@ impl FrameBuffer {
         self.info
     }
 
-    /// Creates a new `FrameBuffer` instance using `info` as input
-    pub fn from_info(&mut self, info: FrameBufferInfo) -> Self {
-        let reflexive_ptr = self.buffer_mut().as_mut_ptr() as usize;
+    /// Creates a new `FrameBuffer` instance at address `addr` using `info` as input
+    /// Safety: make absolutely certain that `addr` is properly memory-mapped
+    pub unsafe fn from_info(&mut self, addr: u64, info: FrameBufferInfo) -> Self {
         FrameBuffer {
-            buffer_start: reflexive_ptr as u64,
-            buffer_byte_len: reflexive_ptr + info.byte_len as usize,
+            buffer_start: addr,
+            buffer_byte_len: addr as usize + info.byte_len as usize,
             info: info,
         }
     }
