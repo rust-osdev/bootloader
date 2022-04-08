@@ -1,6 +1,5 @@
 {
     "rust-analyzer.checkOnSave.allTargets": false,
-    "rust-analyzer.cargo.target": "x86_64-bootloader.json",
     "rust-analyzer.checkOnSave.extraArgs": [
         "-Zbuild-std=core,alloc"
     ]

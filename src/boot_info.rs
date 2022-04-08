@@ -150,7 +150,7 @@ pub enum MemoryRegionKind {
 }
 
 /// A pixel-based framebuffer that controls the screen output.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug)]
 #[repr(C)]
 pub struct FrameBuffer {
     pub(crate) buffer_start: u64,
@@ -180,7 +180,8 @@ impl FrameBuffer {
 
     /// Creates a new `FrameBuffer` instance at address `addr` using `info` as input
     /// Safety: make absolutely certain that `addr` is properly memory-mapped
-    pub unsafe fn from_info(&mut self, addr: u64, info: FrameBufferInfo) -> Self {
+    pub unsafe fn from_info(&mut self, loc: *mut FrameBuffer, info: FrameBufferInfo) -> Self {
+        let addr = (loc as usize) as u64;
         FrameBuffer {
             buffer_start: addr,
             buffer_byte_len: addr as usize + info.byte_len as usize,
