@@ -16,7 +16,10 @@ impl UsedLevel4Entries {
     /// Initializes a new instance from the given ELF program segments.
     ///
     /// Marks the virtual address range of all segments as used.
-    pub fn new<'a>(segments: impl Iterator<Item = ProgramHeader<'a>>) -> Self {
+    pub fn new<'a>(
+        segments: impl Iterator<Item = ProgramHeader<'a>>,
+        virtual_address_offset: u64,
+    ) -> Self {
         let mut used = UsedLevel4Entries {
             entry_state: [false; 512],
         };
@@ -24,9 +27,11 @@ impl UsedLevel4Entries {
         used.entry_state[0] = true; // TODO: Can we do this dynamically?
 
         for segment in segments {
-            let start_page: Page = Page::containing_address(VirtAddr::new(segment.virtual_addr()));
+            let start_page: Page = Page::containing_address(VirtAddr::new(
+                segment.virtual_addr() + virtual_address_offset,
+            ));
             let end_page: Page = Page::containing_address(VirtAddr::new(
-                segment.virtual_addr() + segment.mem_size(),
+                segment.virtual_addr() + virtual_address_offset + segment.mem_size(),
             ));
 
             for p4_index in u64::from(start_page.p4_index())..=u64::from(end_page.p4_index()) {
