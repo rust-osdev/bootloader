@@ -17,7 +17,7 @@ usize_conversions = "0.2.0"
 x86_64 = { version = "0.14.8" }
 xmas-elf = "0.8.0"
 
-[dependencies.font8x8]
-version = "0.3.1"
+[dependencies.noto-sans-mono-bitmap]
+version = "0.1.2"
 default-features = false
-features = ["unicode"]
+features = ["regular", "size_14"]

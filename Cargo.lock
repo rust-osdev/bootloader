@@ -62,8 +62,8 @@ version = "0.1.0-alpha.0"
 dependencies = [
  "bootloader_api",
  "conquer-once",
- "font8x8",
  "log",
+ "noto-sans-mono-bitmap",
  "spinning_top",
  "uefi",
  "usize_conversions",
@@ -161,12 +161,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "font8x8"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "875488b8711a968268c7cf5d139578713097ca4635a76044e8fe8eedf831d07e"
-
-[[package]]
 name = "getrandom"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -227,6 +221,12 @@ checksum = "51b9bbe6c47d51fc3e1a9b945965946b4c44142ab8792c50835a980d362c2710"
 dependencies = [
  "cfg-if",
 ]
+
+[[package]]
+name = "noto-sans-mono-bitmap"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "643bee6617a18c64f5a72ef358a9426d3682dc768db7c320825d3d936e2232d4"
 
 [[package]]
 name = "num-integer"
