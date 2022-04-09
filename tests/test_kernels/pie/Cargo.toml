@@ -5,9 +5,9 @@ authors = ["Tom Dohrmann <erbse.13@gmx.de>"]
 edition = "2018"
 
 [dependencies]
-bootloader = { path = "../../.." }
-x86_64 = { version = "0.14.7", default-features = false, features = ["instructions", "inline_asm"] }
+bootloader_api = { path = "../../../api" }
+x86_64 = { version = "0.14.7", default-features = false, features = [
+    "instructions",
+    "inline_asm",
+] }
 uart_16550 = "0.2.10"
-
-[package.metadata.bootloader]
-aslr = true

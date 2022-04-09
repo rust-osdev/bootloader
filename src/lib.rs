@@ -67,13 +67,12 @@ for all possible configuration options.
 
 #![warn(missing_docs)]
 
+use anyhow::Context;
 use std::{
     fs::{self, File},
     io::{self, Seek},
     path::Path,
 };
-
-use anyhow::Context;
 
 pub fn create_uefi_disk_image(
     kernel_binary: &Path,
@@ -200,8 +199,3 @@ fn create_gpt_disk(fat_image: &Path, out_gpt_path: &Path) {
     disk.seek(io::SeekFrom::Start(start_offset)).unwrap();
     io::copy(&mut File::open(&fat_image).unwrap(), &mut disk).unwrap();
 }
-
-// Provides a function to turn a bootloader executable into a disk image.
-//
-// Used by the `builder` binary. Only available when the `builder` feature is enabled.
-// pub mod disk_image;

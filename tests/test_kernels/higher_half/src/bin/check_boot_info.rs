@@ -50,7 +50,6 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     // check rsdp_addr
     let rsdp = boot_info.rsdp_addr.into_option().unwrap();
     assert!(rsdp > 0x000E0000);
-    assert!(rsdp < 0x000FFFFF);
 
     // the test kernel has no TLS template
     assert_eq!(boot_info.tls_template.into_option(), None);

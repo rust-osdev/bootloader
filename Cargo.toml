@@ -1,3 +1,5 @@
+cargo-features = ["profile-rustflags"]
+
 [package]
 name = "bootloader"
 version = "0.11.0-alpha.0"
@@ -31,6 +33,13 @@ raw-cpuid = { version = "10.2.0", optional = true }
 rand = { version = "0.8.4", optional = true, default-features = false }
 rand_chacha = { version = "0.3.1", optional = true, default-features = false }
 
+[dev-dependencies]
+bootloader_test_runner = { path = "tests/runner" }
+test_kernel_default_settings = { path = "tests/test_kernels/default_settings", artifact = "bin", target = "x86_64-unknown-none" }
+test_kernel_higher_half = { path = "tests/test_kernels/higher_half", artifact = "bin", target = "x86_64-unknown-none" }
+test_kernel_map_phys_mem = { path = "tests/test_kernels/map_phys_mem", artifact = "bin", target = "x86_64-unknown-none" }
+test_kernel_pie = { path = "tests/test_kernels/pie", artifact = "bin", target = "x86_64-unknown-none" }
+
 # [dependencies.bootloader-x86_64-uefi]
 # version = "0.1.0"
 # path = "uefi"
@@ -55,6 +64,15 @@ codegen-units = 1
 debug = false
 overflow-checks = false
 
+[profile.test.package.test_kernel_higher_half]
+rustflags = [
+    "-C",
+    "link-args=--image-base 0xFFFF800000000000",
+    "-C",
+    "relocation-model=static",                   # pic in higher half not supported yet
+    "-C",
+    "code-model=large",
+]
 
 [package.metadata.docs.rs]
 default-target = "x86_64-unknown-linux-gnu"

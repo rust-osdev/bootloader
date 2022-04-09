@@ -3,9 +3,9 @@
 
 use bootloader_api::{entry_point, BootInfo};
 use core::panic::PanicInfo;
-use test_kernel_map_phys_mem::{exit_qemu, serial, QemuExitCode};
+use test_kernel_map_phys_mem::{exit_qemu, serial, QemuExitCode, BOOTLOADER_CONFIG};
 
-entry_point!(kernel_main);
+entry_point!(kernel_main, config = &BOOTLOADER_CONFIG);
 
 fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     let phys_mem_offset = boot_info.physical_memory_offset.into_option().unwrap();

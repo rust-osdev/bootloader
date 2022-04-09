@@ -1,3 +1,5 @@
+cargo-features = ["profile-rustflags"]
+
 [package]
 name = "test_kernel_higher_half"
 version = "0.1.0"
@@ -6,5 +8,10 @@ edition = "2018"
 
 [dependencies]
 bootloader_api = { path = "../../../api" }
-x86_64 = { version = "0.14.7", default-features = false, features = ["instructions", "inline_asm"] }
+x86_64 = { version = "0.14.7", default-features = false, features = [
+    "instructions",
+    "inline_asm",
+] }
 uart_16550 = "0.2.10"
+
+# set to higher half through profile.test.rustflags key in top-level Cargo.toml

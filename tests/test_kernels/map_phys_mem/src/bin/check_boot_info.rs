@@ -3,9 +3,9 @@
 
 use bootloader_api::{entry_point, info::PixelFormat, BootInfo};
 use core::panic::PanicInfo;
-use test_kernel_map_phys_mem::{exit_qemu, serial, QemuExitCode};
+use test_kernel_map_phys_mem::{exit_qemu, serial, QemuExitCode, BOOTLOADER_CONFIG};
 
-entry_point!(kernel_main);
+entry_point!(kernel_main, config = &BOOTLOADER_CONFIG);
 
 fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     // check memory regions
@@ -53,7 +53,6 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     // check rsdp_addr
     let rsdp = boot_info.rsdp_addr.into_option().unwrap();
     assert!(rsdp > 0x000E0000);
-    assert!(rsdp < 0x000FFFFF);
 
     // the test kernel has no TLS template
     assert_eq!(boot_info.tls_template.into_option(), None);

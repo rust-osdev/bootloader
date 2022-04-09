@@ -1,7 +1,7 @@
 #![no_std] // don't link the Rust standard library
 #![no_main] // disable all Rust-level entry points
 
-use bootloader::{boot_info::PixelFormat, entry_point, BootInfo};
+use bootloader_api::{entry_point, info::PixelFormat, BootInfo};
 use core::panic::PanicInfo;
 use test_kernel_pie::{exit_qemu, QemuExitCode};
 
@@ -35,7 +35,7 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     if ![640, 1024].contains(&framebuffer.info().stride) {
         panic!("unexpected stride `{}`", framebuffer.info().stride);
     }
-    assert_eq!(framebuffer.info().pixel_format, PixelFormat::BGR);
+    assert_eq!(framebuffer.info().pixel_format, PixelFormat::Bgr);
     assert_eq!(
         framebuffer.buffer().len(),
         framebuffer.info().stride
@@ -50,7 +50,6 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     // check rsdp_addr
     let rsdp = boot_info.rsdp_addr.into_option().unwrap();
     assert!(rsdp > 0x000E0000);
-    assert!(rsdp < 0x000FFFFF);
 
     // the test kernel has no TLS template
     assert_eq!(boot_info.tls_template.into_option(), None);
