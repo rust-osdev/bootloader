@@ -7,11 +7,7 @@ use bootloader_api::{
     info::{FrameBuffer, FrameBufferInfo, MemoryRegion, TlsTemplate},
     BootInfo, BootloaderConfig,
 };
-use core::{
-    arch::asm,
-    mem::{self, MaybeUninit},
-    slice,
-};
+use core::{alloc::Layout, arch::asm, mem::MaybeUninit, slice};
 use level_4_entries::UsedLevel4Entries;
 use usize_conversions::FromUsize;
 use x86_64::{
@@ -105,6 +101,7 @@ where
         &mut page_tables,
         system_info.framebuffer_addr,
         system_info.framebuffer_info.byte_len,
+        &config,
     );
     let boot_info = create_boot_info(
         &config,
@@ -136,6 +133,7 @@ pub fn set_up_mappings<I, D>(
     page_tables: &mut PageTables,
     framebuffer_addr: PhysAddr,
     framebuffer_size: usize,
+    config: &BootloaderConfig,
 ) -> Mappings
 where
     I: ExactSizeIterator<Item = D> + Clone,
@@ -143,15 +141,26 @@ where
 {
     let kernel_page_table = &mut page_tables.kernel;
 
+    let mut used_entries = UsedLevel4Entries::new(
+        frame_allocator.max_phys_addr(),
+        frame_allocator.len(),
+        framebuffer_size,
+        config,
+    );
+
     // Enable support for the no-execute bit in page tables.
     enable_nxe_bit();
     // Make the kernel respect the write-protection bits even when in ring 0 by default
     enable_write_protect_bit();
 
     let config = kernel.config;
-    let (entry_point, tls_template, mut used_entries) =
-        load_kernel::load_kernel(kernel, kernel_page_table, frame_allocator)
-            .expect("no entry point");
+    let (entry_point, tls_template) = load_kernel::load_kernel(
+        kernel,
+        kernel_page_table,
+        frame_allocator,
+        &mut used_entries,
+    )
+    .expect("no entry point");
     log::info!("Entry point at: {:#x}", entry_point.as_u64());
 
     // create a stack
@@ -331,13 +340,20 @@ where
 
     // allocate and map space for the boot info
     let (boot_info, memory_regions) = {
-        let boot_info_addr = mapping_addr(config.mappings.boot_info, &mut mappings.used_entries);
-        let boot_info_end = boot_info_addr + mem::size_of::<BootInfo>();
-        let memory_map_regions_addr =
-            boot_info_end.align_up(u64::from_usize(mem::align_of::<MemoryRegion>()));
+        let boot_info_layout = Layout::new::<BootInfo>();
         let regions = frame_allocator.len() + 1; // one region might be split into used/unused
-        let memory_map_regions_end =
-            memory_map_regions_addr + regions * mem::size_of::<MemoryRegion>();
+        let memory_regions_layout = Layout::array::<MemoryRegion>(regions).unwrap();
+        let (combined, memory_regions_offset) =
+            boot_info_layout.extend(memory_regions_layout).unwrap();
+
+        let boot_info_addr = mapping_addr(config.mappings.boot_info, &mut mappings.used_entries);
+        assert!(
+            boot_info_addr.is_aligned(u64::from_usize(combined.align())),
+            "boot info addr is not properly aligned"
+        );
+
+        let memory_map_regions_addr = boot_info_addr + memory_regions_offset;
+        let memory_map_regions_end = boot_info_addr + combined.size();
 
         let start_page = Page::containing_address(boot_info_addr);
         let end_page = Page::containing_address(memory_map_regions_end - 1u64);
