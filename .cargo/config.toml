@@ -1,5 +1,2 @@
-[env]
-BOOTLOADER_LOCAL_BUILD = "1"
-
 [target.x86_64-unknown-uefi]
 runner = "cargo run -p runner"
