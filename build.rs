@@ -3,6 +3,8 @@ use std::{
     process::Command,
 };
 
+const BOOTLOADER_X86_64_UEFI_VERSION: &str = "0.1.0-alpha.0";
+
 fn main() {
     let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
 
@@ -18,8 +20,12 @@ fn build_uefi_bootloader(out_dir: &Path) -> PathBuf {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
     let mut cmd = Command::new(cargo);
     cmd.arg("install").arg("bootloader-x86_64-uefi");
-    // TODO: remove, only for testing, replace by `--version`
-    cmd.arg("--path").arg("uefi");
+    if std::env::var("BOOTLOADER_LOCAL_BUILD").is_ok() {
+        // local build
+        cmd.arg("--path").arg("uefi");
+    } else {
+        cmd.arg("--version").arg(BOOTLOADER_X86_64_UEFI_VERSION);
+    }
     cmd.arg("--locked");
     cmd.arg("--target").arg("x86_64-unknown-uefi");
     cmd.arg("-Zbuild-std=core")
