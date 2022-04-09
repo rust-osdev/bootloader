@@ -98,9 +98,9 @@ fn create_fat_filesystem(
 
     // retrieve size of `.efi` file and round it up
     let efi_size = fs::metadata(&bootloader_efi_file).unwrap().len();
-    // size of a megabyte
-    // round it to next megabyte
-    let efi_size_rounded = ((efi_size - 1) / MB + 1) * MB;
+    let kernel_size = fs::metadata(&kernel_binary)
+        .context("failed to read metadata of kernel binary")?
+        .len();
 
     // create new filesystem image file at the given path and set its length
     let fat_file = fs::OpenOptions::new()
@@ -110,7 +110,9 @@ fn create_fat_filesystem(
         .truncate(true)
         .open(&out_fat_path)
         .unwrap();
-    fat_file.set_len(efi_size_rounded).unwrap();
+    let fat_size = efi_size + kernel_size;
+    let fat_size_padded_and_rounded = ((fat_size + 1024 * 64 - 1) / MB + 1) * MB;
+    fat_file.set_len(fat_size_padded_and_rounded).unwrap();
 
     // create new FAT file system and open it
     let label = {
@@ -146,7 +148,8 @@ fn create_fat_filesystem(
     // copy kernel to FAT filesystem
     let mut kernel_file = root_dir.create_file("kernel-x86_64")?;
     kernel_file.truncate()?;
-    io::copy(&mut fs::File::open(&kernel_binary)?, &mut kernel_file)?;
+    io::copy(&mut fs::File::open(&kernel_binary)?, &mut kernel_file)
+        .context("failed to copy kernel to UEFI FAT filesystem")?;
 
     Ok(())
 }
