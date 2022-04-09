@@ -19,13 +19,6 @@ use x86_64::{
 };
 use xmas_elf::ElfFile;
 
-/// Provides BIOS-specific types and trait implementations.
-#[cfg(feature = "bios_bin")]
-pub mod bios;
-/// Provides UEFI-specific trait implementations.
-#[cfg(feature = "uefi_bin")]
-mod uefi;
-
 /// Provides a function to gather entropy and build a RNG.
 mod entropy;
 mod gdt;
