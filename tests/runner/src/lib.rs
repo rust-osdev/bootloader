@@ -22,7 +22,7 @@ pub fn run_test_kernel(kernel_binary_path: &str) {
         .arg(format!("format=raw,file={}", out_gpt_path.display()));
     run_cmd.args(QEMU_ARGS);
     run_cmd.args(std::env::args().skip(2).collect::<Vec<_>>());
-    run_cmd.arg("-bios").arg("OVMF-pure-efi.fd");
+    run_cmd.arg("-bios").arg(ovmf_prebuilt::ovmf_pure_efi());
 
     let child_output = run_cmd.output().unwrap();
     strip_ansi_escapes::Writer::new(std::io::stderr())

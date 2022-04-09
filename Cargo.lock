@@ -106,6 +106,7 @@ name = "bootloader_test_runner"
 version = "0.1.0"
 dependencies = [
  "bootloader",
+ "ovmf-prebuilt",
  "strip-ansi-escapes",
 ]
 
@@ -248,6 +249,12 @@ checksum = "9a64b1ec5cda2586e284722486d802acf1f7dbdc623e2bfc57e65ca1cd099290"
 dependencies = [
  "autocfg",
 ]
+
+[[package]]
+name = "ovmf-prebuilt"
+version = "0.1.0-alpha.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fa50141d081512ab30fd9e7e7692476866df5098b028536ad6680212e717fa8d"
 
 [[package]]
 name = "ppv-lite86"
