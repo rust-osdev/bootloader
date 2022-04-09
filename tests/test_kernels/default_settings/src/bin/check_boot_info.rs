@@ -14,26 +14,11 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     // check framebuffer
     let framebuffer = boot_info.framebuffer.as_ref().unwrap();
     assert_eq!(framebuffer.info().byte_len, framebuffer.buffer().len());
-    if ![640, 1024].contains(&framebuffer.info().horizontal_resolution) {
-        panic!(
-            "unexpected horizontal_resolution `{}`",
-            framebuffer.info().horizontal_resolution
-        );
-    }
-    if ![480, 768].contains(&framebuffer.info().vertical_resolution) {
-        panic!(
-            "unexpected vertical_resolution `{}`",
-            framebuffer.info().vertical_resolution
-        );
-    }
     if ![3, 4].contains(&framebuffer.info().bytes_per_pixel) {
         panic!(
             "unexpected bytes_per_pixel `{}`",
             framebuffer.info().bytes_per_pixel
         );
-    }
-    if ![640, 1024].contains(&framebuffer.info().stride) {
-        panic!("unexpected stride `{}`", framebuffer.info().stride);
     }
     assert_eq!(framebuffer.info().pixel_format, PixelFormat::Bgr);
     assert_eq!(
