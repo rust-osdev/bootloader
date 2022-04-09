@@ -20,7 +20,7 @@ fn build_uefi_bootloader(out_dir: &Path) -> PathBuf {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
     let mut cmd = Command::new(cargo);
     cmd.arg("install").arg("bootloader-x86_64-uefi");
-    if std::env::var("BOOTLOADER_LOCAL_BUILD").is_ok() {
+    if std::env::var("BOOTLOADER_LOCAL_BUILD").is_ok() && Path::new("uefi").exists() {
         // local build
         cmd.arg("--path").arg("uefi");
     } else {
