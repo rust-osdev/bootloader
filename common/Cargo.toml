@@ -1,12 +1,12 @@
 [package]
 name = "bootloader-x86_64-common"
-version = "0.1.0"
+version = "0.1.0-alpha.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bootloader_api = { version = "0.1.0", path = "../api" }
+bootloader_api = { version = "0.1.0-alpha.0", path = "../api" }
 conquer-once = { version = "0.3.2", default-features = false }
 log = "0.4.14"
 spinning_top = "0.2.4"
