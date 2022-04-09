@@ -32,6 +32,12 @@ json = "0.12.4"
 fatfs = "0.3.4"
 gpt = "3.0.0"
 
+# [dependencies.bootloader-x86_64-uefi]
+# version = "0.1.0"
+# path = "uefi"
+# artifact = ["bin"]
+# target = "x86_64-unknown-uefi"
+
 [build-dependencies]
 llvm-tools-build = { version = "0.1", optional = true, package = "llvm-tools" }
 toml = { version = "0.5.1", optional = true }
