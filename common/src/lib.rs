@@ -12,8 +12,8 @@ use level_4_entries::UsedLevel4Entries;
 use usize_conversions::FromUsize;
 use x86_64::{
     structures::paging::{
-        page_table::PageTableLevel, FrameAllocator, Mapper, OffsetPageTable, Page, PageTableFlags,
-        PageTableIndex, PhysFrame, Size2MiB,
+        page_table::PageTableLevel, FrameAllocator, Mapper, OffsetPageTable, Page, PageSize,
+        PageTableFlags, PageTableIndex, PhysFrame, Size2MiB, Size4KiB,
     },
     PhysAddr, VirtAddr,
 };
@@ -26,6 +26,8 @@ pub mod bios;
 #[cfg(feature = "uefi_bin")]
 mod uefi;
 
+/// Provides a function to gather entropy and build a RNG.
+mod entropy;
 mod gdt;
 /// Provides a frame allocator based on a BIOS or UEFI memory map.
 pub mod legacy_memory_region;
@@ -70,7 +72,8 @@ impl<'a> Kernel<'a> {
                 .find_section_by_name(".bootloader-config")
                 .unwrap();
             let raw = section.raw_data(&kernel_elf);
-            BootloaderConfig::deserialize(raw).unwrap()
+            BootloaderConfig::deserialize(raw)
+                .expect("kernel was compiled with incompatible bootloader_api version")
         };
         Kernel {
             elf: kernel_elf,
@@ -164,7 +167,12 @@ where
     log::info!("Entry point at: {:#x}", entry_point.as_u64());
 
     // create a stack
-    let stack_start_addr = mapping_addr(config.mappings.kernel_stack, &mut used_entries);
+    let stack_start_addr = mapping_addr(
+        config.mappings.kernel_stack,
+        config.kernel_stack_size,
+        16,
+        &mut used_entries,
+    );
     let stack_start: Page = Page::containing_address(stack_start_addr);
     let stack_end = {
         let end_addr = stack_start_addr + config.kernel_stack_size;
@@ -217,8 +225,13 @@ where
         let framebuffer_start_frame: PhysFrame = PhysFrame::containing_address(framebuffer_addr);
         let framebuffer_end_frame =
             PhysFrame::containing_address(framebuffer_addr + framebuffer_size - 1u64);
-        let start_page =
-            Page::containing_address(mapping_addr(config.mappings.framebuffer, &mut used_entries));
+        let start_page = Page::from_start_address(mapping_addr(
+            config.mappings.framebuffer,
+            u64::from_usize(framebuffer_size),
+            Size4KiB::SIZE,
+            &mut used_entries,
+        ))
+        .expect("the framebuffer address must be page aligned");
         for (i, frame) in
             PhysFrame::range_inclusive(framebuffer_start_frame, framebuffer_end_frame).enumerate()
         {
@@ -238,11 +251,15 @@ where
 
     let physical_memory_offset = if let Some(mapping) = config.mappings.physical_memory {
         log::info!("Map physical memory");
-        let offset = mapping_addr(mapping, &mut used_entries);
 
         let start_frame = PhysFrame::containing_address(PhysAddr::new(0));
         let max_phys = frame_allocator.max_phys_addr();
         let end_frame: PhysFrame<Size2MiB> = PhysFrame::containing_address(max_phys - 1u64);
+
+        let size = max_phys.as_u64();
+        let alignment = Size2MiB::SIZE;
+        let offset = mapping_addr(mapping, size, alignment, &mut used_entries);
+
         for frame in PhysFrame::range_inclusive(start_frame, end_frame) {
             let page = Page::containing_address(offset + frame.start_address().as_u64());
             let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
@@ -262,17 +279,22 @@ where
 
     let recursive_index = if let Some(mapping) = config.mappings.page_table_recursive {
         log::info!("Map page table recursively");
-        let offset = mapping_addr(mapping, &mut used_entries);
-        let table_level = PageTableLevel::Four;
-        if !offset.is_aligned(table_level.entry_address_space_alignment()) {
-            panic!(
-                "Offset for recursive mapping must be properly aligned (must be \
-                a multiple of {:#x})",
-                table_level.entry_address_space_alignment()
-            );
-        }
+        let index = match mapping {
+            Mapping::Dynamic => used_entries.get_free_entry(),
+            Mapping::FixedAddress(offset) => {
+                let offset = VirtAddr::new(offset);
+                let table_level = PageTableLevel::Four;
+                if !offset.is_aligned(table_level.entry_address_space_alignment()) {
+                    panic!(
+                        "Offset for recursive mapping must be properly aligned (must be \
+                        a multiple of {:#x})",
+                        table_level.entry_address_space_alignment()
+                    );
+                }
 
-        let index = offset.p4_index();
+                offset.p4_index()
+            }
+        };
 
         let entry = &mut kernel_page_table.level_4_table()[index];
         if !entry.is_unused() {
@@ -346,7 +368,12 @@ where
         let (combined, memory_regions_offset) =
             boot_info_layout.extend(memory_regions_layout).unwrap();
 
-        let boot_info_addr = mapping_addr(config.mappings.boot_info, &mut mappings.used_entries);
+        let boot_info_addr = mapping_addr(
+            config.mappings.boot_info,
+            u64::from_usize(combined.size()),
+            u64::from_usize(combined.align()),
+            &mut mappings.used_entries,
+        );
         assert!(
             boot_info_addr.is_aligned(u64::from_usize(combined.align())),
             "boot info addr is not properly aligned"
@@ -481,10 +508,15 @@ struct Addresses {
     boot_info: &'static mut BootInfo,
 }
 
-fn mapping_addr(mapping: Mapping, used_entries: &mut UsedLevel4Entries) -> VirtAddr {
+fn mapping_addr(
+    mapping: Mapping,
+    size: u64,
+    alignment: u64,
+    used_entries: &mut UsedLevel4Entries,
+) -> VirtAddr {
     match mapping {
         Mapping::FixedAddress(addr) => VirtAddr::new(addr),
-        Mapping::Dynamic => used_entries.get_free_address(),
+        Mapping::Dynamic => used_entries.get_free_address(size, alignment),
     }
 }
 

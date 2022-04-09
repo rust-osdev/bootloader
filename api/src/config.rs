@@ -35,7 +35,7 @@ impl BootloaderConfig {
         0x3D,
     ];
     #[doc(hidden)]
-    pub const SERIALIZED_LEN: usize = 96;
+    pub const SERIALIZED_LEN: usize = 97;
 
     /// Creates a new default configuration with the following values:
     ///
@@ -69,6 +69,7 @@ impl BootloaderConfig {
             pre_release,
         } = version;
         let Mappings {
+            aslr,
             kernel_stack,
             boot_info,
             framebuffer,
@@ -120,6 +121,7 @@ impl BootloaderConfig {
                 Option::Some(addr) => concat_1_8([1], addr.to_le_bytes()),
             },
         );
+        let buf = concat_96_1(buf, [(*aslr) as u8]);
 
         buf
     }
@@ -174,8 +176,14 @@ impl BootloaderConfig {
             let (&physical_memory, s) = split_array_ref(s);
             let (&page_table_recursive_some, s) = split_array_ref(s);
             let (&page_table_recursive, s) = split_array_ref(s);
+            let (&[alsr], s) = split_array_ref(s);
 
             let mappings = Mappings {
+                aslr: match alsr {
+                    1 => true,
+                    0 => false,
+                    _ => return Err(()),
+                },
                 kernel_stack: Mapping::deserialize(&kernel_stack)?,
                 boot_info: Mapping::deserialize(&boot_info)?,
                 framebuffer: Mapping::deserialize(&framebuffer)?,
@@ -306,6 +314,12 @@ impl Default for ApiVersion {
 #[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
 #[non_exhaustive]
 pub struct Mappings {
+    /// Whether to randomize non-statically configured addresses.
+    /// The kernel base address will be randomized when it's compiled as
+    /// a position independent executable.
+    ///
+    /// Defaults to `false`.
+    pub aslr: bool,
     /// Configures how the kernel stack should be mapped.
     pub kernel_stack: Mapping,
     /// Specifies where the [`crate::BootInfo`] struct should be placed in virtual memory.
@@ -332,6 +346,7 @@ impl Mappings {
     /// enabled.
     pub const fn new_default() -> Self {
         Self {
+            aslr: false,
             kernel_stack: Mapping::new_default(),
             boot_info: Mapping::new_default(),
             framebuffer: Mapping::new_default(),
@@ -345,6 +360,7 @@ impl Mappings {
         let phys = rand::random();
         let recursive = rand::random();
         Self {
+            aslr: rand::random(),
             kernel_stack: Mapping::random(),
             boot_info: Mapping::random(),
             framebuffer: Mapping::random(),

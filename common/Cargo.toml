@@ -16,6 +16,9 @@ uefi = "0.13"
 usize_conversions = "0.2.0"
 x86_64 = { version = "0.14.8" }
 xmas-elf = "0.8.0"
+raw-cpuid = "10.2.0"
+rand = { version = "0.8.4", default-features = false }
+rand_chacha = { version = "0.3.1", default-features = false }
 
 [dependencies.noto-sans-mono-bitmap]
 version = "0.1.2"

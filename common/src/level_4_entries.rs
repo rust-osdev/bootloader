@@ -1,6 +1,11 @@
-use crate::BootInfo;
+use crate::{entropy, BootInfo};
 use bootloader_api::{config, info::MemoryRegion, BootloaderConfig};
 use core::{alloc::Layout, convert::TryInto};
+use rand::{
+    distributions::{Distribution, Uniform},
+    seq::IteratorRandom,
+};
+use rand_chacha::ChaCha20Rng;
 use usize_conversions::IntoUsize;
 use x86_64::{
     structures::paging::{Page, PageTableIndex, Size4KiB},
@@ -12,7 +17,11 @@ use xmas_elf::program::ProgramHeader;
 ///
 /// Useful for determining a free virtual memory block, e.g. for mapping additional data.
 pub struct UsedLevel4Entries {
-    entry_state: [bool; 512], // whether an entry is in use by the kernel
+    /// Whether an entry is in use by the kernel.
+    entry_state: [bool; 512],
+    /// A random number generator that should be used to generate random addresses or
+    /// `None` if aslr is disabled.
+    rng: Option<ChaCha20Rng>,
 }
 
 impl UsedLevel4Entries {
@@ -27,6 +36,7 @@ impl UsedLevel4Entries {
     ) -> Self {
         let mut used = UsedLevel4Entries {
             entry_state: [false; 512],
+            rng: config.mappings.aslr.then(entropy::build_rng),
         };
 
         used.entry_state[0] = true; // TODO: Can we do this dynamically?
@@ -102,28 +112,58 @@ impl UsedLevel4Entries {
         }
     }
 
-    /// Returns a unused level 4 entry and marks it as used.
+    /// Returns a unused level 4 entry and marks it as used. If `CONFIG.aslr` is
+    /// enabled, this will return a random available entry.
     ///
     /// Since this method marks each returned index as used, it can be used multiple times
     /// to determine multiple unused virtual memory regions.
     pub fn get_free_entry(&mut self) -> PageTableIndex {
-        let (idx, entry) = self
+        // Create an iterator over all available p4 indices.
+        let mut free_entries = self
             .entry_state
-            .iter_mut()
+            .iter()
+            .copied()
             .enumerate()
-            .find(|(_, &mut entry)| entry == false)
-            .expect("no usable level 4 entries found");
+            .filter(|(_, used)| !used)
+            .map(|(idx, _)| idx);
 
-        *entry = true;
+        // Choose the free entry index.
+        let idx_opt = if let Some(rng) = self.rng.as_mut() {
+            // Randomly choose an index.
+            free_entries.choose(rng)
+        } else {
+            // Choose the first index.
+            free_entries.next()
+        };
+        let idx = idx_opt.expect("no usable level 4 entry found");
+
+        // Mark the entry as used.
+        self.entry_state[idx] = true;
+
         PageTableIndex::new(idx.try_into().unwrap())
     }
 
-    /// Returns the virtual start address of an unused level 4 entry and marks it as used.
+    /// Returns a virtual address in an unused level 4 entry and marks it as used.
     ///
-    /// This is a convenience method around [`get_free_entry`], so all of its docs applies here
+    /// This functions call [`get_free_entry`] internally, so all of its docs applies here
     /// too.
-    pub fn get_free_address(&mut self) -> VirtAddr {
-        Page::from_page_table_indices_1gib(self.get_free_entry(), PageTableIndex::new(0))
-            .start_address()
+    pub fn get_free_address(&mut self, size: u64, alignment: u64) -> VirtAddr {
+        assert!(alignment.is_power_of_two());
+
+        let base =
+            Page::from_page_table_indices_1gib(self.get_free_entry(), PageTableIndex::new(0))
+                .start_address();
+
+        let offset = if let Some(rng) = self.rng.as_mut() {
+            // Choose a random offset.
+            const LEVEL_4_SIZE: u64 = 4096 * 512 * 512 * 512;
+            let end = LEVEL_4_SIZE - size;
+            let uniform_range = Uniform::from(0..end / alignment);
+            uniform_range.sample(rng) * alignment
+        } else {
+            0
+        };
+
+        base + offset
     }
 }

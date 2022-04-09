@@ -1,5 +1,14 @@
 # Unreleased
 
+# 0.10.12 – 2022-02-06
+
+- Add support for position independent executables ([#206](https://github.com/rust-osdev/bootloader/pull/206))
+- Add optional ASLR ([#221](https://github.com/rust-osdev/bootloader/pull/221))
+- Logger: nicer font rendering into framebuffer ([#213](https://github.com/rust-osdev/bootloader/pull/213))
+- Fix warnings on latest nightly (`maybe_uninit_extra` is no longer feature-gated) ([#222](https://github.com/rust-osdev/bootloader/pull/222))
+- Rework `UsedLevel4Entries` ([#219](https://github.com/rust-osdev/bootloader/pull/219))
+- Add small doc-comment to entry_point! macro ([#220](https://github.com/rust-osdev/bootloader/pull/220))
+
 # 0.10.11 – 2022-01-09
 
 - Remove feature flag for `lang_items`, `asm` and `global_asm` ([#210](https://github.com/rust-osdev/bootloader/pull/210))
