@@ -22,7 +22,7 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     // verify that the stack is located in the higher half of the address space.
     let stack_addr = &rip;
     assert_eq!(
-        (boot_info as *const _ as usize) & 0xffff800000000000,
+        (stack_addr as *const _ as usize) & 0xffff800000000000,
         0xffff800000000000
     );
 
