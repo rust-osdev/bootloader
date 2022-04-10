@@ -4,7 +4,7 @@ on:
   push:
   pull_request:
   schedule:
-    - cron: '40 5 * * *'   # every day at 5:40
+    - cron: "40 5 * * *" # every day at 5:40
 
 jobs:
   check:
@@ -53,7 +53,13 @@ jobs:
       - name: "Print QEMU Version"
         run: qemu-system-x86_64 --version
 
-      - name: Run `cargo test`
+      - name: Run api tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: -p bootloader_api
+
+      - name: Run integration tests
         uses: actions-rs/cargo@v1
         with:
           command: test
