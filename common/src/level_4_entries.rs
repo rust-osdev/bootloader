@@ -5,7 +5,7 @@ use rand::{
     distributions::{Distribution, Uniform},
     seq::IteratorRandom,
 };
-use rand_chacha::ChaCha20Rng;
+use rand_hc::Hc128Rng;
 use usize_conversions::IntoUsize;
 use x86_64::{
     structures::paging::{Page, PageTableIndex, Size4KiB},
@@ -21,7 +21,7 @@ pub struct UsedLevel4Entries {
     entry_state: [bool; 512],
     /// A random number generator that should be used to generate random addresses or
     /// `None` if aslr is disabled.
-    rng: Option<ChaCha20Rng>,
+    rng: Option<Hc128Rng>,
 }
 
 impl UsedLevel4Entries {

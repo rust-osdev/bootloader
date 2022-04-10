@@ -1,9 +1,10 @@
-use rand_chacha::{rand_core::SeedableRng, ChaCha20Rng};
+use rand::SeedableRng;
+use rand_hc::Hc128Rng;
 use raw_cpuid::CpuId;
 use x86_64::instructions::{port::Port, random::RdRand};
 
 /// Gather entropy from various sources to seed a RNG.
-pub fn build_rng() -> ChaCha20Rng {
+pub fn build_rng() -> Hc128Rng {
     const ENTROPY_SOURCES: [fn() -> [u8; 32]; 3] = [rd_rand_entropy, tsc_entropy, pit_entropy];
 
     // Collect entropy from different sources and xor them all together.
@@ -17,7 +18,7 @@ pub fn build_rng() -> ChaCha20Rng {
     }
 
     // Construct the RNG.
-    ChaCha20Rng::from_seed(seed)
+    Hc128Rng::from_seed(seed)
 }
 
 /// Gather entropy by requesting random numbers with `RDRAND` instruction if it's available.
