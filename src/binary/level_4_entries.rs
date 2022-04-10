@@ -95,7 +95,7 @@ impl UsedLevel4Entries {
         used
     }
 
-    /// Mark all p4 entries in the range `[address..address+size)` as used.
+    /// Marks all p4 entries in the range `[address..address+size)` as used.
     ///
     /// `size` can be a `u64` or `usize`.
     fn mark_range_as_used<S>(&mut self, address: u64, size: S)
@@ -131,7 +131,7 @@ impl UsedLevel4Entries {
         }
     }
 
-    /// Returns a unused level 4 entry and marks it as used. If `CONFIG.aslr` is
+    /// Returns an unused level 4 entry and marks it as used. If `CONFIG.aslr` is
     /// enabled, this will return a random available entry.
     ///
     /// Since this method marks each returned index as used, it can be used multiple times
@@ -164,7 +164,7 @@ impl UsedLevel4Entries {
 
     /// Returns a virtual address in an unused level 4 entry and marks it as used.
     ///
-    /// This functions call [`get_free_entry`] internally, so all of its docs applies here
+    /// This function calls [`get_free_entry`] internally, so all of its docs applies here
     /// too.
     pub fn get_free_address(&mut self, size: u64, alignment: u64) -> VirtAddr {
         assert!(alignment.is_power_of_two());
