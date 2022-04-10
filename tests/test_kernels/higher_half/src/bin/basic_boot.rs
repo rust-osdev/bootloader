@@ -3,9 +3,9 @@
 
 use bootloader_api::{entry_point, BootInfo};
 use core::panic::PanicInfo;
-use test_kernel_higher_half::{exit_qemu, QemuExitCode};
+use test_kernel_higher_half::{exit_qemu, QemuExitCode, BOOTLOADER_CONFIG};
 
-entry_point!(kernel_main);
+entry_point!(kernel_main, config = &BOOTLOADER_CONFIG);
 
 fn kernel_main(_boot_info: &'static mut BootInfo) -> ! {
     exit_qemu(QemuExitCode::Success);

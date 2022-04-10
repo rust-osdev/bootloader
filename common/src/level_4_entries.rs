@@ -1,6 +1,6 @@
 use crate::{entropy, BootInfo};
 use bootloader_api::{config, info::MemoryRegion, BootloaderConfig};
-use core::{alloc::Layout, convert::TryInto};
+use core::{alloc::Layout, iter::Step};
 use rand::{
     distributions::{Distribution, Uniform},
     seq::IteratorRandom,
@@ -71,6 +71,28 @@ impl UsedLevel4Entries {
 
         if let config::Mapping::FixedAddress(framebuffer_address) = config.mappings.framebuffer {
             used.mark_range_as_used(framebuffer_address, framebuffer_size);
+        }
+
+        // Mark everything before the dynamic range as unusable.
+        if let Some(dynamic_range_start) = config.mappings.dynamic_range_start {
+            let dynamic_range_start = VirtAddr::new(dynamic_range_start);
+            let start_page: Page = Page::containing_address(dynamic_range_start);
+            if let Some(unusable_page) = Step::backward_checked(start_page, 1) {
+                for i in 0..=u16::from(unusable_page.p4_index()) {
+                    used.mark_p4_index_as_used(PageTableIndex::new(i));
+                }
+            }
+        }
+
+        // Mark everything after the dynamic range as unusable.
+        if let Some(dynamic_range_end) = config.mappings.dynamic_range_end {
+            let dynamic_range_end = VirtAddr::new(dynamic_range_end);
+            let end_page: Page = Page::containing_address(dynamic_range_end);
+            if let Some(unusable_page) = Step::forward_checked(end_page, 1) {
+                for i in u16::from(unusable_page.p4_index())..512 {
+                    used.mark_p4_index_as_used(PageTableIndex::new(i));
+                }
+            }
         }
 
         used

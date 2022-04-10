@@ -35,7 +35,7 @@ impl BootloaderConfig {
         0x3D,
     ];
     #[doc(hidden)]
-    pub const SERIALIZED_LEN: usize = 97;
+    pub const SERIALIZED_LEN: usize = 115;
 
     /// Creates a new default configuration with the following values:
     ///
@@ -69,12 +69,14 @@ impl BootloaderConfig {
             pre_release,
         } = version;
         let Mappings {
-            aslr,
             kernel_stack,
             boot_info,
             framebuffer,
             physical_memory,
             page_table_recursive,
+            aslr,
+            dynamic_range_start,
+            dynamic_range_end,
         } = mappings;
         let FrameBuffer {
             minimum_framebuffer_height,
@@ -107,21 +109,36 @@ impl BootloaderConfig {
                 Option::Some(m) => concat_1_9([1], m.serialize()),
             },
         );
-        let buf = concat_78_9(
+        let buf = concat_78_1(buf, [(*aslr) as u8]);
+        let buf = concat_79_9(
+            buf,
+            match dynamic_range_start {
+                Option::None => [0; 9],
+                Option::Some(addr) => concat_1_8([1], addr.to_le_bytes()),
+            },
+        );
+        let buf = concat_88_9(
+            buf,
+            match dynamic_range_end {
+                Option::None => [0; 9],
+                Option::Some(addr) => concat_1_8([1], addr.to_le_bytes()),
+            },
+        );
+
+        let buf = concat_97_9(
             buf,
             match minimum_framebuffer_height {
                 Option::None => [0; 9],
                 Option::Some(addr) => concat_1_8([1], addr.to_le_bytes()),
             },
         );
-        let buf = concat_87_9(
+        let buf = concat_106_9(
             buf,
             match minimum_framebuffer_width {
                 Option::None => [0; 9],
                 Option::Some(addr) => concat_1_8([1], addr.to_le_bytes()),
             },
         );
-        let buf = concat_96_1(buf, [(*aslr) as u8]);
 
         buf
     }
@@ -177,13 +194,12 @@ impl BootloaderConfig {
             let (&page_table_recursive_some, s) = split_array_ref(s);
             let (&page_table_recursive, s) = split_array_ref(s);
             let (&[alsr], s) = split_array_ref(s);
+            let (&dynamic_range_start_some, s) = split_array_ref(s);
+            let (&dynamic_range_start, s) = split_array_ref(s);
+            let (&dynamic_range_end_some, s) = split_array_ref(s);
+            let (&dynamic_range_end, s) = split_array_ref(s);
 
             let mappings = Mappings {
-                aslr: match alsr {
-                    1 => true,
-                    0 => false,
-                    _ => return Err(()),
-                },
                 kernel_stack: Mapping::deserialize(&kernel_stack)?,
                 boot_info: Mapping::deserialize(&boot_info)?,
                 framebuffer: Mapping::deserialize(&framebuffer)?,
@@ -195,6 +211,21 @@ impl BootloaderConfig {
                 page_table_recursive: match page_table_recursive_some {
                     [0] if page_table_recursive == [0; 9] => Option::None,
                     [1] => Option::Some(Mapping::deserialize(&page_table_recursive)?),
+                    _ => return Err(()),
+                },
+                aslr: match alsr {
+                    1 => true,
+                    0 => false,
+                    _ => return Err(()),
+                },
+                dynamic_range_start: match dynamic_range_start_some {
+                    [0] if dynamic_range_start == [0; 8] => Option::None,
+                    [1] => Option::Some(u64::from_le_bytes(dynamic_range_start)),
+                    _ => return Err(()),
+                },
+                dynamic_range_end: match dynamic_range_end_some {
+                    [0] if dynamic_range_end == [0; 8] => Option::None,
+                    [1] => Option::Some(u64::from_le_bytes(dynamic_range_end)),
                     _ => return Err(()),
                 },
             };
@@ -314,12 +345,6 @@ impl Default for ApiVersion {
 #[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
 #[non_exhaustive]
 pub struct Mappings {
-    /// Whether to randomize non-statically configured addresses.
-    /// The kernel base address will be randomized when it's compiled as
-    /// a position independent executable.
-    ///
-    /// Defaults to `false`.
-    pub aslr: bool,
     /// Configures how the kernel stack should be mapped.
     pub kernel_stack: Mapping,
     /// Specifies where the [`crate::BootInfo`] struct should be placed in virtual memory.
@@ -338,6 +363,20 @@ pub struct Mappings {
     ///
     /// Defaults to `None`, i.e. no recursive mapping.
     pub page_table_recursive: Option<Mapping>,
+    /// Whether to randomize non-statically configured addresses.
+    /// The kernel base address will be randomized when it's compiled as
+    /// a position independent executable.
+    ///
+    /// Defaults to `false`.
+    pub aslr: bool,
+    /// The lowest virtual address for dynamic addresses.
+    ///
+    /// Defaults to `0`.
+    pub dynamic_range_start: Option<u64>,
+    /// The highest virtual address for dynamic addresses.
+    ///
+    /// Defaults to `0xffff_ffff_ffff_f000`.
+    pub dynamic_range_end: Option<u64>,
 }
 
 impl Mappings {
@@ -346,12 +385,14 @@ impl Mappings {
     /// enabled.
     pub const fn new_default() -> Self {
         Self {
-            aslr: false,
             kernel_stack: Mapping::new_default(),
             boot_info: Mapping::new_default(),
             framebuffer: Mapping::new_default(),
             physical_memory: Option::None,
             page_table_recursive: Option::None,
+            aslr: false,
+            dynamic_range_start: None,
+            dynamic_range_end: None,
         }
     }
 
@@ -360,7 +401,6 @@ impl Mappings {
         let phys = rand::random();
         let recursive = rand::random();
         Self {
-            aslr: rand::random(),
             kernel_stack: Mapping::random(),
             boot_info: Mapping::random(),
             framebuffer: Mapping::random(),
@@ -371,6 +411,17 @@ impl Mappings {
             },
             page_table_recursive: if recursive {
                 Option::Some(Mapping::random())
+            } else {
+                Option::None
+            },
+            aslr: rand::random(),
+            dynamic_range_start: if rand::random() {
+                Option::Some(rand::random())
+            } else {
+                Option::None
+            },
+            dynamic_range_end: if rand::random() {
+                Option::Some(rand::random())
             } else {
                 Option::None
             },

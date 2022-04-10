@@ -1,5 +1,13 @@
 #![no_std]
 
+use bootloader_api::BootloaderConfig;
+
+pub const BOOTLOADER_CONFIG: BootloaderConfig = {
+    let mut config = BootloaderConfig::new_default();
+    config.mappings.dynamic_range_start = Some(0xffff_8000_0000_0000);
+    config
+};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
 pub enum QemuExitCode {

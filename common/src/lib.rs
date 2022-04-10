@@ -1,4 +1,5 @@
 #![no_std]
+#![feature(step_trait)]
 #![deny(unsafe_op_in_unsafe_fn)]
 
 use crate::legacy_memory_region::{LegacyFrameAllocator, LegacyMemoryRegion};
