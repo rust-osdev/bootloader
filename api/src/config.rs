@@ -546,7 +546,7 @@ mod tests {
 
     #[test]
     fn mapping_serde() {
-        for _ in 0..1000 {
+        for _ in 0..10000 {
             let config = Mapping::random();
             assert_eq!(Mapping::deserialize(&config.serialize()), Ok(config));
         }
@@ -554,7 +554,7 @@ mod tests {
 
     #[test]
     fn config_serde() {
-        for _ in 0..1000 {
+        for _ in 0..10000 {
             let config = BootloaderConfig::random();
             assert_eq!(
                 BootloaderConfig::deserialize(&config.serialize()),
