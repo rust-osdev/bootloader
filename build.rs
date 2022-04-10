@@ -366,6 +366,8 @@ mod binary {
         pub framebuffer_address: Option<AlignedAddress>,
         pub minimum_framebuffer_height: Option<usize>,
         pub minimum_framebuffer_width: Option<usize>,
+        pub dynamic_range_start: Option<AlignedAddress>,
+        pub dynamic_range_end: Option<AlignedAddress>,
     }
 
     /// Convert to tokens suitable for initializing the `Config` struct.
@@ -387,6 +389,8 @@ mod binary {
             let framebuffer_address = optional(self.framebuffer_address);
             let minimum_framebuffer_height = optional(self.minimum_framebuffer_height);
             let minimum_framebuffer_width = optional(self.minimum_framebuffer_width);
+            let dynamic_range_start = optional(self.dynamic_range_start);
+            let dynamic_range_end = optional(self.dynamic_range_end);
 
             tokens.extend(quote! { Config {
                 map_physical_memory: #map_physical_memory,
@@ -400,7 +404,9 @@ mod binary {
                 boot_info_address: #boot_info_address,
                 framebuffer_address: #framebuffer_address,
                 minimum_framebuffer_height: #minimum_framebuffer_height,
-                minimum_framebuffer_width: #minimum_framebuffer_width
+                minimum_framebuffer_width: #minimum_framebuffer_width,
+                dynamic_range_start: #dynamic_range_start,
+                dynamic_range_end: #dynamic_range_end,
             }});
         }
     }

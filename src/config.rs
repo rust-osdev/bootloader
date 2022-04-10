@@ -33,7 +33,7 @@ const PAGE_SIZE: u64 = 4096;
 ///
 /// All memory addresses are optional, even if their corresponding switch is enabled. If no
 /// address is specified, the bootloader will choose an unused entry of the level 4 page table
-/// at runtime.
+/// at runtime. The addresses can be restricted by setting the `dynamic-range` configuration key.
 #[derive(Debug)]
 pub struct Config {
     /// Whether to create a virtual mapping of the complete physical memory.
@@ -96,6 +96,14 @@ pub struct Config {
     /// `minimum_framebuffer_width` is supplied, and using the last available mode that
     /// fits them if 1 or more is set.
     pub minimum_framebuffer_width: Option<usize>,
+    /// The lowest virtual address for dynamic addresses.
+    ///
+    /// Defaults to `0`.
+    pub dynamic_range_start: Option<u64>,
+    /// The highest virtual address for dynamic addresses.
+    ///
+    /// Defaults to `0xffff_ffff_ffff_f000`.
+    pub dynamic_range_end: Option<u64>,
 }
 
 #[cfg(feature = "binary")]

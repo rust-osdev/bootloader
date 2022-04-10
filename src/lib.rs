@@ -67,6 +67,7 @@ for all possible configuration options.
 
 #![cfg_attr(not(feature = "builder"), no_std)]
 #![feature(maybe_uninit_slice)]
+#![feature(step_trait)]
 #![deny(unsafe_op_in_unsafe_fn)]
 #![warn(missing_docs)]
 
