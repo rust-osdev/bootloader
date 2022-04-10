@@ -15,7 +15,7 @@ members = [
     "common",
     "uefi",
     "bios",
-    "bios/first_stage",
+    "bios/boot_sector",
     "tests/runner",
     "tests/test_kernels/default_settings",
     "tests/test_kernels/map_phys_mem",
@@ -30,19 +30,18 @@ anyhow = "1.0.32"
 fatfs = "0.3.4"
 gpt = "3.0.0"
 
+[dependencies.bootloader-x86_64-bios]
+version = "0.1.0-alpha.0"
+path = "bios"
+artifact = ["bin"]
+target = "x86_64-unknown-none"
+
 [dev-dependencies]
 bootloader_test_runner = { path = "tests/runner" }
 test_kernel_default_settings = { path = "tests/test_kernels/default_settings", artifact = "bin", target = "x86_64-unknown-none" }
 test_kernel_higher_half = { path = "tests/test_kernels/higher_half", artifact = "bin", target = "x86_64-unknown-none" }
 test_kernel_map_phys_mem = { path = "tests/test_kernels/map_phys_mem", artifact = "bin", target = "x86_64-unknown-none" }
 test_kernel_pie = { path = "tests/test_kernels/pie", artifact = "bin", target = "x86_64-unknown-none" }
-
-# [dependencies.bootloader-x86_64-uefi]
-# version = "0.1.0"
-# path = "uefi"
-# artifact = ["bin"]
-# target = "x86_64-unknown-uefi"
-
 
 [profile.dev]
 panic = "abort"

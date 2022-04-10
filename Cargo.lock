@@ -37,12 +37,10 @@ name = "bootloader"
 version = "0.11.0-alpha.0"
 dependencies = [
  "anyhow",
+ "bootloader-x86_64-bios",
  "bootloader_test_runner",
  "fatfs",
  "gpt",
- "rand",
- "rand_chacha",
- "raw-cpuid",
  "test_kernel_default_settings",
  "test_kernel_higher_half",
  "test_kernel_map_phys_mem",
@@ -51,7 +49,7 @@ dependencies = [
 
 [[package]]
 name = "bootloader-x86_64-bios"
-version = "0.1.0"
+version = "0.1.0-alpha.0"
 dependencies = [
  "bootloader-x86_64-common",
  "bootloader_api",
@@ -60,6 +58,10 @@ dependencies = [
  "usize_conversions",
  "x86_64",
 ]
+
+[[package]]
+name = "bootloader-x86_64-bios-boot-sector"
+version = "0.1.0"
 
 [[package]]
 name = "bootloader-x86_64-common"
@@ -95,10 +97,6 @@ version = "0.1.0-alpha.0"
 dependencies = [
  "rand",
 ]
-
-[[package]]
-name = "bootloader_first_stage"
-version = "0.1.0"
 
 [[package]]
 name = "bootloader_test_runner"

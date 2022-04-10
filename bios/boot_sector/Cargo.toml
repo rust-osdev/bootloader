@@ -1,5 +1,5 @@
 [package]
-name = "bootloader_first_stage"
+name = "bootloader-x86_64-bios-boot-sector"
 version = "0.1.0"
 authors = ["Philipp Oppermann <dev@phil-opp.com>"]
 edition = "2021"

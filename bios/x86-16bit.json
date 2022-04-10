@@ -16,10 +16,5 @@
 	"panic-strategy": "abort",
 	"os": "none",
 	"vendor": "unknown",
-	"relocation-model": "static",
-	"pre-link-args": {
-		"ld.lld": [
-			"--script=bios/first_stage/16-bit-linker.ld"
-		]
-	}
+	"relocation-model": "static"
 }

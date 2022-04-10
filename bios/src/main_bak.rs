@@ -20,6 +20,54 @@ use x86_64::{PhysAddr, VirtAddr};
 
 mod memory_descriptor;
 
+global_asm!(include_str!("asm/stage_1.s"));
+global_asm!(include_str!("asm/stage_2.s"));
+global_asm!(include_str!("asm/vesa.s"));
+global_asm!(include_str!("asm/e820.s"));
+global_asm!(include_str!("asm/stage_3.s"));
+
+// values defined in `vesa.s`
+extern "C" {
+    static VBEModeInfo_physbaseptr: u32;
+    static VBEModeInfo_bytesperscanline: u16;
+    static VBEModeInfo_xresolution: u16;
+    static VBEModeInfo_yresolution: u16;
+    static VBEModeInfo_bitsperpixel: u8;
+    static VBEModeInfo_redfieldposition: u8;
+    static VBEModeInfo_greenfieldposition: u8;
+    static VBEModeInfo_bluefieldposition: u8;
+}
+
+// Symbols defined in `linker.ld`
+extern "C" {
+    static mmap_ent: usize;
+    static _memory_map: usize;
+    static _kernel_start_addr: usize;
+    static _kernel_end_addr: usize;
+    static _kernel_size: usize;
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn stage_4() -> ! {
+    // Set stack segment
+    asm!(
+        "mov ax, 0x0; mov ss, ax",
+        out("ax") _,
+    );
+
+    let kernel_start = 0x400000;
+    let kernel_size = &_kernel_size as *const _ as u64;
+    let memory_map_addr = &_memory_map as *const _ as u64;
+    let memory_map_entry_count = (mmap_ent & 0xff) as u64; // Extract lower 8 bits
+
+    bootloader_main(
+        PhysAddr::new(kernel_start),
+        kernel_size,
+        VirtAddr::new(memory_map_addr),
+        memory_map_entry_count,
+    )
+}
+
 fn bootloader_main(
     kernel_start: PhysAddr,
     kernel_size: u64,
@@ -71,10 +119,39 @@ fn bootloader_main(
         }
     }
 
-    let framebuffer_addr = todo!();
-    let framebuffer_info = todo!();
+    let framebuffer_addr = PhysAddr::new(unsafe { VBEModeInfo_physbaseptr }.into());
+    let mut error = None;
+    let framebuffer_info = unsafe {
+        let framebuffer_size =
+            usize::from(VBEModeInfo_yresolution) * usize::from(VBEModeInfo_bytesperscanline);
+        let bytes_per_pixel = VBEModeInfo_bitsperpixel / 8;
+        init_logger(
+            framebuffer_addr,
+            framebuffer_size.into(),
+            VBEModeInfo_xresolution.into(),
+            VBEModeInfo_yresolution.into(),
+            bytes_per_pixel.into(),
+            (VBEModeInfo_bytesperscanline / u16::from(bytes_per_pixel)).into(),
+            match (
+                VBEModeInfo_redfieldposition,
+                VBEModeInfo_greenfieldposition,
+                VBEModeInfo_bluefieldposition,
+            ) {
+                (0, 8, 16) => PixelFormat::Rgb,
+                (16, 8, 0) => PixelFormat::Bgr,
+                (r, g, b) => {
+                    error = Some(("invalid rgb field positions", r, g, b));
+                    PixelFormat::Rgb // default to RBG so that we can print something
+                }
+            },
+        )
+    };
 
     log::info!("BIOS boot");
+
+    if let Some((msg, r, g, b)) = error {
+        panic!("{}: r: {}, g: {}, b: {}", msg, r, g, b);
+    }
 
     let page_tables = create_page_tables(&mut frame_allocator);
 
