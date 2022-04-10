@@ -147,11 +147,9 @@ pub enum MemoryRegionKind {
     Bootloader,
     /// An unknown memory region reported by the UEFI firmware.
     ///
-    /// This should only be used if the UEFI memory type is known as usable.
+    /// Contains the UEFI memory type tag.
     UnknownUefi(u32),
     /// An unknown memory region reported by the BIOS firmware.
-    ///
-    /// This should only be used if the BIOS memory type is known as usable.
     UnknownBios(u32),
 }
 

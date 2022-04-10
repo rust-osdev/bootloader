@@ -23,4 +23,20 @@ impl<'a> LegacyMemoryRegion for UefiMemoryDescriptor {
             other => MemoryRegionKind::UnknownUefi(other.0),
         }
     }
+
+    fn on_bootloader_exit(&mut self) {
+        match self.0.ty {
+            // the bootloader is about to exit, so we can reallocate its data
+            MemoryType::LOADER_CODE
+            | MemoryType::LOADER_DATA
+            | MemoryType::BOOT_SERVICES_CODE
+            | MemoryType::BOOT_SERVICES_DATA
+            | MemoryType::RUNTIME_SERVICES_CODE
+            | MemoryType::RUNTIME_SERVICES_DATA => {
+                // we don't need this data anymore
+                self.0.ty = MemoryType::CONVENTIONAL;
+            }
+            _ => {}
+        }
+    }
 }

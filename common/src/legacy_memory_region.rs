@@ -13,6 +13,9 @@ pub trait LegacyMemoryRegion: Copy + core::fmt::Debug {
     fn len(&self) -> u64;
     /// Returns the type of the region, e.g. whether it is usable or reserved.
     fn kind(&self) -> MemoryRegionKind;
+
+    /// Mark additional regions as usable just before the bootloader jumps to the kernel.
+    fn on_bootloader_exit(&mut self) {}
 }
 
 /// A physical frame allocator based on a BIOS or UEFI provided memory map.
@@ -101,10 +104,11 @@ where
     ) -> &mut [MemoryRegion] {
         let mut next_index = 0;
 
-        for descriptor in self.original {
+        for mut descriptor in self.original {
             let mut start = descriptor.start();
             let end = start + descriptor.len();
             let next_free = self.next_frame.start_address();
+            descriptor.on_bootloader_exit();
             let kind = match descriptor.kind() {
                 MemoryRegionKind::Usable => {
                     if end <= next_free {
@@ -124,19 +128,6 @@ where
                         // add unused part normally
                         start = next_free;
                         MemoryRegionKind::Usable
-                    }
-                }
-                // some mappings created by the UEFI firmware become usable again at this point
-                MemoryRegionKind::UnknownUefi(other) => {
-                    use uefi::table::boot::MemoryType as M;
-                    match M(other) {
-                        M::LOADER_CODE
-                        | M::LOADER_DATA
-                        | M::BOOT_SERVICES_CODE
-                        | M::BOOT_SERVICES_DATA
-                        | M::RUNTIME_SERVICES_CODE
-                        | M::RUNTIME_SERVICES_DATA => MemoryRegionKind::Usable,
-                        other => MemoryRegionKind::UnknownUefi(other.0),
                     }
                 }
                 other => other,

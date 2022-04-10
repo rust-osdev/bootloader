@@ -73,7 +73,6 @@ dependencies = [
  "rand_chacha",
  "raw-cpuid",
  "spinning_top",
- "uefi",
  "usize_conversions",
  "x86_64",
  "xmas-elf",

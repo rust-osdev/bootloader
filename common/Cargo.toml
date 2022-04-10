@@ -12,7 +12,6 @@ bootloader_api = { version = "0.1.0-alpha.0", path = "../api" }
 conquer-once = { version = "0.3.2", default-features = false }
 log = "0.4.14"
 spinning_top = "0.2.4"
-uefi = "0.13"
 usize_conversions = "0.2.0"
 x86_64 = { version = "0.14.8" }
 xmas-elf = "0.8.0"
