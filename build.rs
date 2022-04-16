@@ -73,6 +73,8 @@ fn build_bios_boot_sector(out_dir: &Path) -> PathBuf {
     cmd.arg("-Zbuild-std=core")
         .arg("-Zbuild-std-features=compiler-builtins-mem");
     cmd.arg("--root").arg(out_dir);
+    cmd.env_remove("RUSTFLAGS");
+    cmd.env_remove("RUSTC_WORKSPACE_WRAPPER"); // used by clippy
     let status = cmd
         .status()
         .expect("failed to run cargo install for bios boot sector");
