@@ -69,10 +69,15 @@ for all possible configuration options.
 
 use anyhow::Context;
 use std::{
+    collections::BTreeMap,
     fs::{self, File},
     io::{self, Seek},
     path::Path,
 };
+
+mod fat;
+
+const KERNEL_FILE_NAME: &str = "kernel-x86_64";
 
 pub fn create_uefi_disk_image(
     kernel_binary: &Path,
@@ -81,74 +86,13 @@ pub fn create_uefi_disk_image(
 ) -> anyhow::Result<()> {
     let bootloader_path = Path::new(env!("UEFI_BOOTLOADER_PATH"));
 
-    create_fat_filesystem(bootloader_path, kernel_binary, &out_fat_path)
+    let mut files = BTreeMap::new();
+    files.insert("efi/boot/bootx64.efi", bootloader_path);
+    files.insert(KERNEL_FILE_NAME, kernel_binary);
+
+    fat::create_fat_filesystem(files, &out_fat_path)
         .context("failed to create UEFI FAT filesystem")?;
     create_gpt_disk(out_fat_path, out_gpt_path);
-
-    Ok(())
-}
-
-fn create_fat_filesystem(
-    bootloader_efi_file: &Path,
-    kernel_binary: &Path,
-    out_fat_path: &Path,
-) -> anyhow::Result<()> {
-    const MB: u64 = 1024 * 1024;
-
-    // retrieve size of `.efi` file and round it up
-    let efi_size = fs::metadata(&bootloader_efi_file).unwrap().len();
-    let kernel_size = fs::metadata(&kernel_binary)
-        .context("failed to read metadata of kernel binary")?
-        .len();
-
-    // create new filesystem image file at the given path and set its length
-    let fat_file = fs::OpenOptions::new()
-        .read(true)
-        .write(true)
-        .create(true)
-        .truncate(true)
-        .open(&out_fat_path)
-        .unwrap();
-    let fat_size = efi_size + kernel_size;
-    let fat_size_padded_and_rounded = ((fat_size + 1024 * 64 - 1) / MB + 1) * MB;
-    fat_file.set_len(fat_size_padded_and_rounded).unwrap();
-
-    // create new FAT file system and open it
-    let label = {
-        if let Some(name) = bootloader_efi_file.file_stem() {
-            let converted = name.to_string_lossy();
-            let name = converted.as_bytes();
-            let mut label = [0u8; 11];
-            let name = &name[..label.len()];
-            let slice = &mut label[..name.len()];
-            slice.copy_from_slice(name);
-            label
-        } else {
-            *b"MY_RUST_OS!"
-        }
-    };
-    let format_options = fatfs::FormatVolumeOptions::new().volume_label(label);
-    fatfs::format_volume(&fat_file, format_options).context("Failed to format UEFI FAT file")?;
-    let filesystem = fatfs::FileSystem::new(&fat_file, fatfs::FsOptions::new())
-        .context("Failed to open FAT file system of UEFI FAT file")?;
-
-    // copy EFI file to FAT filesystem
-    let root_dir = filesystem.root_dir();
-    root_dir.create_dir("efi").unwrap();
-    root_dir.create_dir("efi/boot").unwrap();
-    let mut bootx64 = root_dir.create_file("efi/boot/bootx64.efi").unwrap();
-    bootx64.truncate().unwrap();
-    io::copy(
-        &mut fs::File::open(&bootloader_efi_file).unwrap(),
-        &mut bootx64,
-    )
-    .unwrap();
-
-    // copy kernel to FAT filesystem
-    let mut kernel_file = root_dir.create_file("kernel-x86_64")?;
-    kernel_file.truncate()?;
-    io::copy(&mut fs::File::open(&kernel_binary)?, &mut kernel_file)
-        .context("failed to copy kernel to UEFI FAT filesystem")?;
 
     Ok(())
 }
