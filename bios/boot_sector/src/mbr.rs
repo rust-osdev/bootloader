@@ -2,17 +2,29 @@
 
 use super::fail::{fail, UnwrapOrFail};
 
-pub fn get_partition(buffer: &[u8], index: usize) -> PartitionTableEntry {
-    if buffer.len() < BUFFER_SIZE {
+/// Returns the first bootable partition in the partition table.
+pub fn boot_partition(partitions_raw: &[u8]) -> Option<PartitionTableEntry> {
+    for index in 0..4 {
+        let entry = get_partition(partitions_raw, index);
+        if entry.bootable {
+            return Some(entry);
+        }
+    }
+    None
+}
+
+pub fn get_partition(partitions_raw: &[u8], index: usize) -> PartitionTableEntry {
+    if partitions_raw.len() < PARTITIONS_AREA_SIZE {
         fail(b'a');
-    } else if buffer.get(BUFFER_SIZE - SUFFIX_BYTES.len()..BUFFER_SIZE) != Some(&SUFFIX_BYTES[..]) {
-        fail(b'b');
     }
 
-    let offset = TABLE_OFFSET + index * ENTRY_SIZE;
-    let buffer = buffer.get(offset..).unwrap_or_fail(b'c');
+    let offset = index * ENTRY_SIZE;
+    let buffer = partitions_raw.get(offset..).unwrap_or_fail(b'c');
 
-    let partition_type = *buffer.get(4).unwrap_or_fail(b'd');
+    let bootable_raw = *buffer.get(0).unwrap_or_fail(b'd');
+    let bootable = bootable_raw == 0x80;
+
+    let partition_type = *buffer.get(4).unwrap_or_fail(b'e');
 
     let lba = u32::from_le_bytes(
         buffer
@@ -28,64 +40,11 @@ pub fn get_partition(buffer: &[u8], index: usize) -> PartitionTableEntry {
             .and_then(|s| s.try_into().ok())
             .unwrap_or_fail(b'f'),
     );
-    PartitionTableEntry::new(partition_type, lba, len)
+    PartitionTableEntry::new(bootable, partition_type, lba, len)
 }
 
-/// A struct representing an MBR partition table.
-pub struct MasterBootRecord {
-    entries: [PartitionTableEntry; MAX_ENTRIES],
-}
-
-const BUFFER_SIZE: usize = 512;
-const TABLE_OFFSET: usize = 446;
+const PARTITIONS_AREA_SIZE: usize = 16 * 4;
 const ENTRY_SIZE: usize = 16;
-const SUFFIX_BYTES: [u8; 2] = [0x55, 0xaa];
-const MAX_ENTRIES: usize = (BUFFER_SIZE - TABLE_OFFSET - 2) / ENTRY_SIZE;
-
-impl MasterBootRecord {
-    /// Parses the MBR table from a raw byte buffer.
-
-    pub fn from_bytes(buffer: &[u8]) -> MasterBootRecord {
-        if buffer.len() < BUFFER_SIZE {
-            fail(b'1');
-        } else if buffer.get(BUFFER_SIZE - SUFFIX_BYTES.len()..BUFFER_SIZE)
-            != Some(&SUFFIX_BYTES[..])
-        {
-            fail(b'2');
-        }
-        let mut entries = [PartitionTableEntry::empty(); MAX_ENTRIES];
-
-        for idx in 0..MAX_ENTRIES {
-            let offset = TABLE_OFFSET + idx * ENTRY_SIZE;
-            let buffer = buffer.get(offset..).unwrap_or_fail(b'8');
-
-            let partition_type = *buffer.get(4).unwrap_or_fail(b'4');
-
-            let lba = u32::from_le_bytes(
-                buffer
-                    .get(8..)
-                    .and_then(|s| s.get(..4))
-                    .and_then(|s| s.try_into().ok())
-                    .unwrap_or_fail(b'5'),
-            );
-            let len = u32::from_le_bytes(
-                buffer
-                    .get(12..)
-                    .and_then(|s| s.get(..4))
-                    .and_then(|s| s.try_into().ok())
-                    .unwrap_or_fail(b'6'),
-            );
-            *entries.get_mut(idx).unwrap_or_fail(b'7') =
-                PartitionTableEntry::new(partition_type, lba, len);
-        }
-
-        MasterBootRecord { entries }
-    }
-
-    pub fn partition_table_entries(&self) -> &[PartitionTableEntry] {
-        &self.entries[..]
-    }
-}
 
 /// The type of a particular partition.
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -129,6 +88,9 @@ impl PartitionType {
 /// An entry in a partition table.
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub struct PartitionTableEntry {
+    /// Whether this partition is a boot partition.
+    pub bootable: bool,
+
     /// The type of partition in this entry.
     pub partition_type: u8,
 
@@ -141,18 +103,16 @@ pub struct PartitionTableEntry {
 
 impl PartitionTableEntry {
     pub fn new(
+        bootable: bool,
         partition_type: u8,
         logical_block_address: u32,
         sector_count: u32,
     ) -> PartitionTableEntry {
         PartitionTableEntry {
+            bootable,
             partition_type,
             logical_block_address,
             sector_count,
         }
-    }
-
-    pub fn empty() -> PartitionTableEntry {
-        PartitionTableEntry::new(0, 0, 0)
     }
 }

@@ -28,6 +28,7 @@ SECTIONS {
     _mbr_end = .;
 
     . = 0x7c00 + 446;
+    _partition_table = .;
     .partition_table :
     {
         /* partition table entry 0 */

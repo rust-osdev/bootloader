@@ -6,7 +6,6 @@ use core::{
     slice,
 };
 use fail::{fail, print_char, UnwrapOrFail};
-use mbr::MasterBootRecord;
 
 global_asm!(include_str!("boot.s"));
 
@@ -17,32 +16,37 @@ mod mbr;
 
 extern "C" {
     static _mbr_start: u8;
+    static _partition_table: u8;
 }
 
 fn mbr_start() -> *const u8 {
     unsafe { &_mbr_start }
 }
 
+unsafe fn partition_table() -> *const u8 {
+    unsafe { &_partition_table }
+}
+
 #[no_mangle]
 pub extern "C" fn first_stage(disk_number: u16) {
     print_char(b'1');
-    let bytes = &unsafe { slice::from_raw_parts(mbr_start(), 512) };
-    let partition = mbr::get_partition(bytes, 0);
+    let partition_table = &unsafe { slice::from_raw_parts(partition_table(), 16 * 4) };
+    let boot_partition = mbr::boot_partition(partition_table).unwrap_or_fail(b'x');
 
     print_char(b'2');
     let partition_buf = u16::try_from(mbr_start() as usize).unwrap_or_fail(b'a') + 512;
 
-    // load first partition into buffer
+    // load boot partition into buffer
     // TODO: only load headers
     let dap = dap::DiskAddressPacket::from_lba(
         partition_buf,
-        partition.logical_block_address.into(),
+        boot_partition.logical_block_address.into(),
         1, // partition.sector_count.try_into().unwrap_or_fail(b'b'),
     );
     unsafe {
         dap.perform_load(disk_number);
     }
-    if partition.sector_count == 0 {
+    if boot_partition.sector_count == 0 {
         fail(b'c');
     }
 
@@ -52,7 +56,7 @@ pub extern "C" fn first_stage(disk_number: u16) {
     let fat_slice = unsafe {
         slice::from_raw_parts(
             partition_buf as *const u8,
-            usize::try_from(partition.sector_count).unwrap_or_else(|_| fail(b'a')) * 512,
+            usize::try_from(boot_partition.sector_count).unwrap_or_else(|_| fail(b'a')) * 512,
         )
     };
 
