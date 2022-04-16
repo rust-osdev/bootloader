@@ -77,25 +77,41 @@ use std::{
 
 mod fat;
 mod gpt;
+mod mbr;
 
 const KERNEL_FILE_NAME: &str = "kernel-x86_64";
 
-pub fn create_uefi_disk_image(
-    kernel_binary: &Path,
-    out_fat_path: &Path,
-    out_gpt_path: &Path,
-) -> anyhow::Result<()> {
+/// Creates a bootable FAT partition at the given path.
+pub fn create_boot_partition(kernel_binary: &Path, out_path: &Path) -> anyhow::Result<()> {
     let bootloader_path = Path::new(env!("UEFI_BOOTLOADER_PATH"));
 
     let mut files = BTreeMap::new();
     files.insert("efi/boot/bootx64.efi", bootloader_path);
     files.insert(KERNEL_FILE_NAME, kernel_binary);
 
-    fat::create_fat_filesystem(files, &out_fat_path)
-        .context("failed to create UEFI FAT filesystem")?;
-    gpt::create_gpt_disk(out_fat_path, out_gpt_path)
+    fat::create_fat_filesystem(files, &out_path).context("failed to create UEFI FAT filesystem")?;
+
+    Ok(())
+}
+
+pub fn create_uefi_disk_image(
+    boot_partition_path: &Path,
+    out_gpt_path: &Path,
+) -> anyhow::Result<()> {
+    gpt::create_gpt_disk(boot_partition_path, out_gpt_path)
         .context("failed to create UEFI GPT disk image")?;
 
     Ok(())
 }
 
+pub fn create_bios_disk_image(
+    boot_partition_path: &Path,
+    out_mbr_path: &Path,
+) -> anyhow::Result<()> {
+    let bootsector_path = Path::new(env!("BIOS_BOOT_SECTOR_PATH"));
+
+    mbr::create_mbr_disk(bootsector_path, boot_partition_path, out_mbr_path)
+        .context("failed to create BIOS MBR disk image")?;
+
+    Ok(())
+}

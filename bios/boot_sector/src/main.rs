@@ -63,6 +63,8 @@ pub extern "C" fn first_stage(disk_number: u16) {
     print_char(b'4');
     let boot_sector = fat::BootSector::deserialize(fat_slice);
 
+    print_char(b'5');
+
     // TODO: get root dir
 
     // TODO: get offset of `second_stage` file

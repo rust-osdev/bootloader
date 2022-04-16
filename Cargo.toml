@@ -29,6 +29,7 @@ exclude = ["examples/basic", "examples/test_framework"]
 anyhow = "1.0.32"
 fatfs = "0.3.4"
 gpt = "3.0.0"
+mbrman = "0.4.2"
 
 [dependencies.bootloader-x86_64-bios]
 version = "0.1.0-alpha.0"
@@ -69,6 +70,9 @@ rustflags = [
     "-C",
     "code-model=large",
 ]
+
+[build-dependencies]
+llvm-tools = "0.1.1"
 
 [package.metadata.docs.rs]
 default-target = "x86_64-unknown-linux-gnu"

@@ -76,7 +76,7 @@ fn build_bios_boot_sector(out_dir: &Path) -> PathBuf {
     let status = cmd
         .status()
         .expect("failed to run cargo install for bios boot sector");
-    if status.success() {
+    let elf_path = if status.success() {
         let path = out_dir
             .join("bin")
             .join("bootloader-x86_64-bios-boot-sector");
@@ -87,5 +87,33 @@ fn build_bios_boot_sector(out_dir: &Path) -> PathBuf {
         path
     } else {
         panic!("failed to build bios boot sector");
+    };
+    convert_elf_to_bin(elf_path)
+}
+
+fn convert_elf_to_bin(elf_path: PathBuf) -> PathBuf {
+    let flat_binary_path = elf_path.with_extension("bin");
+
+    let llvm_tools = llvm_tools::LlvmTools::new().expect("failed to get llvm tools");
+    let objcopy = llvm_tools
+        .tool(&llvm_tools::exe("llvm-objcopy"))
+        .expect("LlvmObjcopyNotFound");
+
+    // convert first stage to binary
+    let mut cmd = Command::new(objcopy);
+    cmd.arg("-I").arg("elf64-x86-64");
+    cmd.arg("-O").arg("binary");
+    cmd.arg("--binary-architecture=i386:x86-64");
+    cmd.arg(&elf_path);
+    cmd.arg(&flat_binary_path);
+    let output = cmd
+        .output()
+        .expect("failed to execute llvm-objcopy command");
+    if !output.status.success() {
+        panic!(
+            "objcopy failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
     }
+    flat_binary_path
 }

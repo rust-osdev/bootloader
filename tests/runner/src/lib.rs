@@ -13,8 +13,13 @@ const QEMU_ARGS: &[&str] = &[
 pub fn run_test_kernel(kernel_binary_path: &str) {
     let kernel_path = Path::new(kernel_binary_path);
     let out_fat_path = kernel_path.with_extension("fat");
+    bootloader::create_boot_partition(kernel_path, &out_fat_path).unwrap();
     let out_gpt_path = kernel_path.with_extension("gpt");
-    bootloader::create_uefi_disk_image(kernel_path, &out_fat_path, &out_gpt_path).unwrap();
+    bootloader::create_uefi_disk_image(&out_fat_path, &out_gpt_path).unwrap();
+    let out_mbr_path = kernel_path.with_extension("mbr");
+    bootloader::create_bios_disk_image(&out_fat_path, &out_mbr_path).unwrap();
+
+    // TODO: run tests with BIOS bootloader too
 
     let mut run_cmd = Command::new("qemu-system-x86_64");
     run_cmd
