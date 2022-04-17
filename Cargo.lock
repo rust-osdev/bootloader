@@ -87,6 +87,10 @@ name = "bootloader-x86_64-bios-boot-sector"
 version = "0.1.0"
 
 [[package]]
+name = "bootloader-x86_64-bios-second-stage"
+version = "0.1.0"
+
+[[package]]
 name = "bootloader-x86_64-common"
 version = "0.1.0-alpha.0"
 dependencies = [

@@ -5,11 +5,13 @@ use core::{
     arch::{asm, global_asm},
     slice,
 };
+use error::NO_SECOND_STAGE_PARTITION;
 use fail::{fail, print_char, UnwrapOrFail};
 
 global_asm!(include_str!("boot.s"));
 
 mod dap;
+mod error;
 mod fail;
 mod fat;
 mod mbr;
@@ -17,6 +19,7 @@ mod mbr;
 extern "C" {
     static _mbr_start: u8;
     static _partition_table: u8;
+    static _second_stage_start: u8;
 }
 
 fn mbr_start() -> *const u8 {
@@ -27,41 +30,65 @@ unsafe fn partition_table() -> *const u8 {
     unsafe { &_partition_table }
 }
 
+fn second_stage_start() -> *const () {
+    let ptr: *const u8 = unsafe { &_second_stage_start };
+    ptr as *const ()
+}
+
 #[no_mangle]
 pub extern "C" fn first_stage(disk_number: u16) {
     print_char(b'1');
     let partition_table = &unsafe { slice::from_raw_parts(partition_table(), 16 * 4) };
-    let boot_partition = mbr::boot_partition(partition_table).unwrap_or_fail(b'x');
+    let second_stage_partition =
+        mbr::boot_partition(partition_table).unwrap_or_fail(NO_SECOND_STAGE_PARTITION);
 
     print_char(b'2');
-    let partition_buf = u16::try_from(mbr_start() as usize).unwrap_or_fail(b'a') + 512;
+    let target_addr = u16::try_from(second_stage_start() as usize).unwrap_or_fail(b'a');
 
     // load boot partition into buffer
     // TODO: only load headers
     let dap = dap::DiskAddressPacket::from_lba(
-        partition_buf,
-        boot_partition.logical_block_address.into(),
-        1, // partition.sector_count.try_into().unwrap_or_fail(b'b'),
+        target_addr,
+        second_stage_partition.logical_block_address.into(),
+        second_stage_partition
+            .sector_count
+            .try_into()
+            .unwrap_or_fail(b'b'),
     );
     unsafe {
         dap.perform_load(disk_number);
     }
-    if boot_partition.sector_count == 0 {
+    if second_stage_partition.sector_count == 0 {
         fail(b'c');
     }
 
     print_char(b'3');
 
+    // jump to second stage
+    let second_stage_entry_point: extern "C" fn(disk_number: u16) =
+        unsafe { core::mem::transmute(target_addr as *const ()) };
+    unsafe { second_stage_entry_point(disk_number) }
+
+    print_char(b'R');
+    print_char(b'R');
+    print_char(b'R');
+    print_char(b'R');
+    print_char(b'R');
+    loop {}
+
     // try to parse FAT file system
     let fat_slice = unsafe {
         slice::from_raw_parts(
-            partition_buf as *const u8,
-            usize::try_from(boot_partition.sector_count).unwrap_or_else(|_| fail(b'a')) * 512,
+            target_addr as *const u8,
+            usize::try_from(second_stage_partition.sector_count).unwrap_or_else(|_| fail(b'a'))
+                * 512,
         )
     };
 
     print_char(b'4');
     let boot_sector = fat::BootSector::deserialize(fat_slice);
+    let root_dir = boot_sector.bpb.root_dir_first_cluster;
+    boot_sector.bpb.check_root_dir();
 
     print_char(b'5');
 

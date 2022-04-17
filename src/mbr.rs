@@ -1,13 +1,14 @@
 use anyhow::Context;
 use std::{
     fs::{self, File},
-    io,
+    io::{self, Read, Seek, SeekFrom},
     path::Path,
 };
 const SECTOR_SIZE: u32 = 512;
 
 pub fn create_mbr_disk(
     bootsector_path: &Path,
+    second_stage_path: &Path,
     boot_partition_path: &Path,
     out_mbr_path: &Path,
 ) -> anyhow::Result<()> {
@@ -21,17 +22,38 @@ pub fn create_mbr_disk(
         }
     }
 
+    let mut second_stage =
+        File::open(second_stage_path).context("failed to open second stage binary")?;
+    let second_stage_size = second_stage
+        .metadata()
+        .context("failed to read file metadata of second stage")?
+        .len();
+    let second_stage_start_sector = 1;
+    let second_stage_sectors = ((second_stage_size - 1) / u64::from(SECTOR_SIZE) + 1)
+        .try_into()
+        .context("size of second stage is larger than u32::MAX")?;
+    mbr[1] = mbrman::MBRPartitionEntry {
+        boot: true,
+        starting_lba: second_stage_start_sector,
+        sectors: second_stage_sectors,
+        // see BOOTLOADER_SECOND_STAGE_PARTITION_TYPE in `boot_sector` crate
+        sys: 0x20,
+
+        first_chs: mbrman::CHS::empty(),
+        last_chs: mbrman::CHS::empty(),
+    };
+
     let mut boot_partition =
         File::open(boot_partition_path).context("failed to open FAT boot partition")?;
+    let boot_partition_start_sector = second_stage_start_sector + second_stage_sectors;
     let boot_partition_size = boot_partition
         .metadata()
         .context("failed to read file metadata of FAT boot partition")?
         .len();
-
-    mbr[1] = mbrman::MBRPartitionEntry {
-        boot: true,
-        starting_lba: 1,
-        sectors: (boot_partition_size / u64::from(SECTOR_SIZE))
+    mbr[2] = mbrman::MBRPartitionEntry {
+        boot: false,
+        starting_lba: boot_partition_start_sector,
+        sectors: ((boot_partition_size - 1) / u64::from(SECTOR_SIZE) + 1)
             .try_into()
             .context("size of FAT partition is larger than u32::MAX")?,
         //TODO: is this the correct type?
@@ -57,6 +79,19 @@ pub fn create_mbr_disk(
     mbr.write_into(&mut disk)
         .context("failed to write MBR header to disk image")?;
 
+    // second stage
+    assert_eq!(
+        disk.stream_position()
+            .context("failed to get disk image seek position")?,
+        (second_stage_start_sector * SECTOR_SIZE).into()
+    );
+    io::copy(&mut second_stage, &mut disk)
+        .context("failed to copy second stage binary to MBR disk image")?;
+
+    // fat partition
+    disk.seek(SeekFrom::Start(
+        (boot_partition_start_sector * SECTOR_SIZE).into(),
+    ));
     io::copy(&mut boot_partition, &mut disk)
         .context("failed to copy FAT image to MBR disk image")?;
 

@@ -109,9 +109,15 @@ pub fn create_bios_disk_image(
     out_mbr_path: &Path,
 ) -> anyhow::Result<()> {
     let bootsector_path = Path::new(env!("BIOS_BOOT_SECTOR_PATH"));
+    let second_stage_path = Path::new(env!("BIOS_SECOND_STAGE_PATH"));
 
-    mbr::create_mbr_disk(bootsector_path, boot_partition_path, out_mbr_path)
-        .context("failed to create BIOS MBR disk image")?;
+    mbr::create_mbr_disk(
+        bootsector_path,
+        second_stage_path,
+        boot_partition_path,
+        out_mbr_path,
+    )
+    .context("failed to create BIOS MBR disk image")?;
 
     Ok(())
 }
