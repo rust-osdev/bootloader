@@ -51,4 +51,6 @@ SECTIONS {
     {
         SHORT(0xaa55)       /* magic number for bootable disk */
     }
+
+    _second_stage_start = .;
 }
