@@ -114,7 +114,7 @@ fn build_bios_second_stage(out_dir: &Path) -> PathBuf {
             .arg(BOOTLOADER_X86_64_BIOS_SECOND_STAGE_VERSION);
     }
     cmd.arg("--locked");
-    cmd.arg("--target").arg("x86-16bit.json");
+    cmd.arg("--target").arg("x86-16bit-second-stage.json");
     cmd.arg("-Zbuild-std=core")
         .arg("-Zbuild-std-features=compiler-builtins-mem");
     cmd.arg("--root").arg(out_dir);
