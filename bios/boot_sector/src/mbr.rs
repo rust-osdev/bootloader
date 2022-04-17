@@ -1,12 +1,10 @@
-// Based on https://docs.rs/mbr-nostd
-
 use super::fail::{fail, UnwrapOrFail};
 
 /// We use this partition type to store the second bootloader stage;
 const BOOTLOADER_SECOND_STAGE_PARTITION_TYPE: u8 = 0x20;
 
 /// Returns the first bootable partition in the partition table.
-pub fn boot_partition(partitions_raw: &[u8]) -> Option<PartitionTableEntry> {
+pub(crate) fn boot_partition(partitions_raw: &[u8]) -> Option<PartitionTableEntry> {
     for index in 0..4 {
         let entry = get_partition(partitions_raw, index);
         if entry.partition_type == BOOTLOADER_SECOND_STAGE_PARTITION_TYPE {
@@ -16,7 +14,10 @@ pub fn boot_partition(partitions_raw: &[u8]) -> Option<PartitionTableEntry> {
     None
 }
 
-pub fn get_partition(partitions_raw: &[u8], index: usize) -> PartitionTableEntry {
+pub(crate) fn get_partition(partitions_raw: &[u8], index: usize) -> PartitionTableEntry {
+    const PARTITIONS_AREA_SIZE: usize = 16 * 4;
+    const ENTRY_SIZE: usize = 16;
+
     if partitions_raw.len() < PARTITIONS_AREA_SIZE {
         fail(b'a');
     }
@@ -46,65 +47,22 @@ pub fn get_partition(partitions_raw: &[u8], index: usize) -> PartitionTableEntry
     PartitionTableEntry::new(bootable, partition_type, lba, len)
 }
 
-const PARTITIONS_AREA_SIZE: usize = 16 * 4;
-const ENTRY_SIZE: usize = 16;
-
-/// The type of a particular partition.
-#[derive(Copy, Clone, Eq, PartialEq)]
-pub enum PartitionType {
-    BootloaderSecondStage,
-    Unused,
-    Unknown(u8),
-    Fat12(u8),
-    Fat16(u8),
-    Fat32(u8),
-    LinuxExt(u8),
-    HfsPlus(u8),
-    ISO9660(u8),
-    NtfsExfat(u8),
-}
-
-impl PartitionType {
-    /// Parses a partition type from the type byte in the MBR's table.
-    pub fn from_mbr_tag_byte(tag: u8) -> PartitionType {
-        match tag {
-            // we use partition type 0x20 to store the second bootloader stage
-            0x20 => PartitionType::BootloaderSecondStage,
-            0x0 => PartitionType::Unused,
-            0x01 => PartitionType::Fat12(tag),
-            0x04 | 0x06 | 0x0e => PartitionType::Fat16(tag),
-            0x0b | 0x0c | 0x1b | 0x1c => PartitionType::Fat32(tag),
-            0x83 => PartitionType::LinuxExt(tag),
-            0x07 => PartitionType::NtfsExfat(tag),
-            0xaf => PartitionType::HfsPlus(tag),
-            _ => PartitionType::Unknown(tag),
-        }
-    }
-
-    pub fn known_type(tag: u8) -> bool {
-        match tag {
-            0x0 | 0x01 | 0x04 | 0x06 | 0x0e | 0x0b | 0x0c | 0x1b | 0x1c | 0x83 | 0x07 | 0xaf => {
-                true
-            }
-            _ => false,
-        }
-    }
-}
-
 /// An entry in a partition table.
+///
+/// Based on https://docs.rs/mbr-nostd
 #[derive(Copy, Clone, Eq, PartialEq)]
-pub struct PartitionTableEntry {
+pub(crate) struct PartitionTableEntry {
     /// Whether this partition is a boot partition.
-    pub bootable: bool,
+    pub(crate) bootable: bool,
 
     /// The type of partition in this entry.
-    pub partition_type: u8,
+    pub(crate) partition_type: u8,
 
     /// The index of the first block of this entry.
-    pub logical_block_address: u32,
+    pub(crate) logical_block_address: u32,
 
     /// The total number of blocks in this entry.
-    pub sector_count: u32,
+    pub(crate) sector_count: u32,
 }
 
 impl PartitionTableEntry {
