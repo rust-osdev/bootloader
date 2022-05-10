@@ -17,9 +17,13 @@ use uefi::{
             file::{File, FileAttribute, FileInfo, FileMode},
             fs::SimpleFileSystem,
         },
+        network::{
+            pxe::{BaseCode, DhcpV4Packet},
+            IpAddress,
+        },
     },
     table::boot::{AllocateType, MemoryDescriptor, MemoryType},
-    CStr16,
+    CStr16, CStr8,
 };
 use x86_64::{
     structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB},
@@ -122,6 +126,16 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
 }
 
 fn load_kernel(image: Handle, st: &SystemTable<Boot>) -> Kernel<'static> {
+    let kernel_slice = load_kernel_file(image, st).expect("couldn't find kernel");
+    Kernel::parse(kernel_slice)
+}
+
+fn load_kernel_file(image: Handle, st: &SystemTable<Boot>) -> Option<&'static mut [u8]> {
+    load_kernel_file_from_disk(image, st)
+        .or_else(|| load_kernel_file_from_tftp_boot_server(image, st))
+}
+
+fn load_kernel_file_from_disk(image: Handle, st: &SystemTable<Boot>) -> Option<&'static mut [u8]> {
     let file_system_raw = {
         let ref this = st.boot_services();
         let loaded_image = this
@@ -138,7 +152,7 @@ fn load_kernel(image: Handle, st: &SystemTable<Boot>) -> Kernel<'static> {
 
         let device_handle = this
             .locate_device_path::<SimpleFileSystem>(&mut device_path)
-            .expect("Failed to locate `SimpleFileSystem` protocol on device path");
+            .ok()?;
 
         this.handle_protocol::<SimpleFileSystem>(device_handle)
     }
@@ -172,7 +186,64 @@ fn load_kernel(image: Handle, st: &SystemTable<Boot>) -> Kernel<'static> {
     let kernel_slice = unsafe { slice::from_raw_parts_mut(kernel_ptr, kernel_size) };
     kernel_file.read(kernel_slice).unwrap();
 
-    Kernel::parse(kernel_slice)
+    Some(kernel_slice)
+}
+
+fn load_kernel_file_from_tftp_boot_server(
+    image: Handle,
+    st: &SystemTable<Boot>,
+) -> Option<&'static mut [u8]> {
+    let ref this = st.boot_services();
+
+    let file_system_raw = {
+        let ref this = st.boot_services();
+        let loaded_image = this
+            .handle_protocol::<LoadedImage>(image)
+            .expect("Failed to retrieve `LoadedImage` protocol from handle");
+        let loaded_image = unsafe { &*loaded_image.get() };
+
+        let device_handle = loaded_image.device();
+
+        let device_path = this
+            .handle_protocol::<DevicePath>(device_handle)
+            .expect("Failed to retrieve `DevicePath` protocol from image's device handle");
+        let mut device_path = unsafe { &*device_path.get() };
+
+        let device_handle = this
+            .locate_device_path::<BaseCode>(&mut device_path)
+            .expect("Failed to locate `BaseCode` protocol on device path");
+
+        this.handle_protocol::<BaseCode>(device_handle)
+    }
+    .unwrap();
+    let base_code = unsafe { &mut *file_system_raw.get() };
+
+    let mode = base_code.mode();
+    assert!(mode.dhcp_ack_received);
+    let dhcpv4: &DhcpV4Packet = mode.dhcp_ack.as_ref();
+    let server_ip = IpAddress::new_v4(dhcpv4.bootp_si_addr);
+
+    let filename = CStr8::from_bytes_with_nul(b"kernel-x86_64\0").unwrap();
+    let file_size = base_code.tftp_get_file_size(&server_ip, filename).unwrap();
+
+    let kernel_size = usize::try_from(file_size).unwrap();
+
+    let kernel_ptr = st
+        .boot_services()
+        .allocate_pages(
+            AllocateType::AnyPages,
+            MemoryType::LOADER_DATA,
+            ((kernel_size - 1) / 4096) + 1,
+        )
+        .unwrap() as *mut u8;
+    unsafe { ptr::write_bytes(kernel_ptr, 0, kernel_size) };
+    let kernel_slice = unsafe { slice::from_raw_parts_mut(kernel_ptr, kernel_size) };
+
+    base_code
+        .tftp_read_file(&server_ip, filename, Some(kernel_slice))
+        .unwrap();
+
+    Some(kernel_slice)
 }
 
 /// Creates page table abstraction types for both the bootloader and kernel page tables.
