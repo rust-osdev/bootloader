@@ -123,6 +123,8 @@ pub fn create_bios_disk_image(
     Ok(())
 }
 
+/// Prepare a folder for use with booting over UEFI_PXE. The dhcp server should
+/// have the filename option set to `bootloader`.
 pub fn create_uefi_pxe_tftp_folder(kernel_binary: &Path, out_path: &Path) -> anyhow::Result<()> {
     let bootloader_path = Path::new(env!("UEFI_BOOTLOADER_PATH"));
 
