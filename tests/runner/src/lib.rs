@@ -78,8 +78,8 @@ pub fn run_test_kernel_on_uefi_pxe(kernel_binary_path: &str) {
         .unwrap();
 
     match child_output.status.code() {
-        Some(33) => {}                     // success
-        Some(35) => panic!("Test failed"), // success
+        Some(33) => {} // success
+        Some(35) => panic!("Test failed"),
         other => panic!("Test failed with unexpected exit code `{:?}`", other),
     }
 }
