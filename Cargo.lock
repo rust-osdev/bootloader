@@ -128,18 +128,18 @@ dependencies = [
 
 [[package]]
 name = "conquer-once"
-version = "0.2.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96eb12fb69466716fbae9009d389e6a30830ae8975e170eff2d2cff579f9efa3"
+checksum = "7c6d3a9775a69f6d1fe2cc888999b67ed30257d3da4d2af91984e722f2ec918a"
 dependencies = [
  "conquer-util",
 ]
 
 [[package]]
 name = "conquer-util"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "654fb2472cc369d311c547103a1fa81d467bef370ae7a0680f65939895b1182a"
+checksum = "e763eef8846b13b380f37dfecda401770b0ca4e56e95170237bd7c25c7db3582"
 
 [[package]]
 name = "crc"
