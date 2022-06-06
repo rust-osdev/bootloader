@@ -8,7 +8,7 @@ use bootloader_api::{info::FrameBufferInfo, BootloaderConfig};
 use bootloader_x86_64_common::{legacy_memory_region::LegacyFrameAllocator, Kernel, SystemInfo};
 use core::{arch::asm, cell::UnsafeCell, fmt::Write, mem, panic::PanicInfo, ptr, slice};
 use uefi::{
-    prelude::{entry, Boot, Handle, ResultExt, Status, SystemTable},
+    prelude::{entry, Boot, Handle, Status, SystemTable},
     proto::{
         console::gop::{GraphicsOutput, PixelFormat},
         device_path::DevicePath,
@@ -22,7 +22,9 @@ use uefi::{
             IpAddress,
         },
     },
-    table::boot::{AllocateType, MemoryDescriptor, MemoryType},
+    table::boot::{
+        AllocateType, MemoryDescriptor, MemoryType, OpenProtocolAttributes, OpenProtocolParams,
+    },
     CStr16, CStr8,
 };
 use x86_64::{
@@ -140,25 +142,46 @@ fn load_kernel_file_from_disk(image: Handle, st: &SystemTable<Boot>) -> Option<&
     let file_system_raw = {
         let ref this = st.boot_services();
         let loaded_image = this
-            .handle_protocol::<LoadedImage>(image)
+            .open_protocol::<LoadedImage>(
+                OpenProtocolParams {
+                    handle: image,
+                    agent: image,
+                    controller: None,
+                },
+                OpenProtocolAttributes::Exclusive,
+            )
             .expect("Failed to retrieve `LoadedImage` protocol from handle");
-        let loaded_image = unsafe { &*loaded_image.get() };
+        let loaded_image = unsafe { &*loaded_image.interface.get() };
 
         let device_handle = loaded_image.device();
 
         let device_path = this
-            .handle_protocol::<DevicePath>(device_handle)
+            .open_protocol::<DevicePath>(
+                OpenProtocolParams {
+                    handle: device_handle,
+                    agent: image,
+                    controller: None,
+                },
+                OpenProtocolAttributes::Exclusive,
+            )
             .expect("Failed to retrieve `DevicePath` protocol from image's device handle");
-        let mut device_path = unsafe { &*device_path.get() };
+        let mut device_path = unsafe { &*device_path.interface.get() };
 
-        let device_handle = this
+        let fs_handle = this
             .locate_device_path::<SimpleFileSystem>(&mut device_path)
             .ok()?;
 
-        this.handle_protocol::<SimpleFileSystem>(device_handle)
+        this.open_protocol::<SimpleFileSystem>(
+            OpenProtocolParams {
+                handle: fs_handle,
+                agent: image,
+                controller: None,
+            },
+            OpenProtocolAttributes::Exclusive,
+        )
     }
     .unwrap();
-    let file_system = unsafe { &mut *file_system_raw.get() };
+    let file_system = unsafe { &mut *file_system_raw.interface.get() };
 
     let mut root = file_system.open_volume().unwrap();
     let mut buf = [0; 14 * 2];
@@ -200,21 +223,44 @@ fn load_kernel_file_from_tftp_boot_server(
     // Try to locate a `BaseCode` protocol on the boot device.
 
     let loaded_image = this
-        .handle_protocol::<LoadedImage>(image)
+        .open_protocol::<LoadedImage>(
+            OpenProtocolParams {
+                handle: image,
+                agent: image,
+                controller: None,
+            },
+            OpenProtocolAttributes::Exclusive,
+        )
         .expect("Failed to retrieve `LoadedImage` protocol from handle");
-    let loaded_image = unsafe { &*loaded_image.get() };
+    let loaded_image = unsafe { &*loaded_image.interface.get() };
 
     let device_handle = loaded_image.device();
 
     let device_path = this
-        .handle_protocol::<DevicePath>(device_handle)
+        .open_protocol::<DevicePath>(
+            OpenProtocolParams {
+                handle: device_handle,
+                agent: image,
+                controller: None,
+            },
+            OpenProtocolAttributes::Exclusive,
+        )
         .expect("Failed to retrieve `DevicePath` protocol from image's device handle");
-    let mut device_path = unsafe { &*device_path.get() };
+    let mut device_path = unsafe { &*device_path.interface.get() };
 
-    let device_handle = this.locate_device_path::<BaseCode>(&mut device_path).ok()?;
+    let base_code_handle = this.locate_device_path::<BaseCode>(&mut device_path).ok()?;
 
-    let base_code_raw = this.handle_protocol::<BaseCode>(device_handle).unwrap();
-    let base_code = unsafe { &mut *base_code_raw.get() };
+    let base_code_raw = this
+        .open_protocol::<BaseCode>(
+            OpenProtocolParams {
+                handle: base_code_handle,
+                agent: image,
+                controller: None,
+            },
+            OpenProtocolAttributes::Exclusive,
+        )
+        .unwrap();
+    let base_code = unsafe { &mut *base_code_raw.interface.get() };
 
     // Find the TFTP boot server.
     let mode = base_code.mode();
