@@ -53,13 +53,6 @@ pub fn run_test_kernel_on_uefi_pxe(kernel_binary_path: &str) {
 
     bootloader::create_uefi_pxe_tftp_folder(kernel_path, &out_tftp_path).unwrap();
 
-    let out_fat_path = kernel_path.with_extension("fat");
-    bootloader::create_boot_partition(kernel_path, &out_fat_path).unwrap();
-    let out_gpt_path = kernel_path.with_extension("gpt");
-    bootloader::create_uefi_disk_image(&out_fat_path, &out_gpt_path).unwrap();
-    let out_mbr_path = kernel_path.with_extension("mbr");
-    bootloader::create_bios_disk_image(&out_fat_path, &out_mbr_path).unwrap();
-
     let mut run_cmd = Command::new("qemu-system-x86_64");
     run_cmd.arg("-netdev").arg(format!(
         "user,id=net0,net=192.168.17.0/24,tftp={},bootfile=bootloader,id=net0",
