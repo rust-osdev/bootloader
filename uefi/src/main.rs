@@ -17,9 +17,13 @@ use uefi::{
             file::{File, FileAttribute, FileInfo, FileMode},
             fs::SimpleFileSystem,
         },
+        network::{
+            pxe::{BaseCode, DhcpV4Packet},
+            IpAddress,
+        },
     },
     table::boot::{AllocateType, MemoryDescriptor, MemoryType},
-    Completion,
+    CStr16, CStr8,
 };
 use x86_64::{
     structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB},
@@ -59,14 +63,14 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
         *SYSTEM_TABLE.get() = Some(st.unsafe_clone());
     }
 
-    st.stdout().clear().unwrap().unwrap();
+    st.stdout().clear().unwrap();
     writeln!(
         st.stdout(),
         "UEFI bootloader started; trying to load kernel"
     )
     .unwrap();
 
-    let kernel = load_kernel(image, &st);
+    let kernel = load_kernel(image, &mut st);
 
     let (framebuffer_addr, framebuffer_info) = init_logger(&st, kernel.config);
 
@@ -81,18 +85,17 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
 
     let mmap_storage = {
         let max_mmap_size =
-            st.boot_services().memory_map_size() + 8 * mem::size_of::<MemoryDescriptor>();
+            st.boot_services().memory_map_size().map_size + 8 * mem::size_of::<MemoryDescriptor>();
         let ptr = st
             .boot_services()
-            .allocate_pool(MemoryType::LOADER_DATA, max_mmap_size)?
-            .log();
+            .allocate_pool(MemoryType::LOADER_DATA, max_mmap_size)?;
         unsafe { slice::from_raw_parts_mut(ptr, max_mmap_size) }
     };
 
     log::trace!("exiting boot services");
     let (system_table, memory_map) = st
         .exit_boot_services(image, mmap_storage)
-        .expect_success("Failed to exit boot services");
+        .expect("Failed to exit boot services");
 
     let mut frame_allocator =
         LegacyFrameAllocator::new(memory_map.copied().map(UefiMemoryDescriptor));
@@ -123,42 +126,53 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
 }
 
 fn load_kernel(image: Handle, st: &SystemTable<Boot>) -> Kernel<'static> {
+    let kernel_slice = load_kernel_file(image, st).expect("couldn't find kernel");
+    Kernel::parse(kernel_slice)
+}
+
+/// Try to load a kernel file from the boot device.
+fn load_kernel_file(image: Handle, st: &SystemTable<Boot>) -> Option<&'static mut [u8]> {
+    load_kernel_file_from_disk(image, st)
+        .or_else(|| load_kernel_file_from_tftp_boot_server(image, st))
+}
+
+fn load_kernel_file_from_disk(image: Handle, st: &SystemTable<Boot>) -> Option<&'static mut [u8]> {
     let file_system_raw = {
         let ref this = st.boot_services();
         let loaded_image = this
             .handle_protocol::<LoadedImage>(image)
-            .expect_success("Failed to retrieve `LoadedImage` protocol from handle");
+            .expect("Failed to retrieve `LoadedImage` protocol from handle");
         let loaded_image = unsafe { &*loaded_image.get() };
 
         let device_handle = loaded_image.device();
 
         let device_path = this
             .handle_protocol::<DevicePath>(device_handle)
-            .expect_success("Failed to retrieve `DevicePath` protocol from image's device handle");
+            .expect("Failed to retrieve `DevicePath` protocol from image's device handle");
         let mut device_path = unsafe { &*device_path.get() };
 
         let device_handle = this
             .locate_device_path::<SimpleFileSystem>(&mut device_path)
-            .expect_success("Failed to locate `SimpleFileSystem` protocol on device path");
+            .ok()?;
 
         this.handle_protocol::<SimpleFileSystem>(device_handle)
     }
-    .unwrap()
     .unwrap();
     let file_system = unsafe { &mut *file_system_raw.get() };
 
-    let mut root = file_system.open_volume().unwrap().unwrap();
+    let mut root = file_system.open_volume().unwrap();
+    let mut buf = [0; 14 * 2];
+    let filename = CStr16::from_str_with_buf("kernel-x86_64", &mut buf).unwrap();
     let kernel_file_handle = root
-        .open("kernel-x86_64", FileMode::Read, FileAttribute::empty())
-        .expect("Failed to load kernel (expected file named `kernel-x86_64`)")
-        .unwrap();
-    let mut kernel_file = match kernel_file_handle.into_type().unwrap().unwrap() {
+        .open(filename, FileMode::Read, FileAttribute::empty())
+        .expect("Failed to load kernel (expected file named `kernel-x86_64`)");
+    let mut kernel_file = match kernel_file_handle.into_type().unwrap() {
         uefi::proto::media::file::FileType::Regular(f) => f,
         uefi::proto::media::file::FileType::Dir(_) => panic!(),
     };
 
     let mut buf = [0; 500];
-    let kernel_info: &mut FileInfo = kernel_file.get_info(&mut buf).unwrap().unwrap();
+    let kernel_info: &mut FileInfo = kernel_file.get_info(&mut buf).unwrap();
     let kernel_size = usize::try_from(kernel_info.file_size()).unwrap();
 
     let kernel_ptr = st
@@ -168,13 +182,72 @@ fn load_kernel(image: Handle, st: &SystemTable<Boot>) -> Kernel<'static> {
             MemoryType::LOADER_DATA,
             ((kernel_size - 1) / 4096) + 1,
         )
-        .unwrap()
         .unwrap() as *mut u8;
     unsafe { ptr::write_bytes(kernel_ptr, 0, kernel_size) };
     let kernel_slice = unsafe { slice::from_raw_parts_mut(kernel_ptr, kernel_size) };
-    kernel_file.read(kernel_slice).unwrap().unwrap();
+    kernel_file.read(kernel_slice).unwrap();
 
-    Kernel::parse(kernel_slice)
+    Some(kernel_slice)
+}
+
+/// Try to load a kernel from a TFTP boot server.
+fn load_kernel_file_from_tftp_boot_server(
+    image: Handle,
+    st: &SystemTable<Boot>,
+) -> Option<&'static mut [u8]> {
+    let this = st.boot_services();
+
+    // Try to locate a `BaseCode` protocol on the boot device.
+
+    let loaded_image = this
+        .handle_protocol::<LoadedImage>(image)
+        .expect("Failed to retrieve `LoadedImage` protocol from handle");
+    let loaded_image = unsafe { &*loaded_image.get() };
+
+    let device_handle = loaded_image.device();
+
+    let device_path = this
+        .handle_protocol::<DevicePath>(device_handle)
+        .expect("Failed to retrieve `DevicePath` protocol from image's device handle");
+    let mut device_path = unsafe { &*device_path.get() };
+
+    let device_handle = this.locate_device_path::<BaseCode>(&mut device_path).ok()?;
+
+    let base_code_raw = this.handle_protocol::<BaseCode>(device_handle).unwrap();
+    let base_code = unsafe { &mut *base_code_raw.get() };
+
+    // Find the TFTP boot server.
+    let mode = base_code.mode();
+    assert!(mode.dhcp_ack_received);
+    let dhcpv4: &DhcpV4Packet = mode.dhcp_ack.as_ref();
+    let server_ip = IpAddress::new_v4(dhcpv4.bootp_si_addr);
+
+    let filename = CStr8::from_bytes_with_nul(b"kernel-x86_64\0").unwrap();
+
+    // Determine the kernel file size.
+    let file_size = base_code
+        .tftp_get_file_size(&server_ip, filename)
+        .expect("Failed to query the kernel file size");
+    let kernel_size =
+        usize::try_from(file_size).expect("The kernel file size should fit into usize");
+
+    // Allocate some memory for the kernel file.
+    let kernel_ptr = st
+        .boot_services()
+        .allocate_pages(
+            AllocateType::AnyPages,
+            MemoryType::LOADER_DATA,
+            ((kernel_size - 1) / 4096) + 1,
+        )
+        .expect("Failed to allocate memory for the kernel file") as *mut u8;
+    let kernel_slice = unsafe { slice::from_raw_parts_mut(kernel_ptr, kernel_size) };
+
+    // Load the kernel file.
+    base_code
+        .tftp_read_file(&server_ip, filename, Some(kernel_slice))
+        .expect("Failed to read kernel file from the TFTP boot server");
+
+    Some(kernel_slice)
 }
 
 /// Creates page table abstraction types for both the bootloader and kernel page tables.
@@ -247,11 +320,11 @@ fn init_logger(st: &SystemTable<Boot>, config: BootloaderConfig) -> (PhysAddr, F
     let gop = st
         .boot_services()
         .locate_protocol::<GraphicsOutput>()
-        .expect_success("failed to locate gop");
+        .expect("failed to locate gop");
     let gop = unsafe { &mut *gop.get() };
 
     let mode = {
-        let modes = gop.modes().map(Completion::unwrap);
+        let modes = gop.modes();
         match (
             config
                 .frame_buffer
@@ -275,7 +348,7 @@ fn init_logger(st: &SystemTable<Boot>, config: BootloaderConfig) -> (PhysAddr, F
     };
     if let Some(mode) = mode {
         gop.set_mode(&mode)
-            .expect_success("Failed to apply the desired display mode");
+            .expect("Failed to apply the desired display mode");
     }
 
     let mode_info = gop.current_mode_info();

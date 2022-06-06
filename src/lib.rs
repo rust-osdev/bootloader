@@ -78,6 +78,7 @@ use std::{
 mod fat;
 mod gpt;
 mod mbr;
+mod pxe;
 
 const KERNEL_FILE_NAME: &str = "kernel-x86_64";
 
@@ -118,6 +119,20 @@ pub fn create_bios_disk_image(
         out_mbr_path,
     )
     .context("failed to create BIOS MBR disk image")?;
+
+    Ok(())
+}
+
+/// Prepare a folder for use with booting over UEFI_PXE.
+///
+/// This places the bootloader executable under the path "bootloader". The
+/// DHCP server should set the filename option to that path, otherwise the
+/// bootloader won't be found.
+pub fn create_uefi_pxe_tftp_folder(kernel_binary: &Path, out_path: &Path) -> anyhow::Result<()> {
+    let bootloader_path = Path::new(env!("UEFI_BOOTLOADER_PATH"));
+
+    pxe::create_uefi_tftp_folder(bootloader_path, kernel_binary, out_path)
+        .context("failed to create UEFI PXE tftp folder")?;
 
     Ok(())
 }
