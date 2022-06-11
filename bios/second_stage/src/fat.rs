@@ -204,16 +204,11 @@ impl BiosParameterBlock {
 
     /// Returns a root directory object allowing for futher penetration of a filesystem structure.
     pub fn check_root_dir(&self) {
-        match self.fat_type() {
-            FatType::Fat12 | FatType::Fat16 => crate::fail(b'y'),
-            FatType::Fat32 => {
-                self.root_dir_first_cluster;
-                crate::fail(b'z');
-            }
-        }
+        panic!("check_root_dir: fat type {:?}", self.fat_type())
     }
 }
 
+#[derive(Debug)]
 pub enum FatType {
     /// 12 bits per FAT entry
     Fat12,

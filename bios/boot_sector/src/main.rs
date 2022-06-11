@@ -14,11 +14,16 @@ mod fail;
 mod mbr;
 
 extern "C" {
+    static _mbr_start: u8;
     static _partition_table: u8;
     static _second_stage_start: u8;
 }
 
-unsafe fn partition_table() -> *const u8 {
+unsafe fn mbr_start() -> *const u8 {
+    unsafe { &_mbr_start }
+}
+
+unsafe fn partition_table_raw() -> *const u8 {
     unsafe { &_partition_table }
 }
 
@@ -31,7 +36,7 @@ fn second_stage_start() -> *const () {
 pub extern "C" fn first_stage(disk_number: u16) {
     // read partition table and look for second stage partition
     print_char(b'1');
-    let partition_table = &unsafe { slice::from_raw_parts(partition_table(), 16 * 4) };
+    let partition_table = &unsafe { slice::from_raw_parts(partition_table_raw(), 16 * 4) };
     let second_stage_partition =
         mbr::boot_partition(partition_table).unwrap_or_fail(NO_SECOND_STAGE_PARTITION);
 
@@ -55,9 +60,12 @@ pub extern "C" fn first_stage(disk_number: u16) {
 
     // jump to second stage
     print_char(b'3');
-    let second_stage_entry_point: extern "C" fn(disk_number: u16) =
-        unsafe { core::mem::transmute(target_addr as *const ()) };
-    second_stage_entry_point(disk_number);
+    let second_stage_entry_point: extern "C" fn(
+        disk_number: u16,
+        partition_table_start: *const u8,
+    ) = unsafe { core::mem::transmute(target_addr as *const ()) };
+    let mbr_start = unsafe { partition_table_raw() };
+    second_stage_entry_point(disk_number, mbr_start);
     for _ in 0..10 {
         print_char(b'R');
     }

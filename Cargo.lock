@@ -60,7 +60,7 @@ dependencies = [
  "anyhow",
  "bootloader-x86_64-bios",
  "bootloader_test_runner",
- "fatfs",
+ "fatfs 0.3.5",
  "gpt",
  "llvm-tools",
  "mbrman",
@@ -89,6 +89,11 @@ version = "0.1.0"
 [[package]]
 name = "bootloader-x86_64-bios-second-stage"
 version = "0.1.0"
+dependencies = [
+ "byteorder",
+ "fatfs 0.4.0",
+ "mbr-nostd",
+]
 
 [[package]]
 name = "bootloader-x86_64-common"
@@ -202,6 +207,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "fatfs"
+version = "0.4.0"
+source = "git+https://github.com/rafalh/rust-fatfs.git#4892fb1791b29616d8573235eb83644003d13791"
+dependencies = [
+ "bitflags",
+ "log",
+]
+
+[[package]]
 name = "funty"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -259,6 +273,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "abb12e687cfb44aa40f41fc3978ef76448f9b6038cad6aef4259d3c095a2382e"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "mbr-nostd"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "70e7b12e539fe14d6423dc8864bd5b5fc1f04fd14f5d9152a137de285e4329f7"
+dependencies = [
+ "byteorder",
 ]
 
 [[package]]

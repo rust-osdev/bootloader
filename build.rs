@@ -9,6 +9,9 @@ const BOOTLOADER_X86_64_BIOS_SECOND_STAGE_VERSION: &str = "0.1.0-alpha.0";
 
 fn main() {
     let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
+    println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed=Cargo.toml");
+    println!("cargo:rerun-if-changed=Cargo.lock");
 
     let uefi_path = build_uefi_bootloader(&out_dir);
     println!(
@@ -35,6 +38,7 @@ fn build_uefi_bootloader(out_dir: &Path) -> PathBuf {
     if Path::new("uefi").exists() {
         // local build
         cmd.arg("--path").arg("uefi");
+        println!("cargo:rerun-if-changed=uefi");
     } else {
         cmd.arg("--version").arg(BOOTLOADER_X86_64_UEFI_VERSION);
     }
@@ -69,6 +73,7 @@ fn build_bios_boot_sector(out_dir: &Path) -> PathBuf {
     if local_path.exists() {
         // local build
         cmd.arg("--path").arg(&local_path);
+        println!("cargo:rerun-if-changed={}", local_path.display());
     } else {
         cmd.arg("--version")
             .arg(BOOTLOADER_X86_64_BIOS_BOOT_SECTOR_VERSION);
@@ -98,6 +103,7 @@ fn build_bios_boot_sector(out_dir: &Path) -> PathBuf {
     };
     convert_elf_to_bin(elf_path)
 }
+
 fn build_bios_second_stage(out_dir: &Path) -> PathBuf {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
     let mut cmd = Command::new(cargo);
@@ -109,6 +115,7 @@ fn build_bios_second_stage(out_dir: &Path) -> PathBuf {
     if local_path.exists() {
         // local build
         cmd.arg("--path").arg(&local_path);
+        println!("cargo:rerun-if-changed={}", local_path.display());
     } else {
         cmd.arg("--version")
             .arg(BOOTLOADER_X86_64_BIOS_SECOND_STAGE_VERSION);
