@@ -4,7 +4,7 @@
 
 use core::{arch::global_asm, slice};
 use error::NO_SECOND_STAGE_PARTITION;
-use fail::{fail, print_char, UnwrapOrFail};
+use fail::{print_char, UnwrapOrFail};
 
 global_asm!(include_str!("boot.s"));
 
@@ -14,13 +14,8 @@ mod fail;
 mod mbr;
 
 extern "C" {
-    static _mbr_start: u8;
     static _partition_table: u8;
     static _second_stage_start: u8;
-}
-
-unsafe fn mbr_start() -> *const u8 {
-    unsafe { &_mbr_start }
 }
 
 unsafe fn partition_table_raw() -> *const u8 {
@@ -38,24 +33,36 @@ pub extern "C" fn first_stage(disk_number: u16) {
     print_char(b'1');
     let partition_table = &unsafe { slice::from_raw_parts(partition_table_raw(), 16 * 4) };
     let second_stage_partition =
-        mbr::boot_partition(partition_table).unwrap_or_fail(NO_SECOND_STAGE_PARTITION);
+        // mbr::boot_partition(partition_table).unwrap_or_fail(NO_SECOND_STAGE_PARTITION);
+        mbr::get_partition(partition_table, 0);
 
     // load second stage partition into memory
     print_char(b'2');
-    let target_addr = u16::try_from(second_stage_start() as usize).unwrap_or_fail(b'a');
-    let dap = dap::DiskAddressPacket::from_lba(
-        target_addr,
-        second_stage_partition.logical_block_address.into(),
-        second_stage_partition
-            .sector_count
-            .try_into()
-            .unwrap_or_fail(b'b'),
-    );
-    unsafe {
-        dap.perform_load(disk_number);
-    }
-    if second_stage_partition.sector_count == 0 {
-        fail(b'c');
+    let entry_point_address = second_stage_start() as u32;
+
+    let mut start_lba = second_stage_partition.logical_block_address.into();
+    let mut number_of_sectors = second_stage_partition.sector_count;
+    let mut target_addr = entry_point_address;
+
+    loop {
+        let sectors = u32::min(number_of_sectors, 32) as u16;
+        let dap = dap::DiskAddressPacket::from_lba(
+            start_lba,
+            sectors,
+            (target_addr & 0b1111) as u16,
+            (target_addr >> 4).try_into().unwrap_or_fail(b'a'),
+        );
+        unsafe {
+            dap.perform_load(disk_number);
+        }
+
+        start_lba += u64::from(sectors);
+        number_of_sectors -= u32::from(sectors);
+        target_addr = target_addr + u32::from(sectors) * 512;
+
+        if number_of_sectors == 0 {
+            break;
+        }
     }
 
     // jump to second stage
@@ -63,9 +70,9 @@ pub extern "C" fn first_stage(disk_number: u16) {
     let second_stage_entry_point: extern "C" fn(
         disk_number: u16,
         partition_table_start: *const u8,
-    ) = unsafe { core::mem::transmute(target_addr as *const ()) };
-    let mbr_start = unsafe { partition_table_raw() };
-    second_stage_entry_point(disk_number, mbr_start);
+    ) = unsafe { core::mem::transmute(entry_point_address as *const ()) };
+    let partition_table_start = unsafe { partition_table_raw() };
+    second_stage_entry_point(disk_number, partition_table_start);
     for _ in 0..10 {
         print_char(b'R');
     }

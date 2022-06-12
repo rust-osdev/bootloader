@@ -18,13 +18,18 @@ pub struct DiskAddressPacket {
 }
 
 impl DiskAddressPacket {
-    pub fn from_lba(memory_buffer_start: u16, start_lba: u64, number_of_sectors: u16) -> Self {
+    pub fn from_lba(
+        start_lba: u64,
+        number_of_sectors: u16,
+        target_offset: u16,
+        target_segment: u16,
+    ) -> Self {
         Self {
             packet_size: 0x10,
             zero: 0,
             number_of_sectors,
-            offset: memory_buffer_start,
-            segment: 0,
+            offset: target_offset,
+            segment: target_segment,
             start_lba,
         }
     }
