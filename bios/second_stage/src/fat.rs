@@ -1,10 +1,16 @@
 // based on https://crates.io/crates/mini_fat
 
-use crate::disk::Read;
+use crate::{
+    disk::{Read, Seek, SeekFrom},
+    screen,
+};
+use core::{char::DecodeUtf16Error, fmt::Write as _};
 
 const DIRECTORY_ENTRY_BYTES: usize = 32;
 const UNUSED_ENTRY_PREFIX: u8 = 0xE5;
 const END_OF_DIRECTORY_PREFIX: u8 = 0;
+
+static mut BUFFER: [u8; 0x4000] = [0; 0x4000];
 
 pub struct File {
     first_cluster: u32,
@@ -31,7 +37,7 @@ struct Bpb {
 }
 
 impl Bpb {
-    fn parse<D: Read>(disk: &mut D) -> Self {
+    fn parse<D: Read + Seek>(disk: &mut D) -> Self {
         let mut raw = [0u8; 512];
         disk.read_exact(&mut raw);
 
@@ -128,7 +134,7 @@ pub struct FileSystem<D> {
     bpb: Bpb,
 }
 
-impl<D: Read> FileSystem<D> {
+impl<D: Read + Seek> FileSystem<D> {
     pub fn parse(mut disk: D) -> Self {
         Self {
             bpb: Bpb::parse(&mut disk),
@@ -137,17 +143,48 @@ impl<D: Read> FileSystem<D> {
     }
 
     pub fn lookup_file(&mut self, path: &str) -> Option<File> {
+        let root = self.read_root_dir();
+        for entry in root {
+            write!(screen::Writer, "entry: ").unwrap();
+            match entry {
+                Ok(RawDirectoryEntry::Normal(entry)) => {
+                    writeln!(screen::Writer, "{}", entry.short_filename_main).unwrap();
+                }
+                Ok(RawDirectoryEntry::LongName(entry)) => {
+                    for c in entry.name() {
+                        match c {
+                            Ok(c) => write!(screen::Writer, "{c}").unwrap(),
+                            Err(_) => write!(screen::Writer, "X").unwrap(),
+                        }
+                    }
+                    writeln!(screen::Writer).unwrap();
+                }
+                Err(()) => writeln!(screen::Writer, "<failed to read>").unwrap(),
+            }
+        }
         todo!();
     }
 
-    fn read_root_dir(&mut self) {
+    fn read_root_dir<'a>(&'a mut self) -> impl Iterator<Item = Result<RawDirectoryEntry, ()>> + 'a {
         match self.bpb.fat_type() {
             FatType::Fat32 => {
                 self.bpb.root_cluster;
+                unimplemented!();
             }
             FatType::Fat12 | FatType::Fat16 => {
-                self.bpb.root_directory_offset();
-                self.bpb.root_directory_size();
+                let root_directory_size = self.bpb.root_directory_size();
+                let buffer = unsafe { &mut BUFFER[..] };
+                assert!(root_directory_size <= buffer.len());
+                let raw = &mut buffer[..root_directory_size];
+
+                self.disk
+                    .seek(SeekFrom::Start(self.bpb.root_directory_offset()));
+                self.disk.read_exact(raw);
+
+                raw.chunks(DIRECTORY_ENTRY_BYTES)
+                    .take_while(|raw_entry| raw_entry[0] != END_OF_DIRECTORY_PREFIX)
+                    .filter(|raw_entry| raw_entry[0] != UNUSED_ENTRY_PREFIX)
+                    .map(RawDirectoryEntry::parse)
             }
         }
     }
@@ -158,4 +195,96 @@ enum FatType {
     Fat12,
     Fat16,
     Fat32,
+}
+
+#[derive(Debug)]
+struct RawDirectoryEntryNormal<'a> {
+    short_filename_main: &'a str,
+    short_filename_extension: &'a str,
+    attributes: u8,
+    first_cluster: u32,
+    file_size: u32,
+}
+
+#[derive(Debug)]
+struct RawDirectoryEntryLongName<'a> {
+    order: u8,
+    name_1: &'a [u8],
+    name_2: &'a [u8],
+    name_3: &'a [u8],
+    attributes: u8,
+    checksum: u8,
+}
+
+impl<'a> RawDirectoryEntryLongName<'a> {
+    pub fn name(&self) -> impl Iterator<Item = Result<char, DecodeUtf16Error>> + 'a {
+        let iter = self
+            .name_1
+            .chunks(2)
+            .chain(self.name_2.chunks(2))
+            .chain(self.name_3.chunks(2))
+            .map(|c| u16::from_le_bytes(c.try_into().unwrap()))
+            .take_while(|&c| c != 0);
+        char::decode_utf16(iter)
+    }
+}
+
+#[derive(Debug)]
+enum RawDirectoryEntry<'a> {
+    Normal(RawDirectoryEntryNormal<'a>),
+    LongName(RawDirectoryEntryLongName<'a>),
+}
+
+impl<'a> RawDirectoryEntry<'a> {
+    fn parse(raw: &'a [u8]) -> Result<Self, ()> {
+        let attributes = raw[11];
+        if attributes == directory_attributes::LONG_NAME {
+            let order = raw[0];
+            let name_1 = &raw[1..11];
+            let checksum = raw[13];
+            let name_2 = &raw[14..26];
+            let name_3 = &raw[28..32];
+
+            Ok(Self::LongName(RawDirectoryEntryLongName {
+                order,
+                name_1,
+                name_2,
+                name_3,
+                attributes,
+                checksum,
+            }))
+        } else {
+            fn slice_to_string(slice: &[u8]) -> Result<&str, ()> {
+                const SKIP_SPACE: u8 = 0x20;
+                let mut iter = slice.into_iter().copied();
+                let start_idx = iter.position(|c| c != SKIP_SPACE).ok_or(())?;
+                let end_idx = start_idx + iter.position(|c| c == SKIP_SPACE).unwrap_or(slice.len());
+
+                core::str::from_utf8(&slice[start_idx..end_idx]).map_err(|_| ())
+            }
+            let short_filename_main = slice_to_string(&raw[0..8])?;
+            let short_filename_extension = slice_to_string(&raw[8..11])?;
+            let first_cluster_hi = u16::from_le_bytes(raw[20..22].try_into().unwrap());
+            let first_cluster_lo = u16::from_le_bytes(raw[26..28].try_into().unwrap());
+            let first_cluster = ((first_cluster_hi as u32) << 16) | (first_cluster_lo as u32);
+            let file_size = u32::from_le_bytes(raw[28..32].try_into().unwrap());
+            Ok(Self::Normal(RawDirectoryEntryNormal {
+                short_filename_main,
+                short_filename_extension,
+                attributes,
+                first_cluster,
+                file_size,
+            }))
+        }
+    }
+}
+
+mod directory_attributes {
+    pub const READ_ONLY: u8 = 0x01;
+    pub const HIDDEN: u8 = 0x02;
+    pub const SYSTEM: u8 = 0x04;
+    pub const VOLUME_ID: u8 = 0x08;
+    pub const DIRECTORY: u8 = 0x10;
+
+    pub const LONG_NAME: u8 = READ_ONLY | HIDDEN | SYSTEM | VOLUME_ID;
 }
