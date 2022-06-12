@@ -62,6 +62,12 @@ codegen-units = 1
 debug = false
 overflow-checks = false
 
+[profile.second-stage]
+inherits = "release"
+opt-level = "s"
+codegen-units = 1
+debug = false
+
 [profile.test.package.test_kernel_higher_half]
 rustflags = [
     "-C",

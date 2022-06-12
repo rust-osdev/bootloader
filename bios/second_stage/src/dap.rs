@@ -1,4 +1,4 @@
-use core::arch::{asm, global_asm};
+use core::arch::asm;
 
 #[derive(Debug, Clone, Copy)]
 #[repr(packed)]

@@ -1,18 +1,15 @@
 use crate::{dap, screen, second_stage_end};
 use core::{fmt::Write as _, slice};
 
+#[derive(Clone)]
 pub struct DiskAccess {
     pub disk_number: u16,
     pub base_offset: u64,
     pub current_offset: u64,
 }
 
-impl fatfs::IoBase for DiskAccess {
-    type Error = ();
-}
-
-impl fatfs::Read for DiskAccess {
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
+impl Read for DiskAccess {
+    fn read_exact(&mut self, buf: &mut [u8]) {
         writeln!(screen::Writer, "read {} bytes", buf.len()).unwrap();
 
         let end_addr = self.base_offset + self.current_offset + u64::try_from(buf.len()).unwrap();
@@ -34,35 +31,37 @@ impl fatfs::Read for DiskAccess {
         buf.copy_from_slice(data);
 
         self.current_offset = end_addr;
-        Ok(buf.len())
     }
 }
 
-impl fatfs::Seek for DiskAccess {
-    fn seek(&mut self, pos: fatfs::SeekFrom) -> Result<u64, Self::Error> {
+impl Seek for DiskAccess {
+    fn seek(&mut self, pos: SeekFrom) -> u64 {
         writeln!(screen::Writer, "seek to {pos:?}").unwrap();
         match pos {
-            fatfs::SeekFrom::Start(offset) => {
+            SeekFrom::Start(offset) => {
                 self.current_offset = offset;
-                Ok(self.current_offset)
+                self.current_offset
             }
-            fatfs::SeekFrom::Current(offset) => {
+            SeekFrom::Current(offset) => {
                 self.current_offset = (i64::try_from(self.current_offset).unwrap() + offset)
                     .try_into()
                     .unwrap();
-                Ok(self.current_offset)
+                self.current_offset
             }
-            fatfs::SeekFrom::End(_) => Err(()),
         }
     }
 }
 
-impl fatfs::Write for DiskAccess {
-    fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
-        unimplemented!()
-    }
+pub trait Read {
+    fn read_exact(&mut self, buf: &mut [u8]);
+}
 
-    fn flush(&mut self) -> Result<(), Self::Error> {
-        unimplemented!()
-    }
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SeekFrom {
+    Start(u64),
+    Current(i64),
+}
+
+pub trait Seek {
+    fn seek(&mut self, pos: SeekFrom) -> u64;
 }

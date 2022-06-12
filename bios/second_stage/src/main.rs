@@ -3,14 +3,15 @@
 
 use byteorder::{ByteOrder, LittleEndian};
 use core::{fmt::Write as _, slice};
-use fatfs::{FsOptions, Read};
-use mbr_nostd::{MasterBootRecord, PartitionTable, PartitionTableEntry, PartitionType};
+use disk::Read;
+use mbr_nostd::{PartitionTableEntry, PartitionType};
 
 mod dap;
 mod disk;
 mod fat;
+// mod fat_old;
 // mod fat_bpb;
-mod mini_fat;
+// mod mini_fat;
 mod screen;
 
 /// We use this partition type to store the second bootloader stage;
@@ -68,20 +69,17 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
         current_offset: 0,
     };
 
-    let mut buffer = [0u8; 512];
-    disk.read_exact(&mut buffer).unwrap();
+    let mut fs = fat::FileSystem::parse(disk.clone());
+    let kernel = fs
+        .lookup_file("kernel-x86_64")
+        .expect("no `kernel-x86_64` file found");
     screen::print_char(b'2');
 
-    let boot_sector = mini_fat::Bpb::parse(&buffer).unwrap();
-    loop {}
-    writeln!(screen::Writer, "BPB: {boot_sector:?}").unwrap();
-
+    let mut buffer = [0u8; 512];
+    disk.read_exact(&mut buffer);
     screen::print_char(b'3');
 
-    panic!("foo");
-    let fat = fatfs::FileSystem::new(disk, FsOptions::new().update_accessed_date(false)).unwrap();
-    screen::print_char(b'2');
-
+    let kernel_first_cluster = todo!();
     loop {}
 
     // try to parse FAT file system

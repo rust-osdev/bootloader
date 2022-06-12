@@ -1,235 +1,161 @@
-// based on https://github.com/rafalh/rust-fatfs/
+// based on https://crates.io/crates/mini_fat
 
-use super::split_array_ref;
+use crate::disk::Read;
 
-// Size of single directory entry in bytes
-const DIR_ENTRY_SIZE: u32 = 32;
+const DIRECTORY_ENTRY_BYTES: usize = 32;
+const UNUSED_ENTRY_PREFIX: u8 = 0xE5;
+const END_OF_DIRECTORY_PREFIX: u8 = 0;
 
-pub(crate) struct BootSector {
-    pub(crate) bpb: BiosParameterBlock,
+pub struct File {
+    first_cluster: u32,
+    file_size: u32,
 }
 
-impl BootSector {
-    pub(crate) fn deserialize(bytes: &[u8]) -> Self {
-        let mut boot = Self::default();
-        // let (&bootjmp, bytes) = split_array_ref(bytes);
-        // let (&oem_name, bytes) = split_array_ref(bytes);
-
-        let bytes = &bytes[3 + 8..];
-
-        // boot.bootjmp = bootjmp;
-        // boot.oem_name = oem_name;
-        boot.bpb = BiosParameterBlock::deserialize(bytes);
-
-        // let bytes = if boot.bpb.is_fat32() {
-        //     let (boot_code, bytes): (&[_; 420], _) = split_array_ref(bytes);
-        //     boot.boot_code[0..420].copy_from_slice(&boot_code[..]);
-        //     bytes
-        // } else {
-        //     let (&boot_code, bytes) = split_array_ref(bytes);
-        //     boot.boot_code = boot_code;
-        //     bytes
-        // };
-        // let (&boot_sig, bytes) = split_array_ref(bytes);
-        // boot.boot_sig = boot_sig;
-        boot
+impl File {
+    pub fn file_size(&self) -> u32 {
+        self.file_size
     }
 }
 
-impl Default for BootSector {
-    fn default() -> Self {
+struct Bpb {
+    bytes_per_sector: u16,
+    sectors_per_cluster: u8,
+    reserved_sector_count: u16,
+    num_fats: u8,
+    root_entry_count: u16,
+    total_sectors_16: u16,
+    fat_size_16: u16,
+    total_sectors_32: u32,
+    fat_size_32: u32,
+    root_cluster: u32,
+}
+
+impl Bpb {
+    fn parse<D: Read>(disk: &mut D) -> Self {
+        let mut raw = [0u8; 512];
+        disk.read_exact(&mut raw);
+
+        let bytes_per_sector = u16::from_le_bytes(raw[11..13].try_into().unwrap());
+        let sectors_per_cluster = raw[13];
+        let reserved_sector_count = u16::from_le_bytes(raw[14..16].try_into().unwrap());
+        let num_fats = raw[16];
+        let root_entry_count = u16::from_le_bytes(raw[17..19].try_into().unwrap());
+        let fat_size_16 = u16::from_le_bytes(raw[22..24].try_into().unwrap());
+
+        let total_sectors_16 = u16::from_le_bytes(raw[19..21].try_into().unwrap());
+        let total_sectors_32 = u32::from_le_bytes(raw[32..36].try_into().unwrap());
+
+        let root_cluster;
+        let fat_size_32;
+
+        if (total_sectors_16 == 0) && (total_sectors_32 != 0) {
+            // FAT32
+            fat_size_32 = u32::from_le_bytes(raw[36..40].try_into().unwrap());
+            root_cluster = u32::from_le_bytes(raw[44..48].try_into().unwrap());
+        } else if (total_sectors_16 != 0) && (total_sectors_32 == 0) {
+            // FAT12 or FAT16
+            fat_size_32 = 0;
+            root_cluster = 0;
+        } else {
+            panic!("ExactlyOneTotalSectorsFieldMustBeZero");
+        }
+
         Self {
-            bpb: BiosParameterBlock::default(),
-        }
-    }
-}
-
-#[derive(Default, Debug, Clone)]
-pub(crate) struct BiosParameterBlock {
-    pub(crate) bytes_per_sector: u16,
-    pub(crate) sectors_per_cluster: u8,
-    pub(crate) reserved_sectors: u16,
-    pub(crate) fats: u8,
-    pub(crate) root_entries: u16,
-    pub(crate) total_sectors_16: u16,
-    pub(crate) media: u8,
-    pub(crate) sectors_per_fat_16: u16,
-    pub(crate) sectors_per_track: u16,
-    pub(crate) heads: u16,
-    pub(crate) hidden_sectors: u32,
-    pub(crate) total_sectors_32: u32,
-
-    // Extended BIOS Parameter Block
-    pub(crate) sectors_per_fat_32: u32,
-    pub(crate) extended_flags: u16,
-    pub(crate) fs_version: u16,
-    pub(crate) root_dir_first_cluster: u32,
-    pub(crate) fs_info_sector: u16,
-    pub(crate) backup_boot_sector: u16,
-    pub(crate) reserved_0: [u8; 12],
-    pub(crate) drive_num: u8,
-    pub(crate) reserved_1: u8,
-    pub(crate) ext_sig: u8,
-    pub(crate) volume_id: u32,
-    pub(crate) volume_label: [u8; 11],
-    pub(crate) fs_type_label: [u8; 8],
-}
-
-impl BiosParameterBlock {
-    pub fn deserialize(bytes: &[u8]) -> Self {
-        let (&bytes_per_sector, bytes) = split_array_ref(bytes);
-        let (&[sectors_per_cluster], bytes) = split_array_ref(bytes);
-        let (&reserved_sectors, bytes) = split_array_ref(bytes);
-        let (&[fats], bytes) = split_array_ref(bytes);
-        let (&root_entries, bytes) = split_array_ref(bytes);
-        let (&total_sectors_16, bytes) = split_array_ref(bytes);
-        let (&[media], bytes) = split_array_ref(bytes);
-        let (&sectors_per_fat_16, bytes) = split_array_ref(bytes);
-        let (&sectors_per_track, bytes) = split_array_ref(bytes);
-        let (&heads, bytes) = split_array_ref(bytes);
-        let (&hidden_sectors, bytes) = split_array_ref(bytes);
-        let (&total_sectors_32, bytes) = split_array_ref(bytes);
-
-        let mut bpb = Self {
-            bytes_per_sector: u16::from_le_bytes(bytes_per_sector),
+            bytes_per_sector,
             sectors_per_cluster,
-            reserved_sectors: u16::from_le_bytes(reserved_sectors),
-            fats,
-            root_entries: u16::from_le_bytes(root_entries),
-            total_sectors_16: u16::from_le_bytes(total_sectors_16),
-            media,
-            sectors_per_fat_16: u16::from_le_bytes(sectors_per_fat_16),
-            sectors_per_track: u16::from_le_bytes(sectors_per_track),
-            heads: u16::from_le_bytes(heads),
-            hidden_sectors: u32::from_le_bytes(hidden_sectors),
-            total_sectors_32: u32::from_le_bytes(total_sectors_32),
-            ..Self::default()
-        };
-
-        let (&sectors_per_fat_32, bytes) = split_array_ref(bytes);
-        let (&extended_flags, bytes) = split_array_ref(bytes);
-        let (&fs_version, bytes) = split_array_ref(bytes);
-        let (&root_dir_first_cluster, bytes) = split_array_ref(bytes);
-        let (&fs_info_sector, bytes) = split_array_ref(bytes);
-        let (&backup_boot_sector, bytes) = split_array_ref(bytes);
-        let (&reserved_0, bytes) = split_array_ref(bytes);
-
-        if bpb.is_fat32() {
-            bpb.sectors_per_fat_32 = u32::from_le_bytes(sectors_per_fat_32);
-            bpb.extended_flags = u16::from_le_bytes(extended_flags);
-            bpb.fs_version = u16::from_le_bytes(fs_version);
-            bpb.root_dir_first_cluster = u32::from_le_bytes(root_dir_first_cluster);
-            bpb.fs_info_sector = u16::from_le_bytes(fs_info_sector);
-            bpb.backup_boot_sector = u16::from_le_bytes(backup_boot_sector);
-            bpb.reserved_0 = reserved_0;
+            reserved_sector_count,
+            num_fats,
+            root_entry_count,
+            total_sectors_16,
+            fat_size_16,
+            total_sectors_32,
+            fat_size_32,
+            root_cluster,
         }
-
-        let (&[drive_num], bytes) = split_array_ref(bytes);
-        let (&[reserved_1], bytes) = split_array_ref(bytes);
-        let (&[ext_sig], bytes) = split_array_ref(bytes);
-        let (&volume_id, bytes) = split_array_ref(bytes);
-        let (&volume_label, bytes) = split_array_ref(bytes);
-        let (&fs_type_label, bytes) = split_array_ref(bytes);
-
-        bpb.drive_num = drive_num;
-        bpb.reserved_1 = reserved_1;
-        bpb.ext_sig = ext_sig; // 0x29
-        bpb.volume_id = u32::from_le_bytes(volume_id);
-        bpb.volume_label = volume_label;
-        bpb.fs_type_label = fs_type_label;
-
-        // when the extended boot signature is anything other than 0x29, the fields are invalid
-        if bpb.ext_sig != 0x29 {
-            // fields after ext_sig are not used - clean them
-            bpb.volume_id = 0;
-            bpb.volume_label = [0; 11];
-            bpb.fs_type_label = [0; 8];
-        }
-
-        bpb
     }
 
-    pub(crate) fn is_fat32(&self) -> bool {
-        // because this field must be zero on FAT32, and
-        // because it must be non-zero on FAT12/FAT16,
-        // this provides a simple way to detect FAT32
-        self.sectors_per_fat_16 == 0
-    }
-
-    pub(crate) fn sectors_per_fat(&self) -> u32 {
-        if self.is_fat32() {
-            self.sectors_per_fat_32
+    fn fat_size_in_sectors(&self) -> u32 {
+        if self.fat_size_16 != 0 && self.fat_size_32 == 0 {
+            self.fat_size_16 as u32
         } else {
-            u32::from(self.sectors_per_fat_16)
+            debug_assert!(self.fat_size_16 == 0 && self.fat_size_32 != 0);
+            self.fat_size_32
         }
     }
 
-    pub(crate) fn total_sectors(&self) -> u32 {
-        if self.total_sectors_16 == 0 {
+    fn count_of_clusters(&self) -> u32 {
+        let root_dir_sectors = ((self.root_entry_count as u32 * 32)
+            + (self.bytes_per_sector as u32 - 1))
+            / self.bytes_per_sector as u32;
+        let total_sectors = if self.total_sectors_16 != 0 {
+            self.total_sectors_16 as u32
+        } else {
             self.total_sectors_32
-        } else {
-            u32::from(self.total_sectors_16)
-        }
+        };
+        let data_sectors = total_sectors
+            - (self.reserved_sector_count as u32
+                + (self.num_fats as u32 * self.fat_size_in_sectors())
+                + root_dir_sectors);
+        data_sectors / self.sectors_per_cluster as u32
     }
 
-    pub(crate) fn reserved_sectors(&self) -> u32 {
-        u32::from(self.reserved_sectors)
-    }
-
-    pub(crate) fn root_dir_sectors(&self) -> u32 {
-        let root_dir_bytes = u32::from(self.root_entries) * DIR_ENTRY_SIZE;
-        (root_dir_bytes + u32::from(self.bytes_per_sector) - 1) / u32::from(self.bytes_per_sector)
-    }
-
-    pub(crate) fn sectors_per_all_fats(&self) -> u32 {
-        u32::from(self.fats) * self.sectors_per_fat()
-    }
-
-    pub(crate) fn first_data_sector(&self) -> u32 {
-        let root_dir_sectors = self.root_dir_sectors();
-        let fat_sectors = self.sectors_per_all_fats();
-        self.reserved_sectors() + fat_sectors + root_dir_sectors
-    }
-
-    pub(crate) fn total_clusters(&self) -> u32 {
-        let total_sectors = self.total_sectors();
-        let first_data_sector = self.first_data_sector();
-        let data_sectors = total_sectors - first_data_sector;
-        data_sectors / u32::from(self.sectors_per_cluster)
-    }
-
-    pub fn fat_type(&self) -> FatType {
-        FatType::from_clusters(self.total_clusters())
-    }
-
-    /// Returns a root directory object allowing for futher penetration of a filesystem structure.
-    pub fn check_root_dir(&self) {
-        panic!("check_root_dir: fat type {:?}", self.fat_type())
-    }
-}
-
-#[derive(Debug)]
-pub enum FatType {
-    /// 12 bits per FAT entry
-    Fat12,
-    /// 16 bits per FAT entry
-    Fat16,
-    /// 32 bits per FAT entry
-    Fat32,
-}
-
-impl FatType {
-    const FAT16_MIN_CLUSTERS: u32 = 4085;
-    const FAT32_MIN_CLUSTERS: u32 = 65525;
-    const FAT32_MAX_CLUSTERS: u32 = 0x0FFF_FFF4;
-
-    pub(crate) fn from_clusters(total_clusters: u32) -> Self {
-        if total_clusters < Self::FAT16_MIN_CLUSTERS {
+    fn fat_type(&self) -> FatType {
+        let count_of_clusters = self.count_of_clusters();
+        if count_of_clusters < 4085 {
             FatType::Fat12
-        } else if total_clusters < Self::FAT32_MIN_CLUSTERS {
+        } else if count_of_clusters < 65525 {
             FatType::Fat16
         } else {
             FatType::Fat32
         }
     }
+
+    fn root_directory_size(&self) -> usize {
+        if self.fat_type() == FatType::Fat32 {
+            debug_assert_eq!(self.root_entry_count, 0);
+        }
+        self.root_entry_count as usize * DIRECTORY_ENTRY_BYTES
+    }
+
+    fn root_directory_offset(&self) -> u64 {
+        (self.reserved_sector_count as u64 + (self.num_fats as u64 * self.fat_size_16 as u64))
+            * self.bytes_per_sector as u64
+    }
+}
+
+pub struct FileSystem<D> {
+    disk: D,
+    bpb: Bpb,
+}
+
+impl<D: Read> FileSystem<D> {
+    pub fn parse(mut disk: D) -> Self {
+        Self {
+            bpb: Bpb::parse(&mut disk),
+            disk,
+        }
+    }
+
+    pub fn lookup_file(&mut self, path: &str) -> Option<File> {
+        todo!();
+    }
+
+    fn read_root_dir(&mut self) {
+        match self.bpb.fat_type() {
+            FatType::Fat32 => {
+                self.bpb.root_cluster;
+            }
+            FatType::Fat12 | FatType::Fat16 => {
+                self.bpb.root_directory_offset();
+                self.bpb.root_directory_size();
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum FatType {
+    Fat12,
+    Fat16,
+    Fat32,
 }

@@ -60,7 +60,7 @@ dependencies = [
  "anyhow",
  "bootloader-x86_64-bios",
  "bootloader_test_runner",
- "fatfs 0.3.5",
+ "fatfs",
  "gpt",
  "llvm-tools",
  "mbrman",
@@ -91,7 +91,6 @@ name = "bootloader-x86_64-bios-second-stage"
 version = "0.1.0"
 dependencies = [
  "byteorder",
- "fatfs 0.4.0",
  "mbr-nostd",
 ]
 
@@ -203,15 +202,6 @@ dependencies = [
  "bitflags",
  "byteorder",
  "chrono",
- "log",
-]
-
-[[package]]
-name = "fatfs"
-version = "0.4.0"
-source = "git+https://github.com/rafalh/rust-fatfs.git#4892fb1791b29616d8573235eb83644003d13791"
-dependencies = [
- "bitflags",
  "log",
 ]
 
