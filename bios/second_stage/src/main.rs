@@ -77,6 +77,16 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
         .expect("no `kernel-x86_64` file found");
     screen::print_char(b'4');
 
+    // TODO: Retrieve memory map
+
+    // TODO: Set up protected mode, or unreal mode
+
+    // TODO: Load `kernel` to protected mode address
+
+    // TODO: Set up long mode with identity-mapping
+
+    // TODO: Load third stage that uses `bootloader-common` crate and jump to it
+
     loop {}
 }
 
