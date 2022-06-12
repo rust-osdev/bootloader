@@ -1,5 +1,5 @@
-use crate::{dap, screen, second_stage_end};
-use core::{fmt::Write as _, slice};
+use crate::{dap, screen};
+use core::fmt::Write as _;
 
 #[derive(Clone)]
 pub struct DiskAccess {
@@ -11,24 +11,36 @@ pub struct DiskAccess {
 impl Read for DiskAccess {
     fn read_exact(&mut self, buf: &mut [u8]) {
         writeln!(screen::Writer, "read {} bytes", buf.len()).unwrap();
+        assert_eq!(buf.len() % 512, 0);
 
         let end_addr = self.base_offset + self.current_offset + u64::try_from(buf.len()).unwrap();
-        let start_lba = (self.base_offset + self.current_offset) / 512;
+        let mut start_lba = (self.base_offset + self.current_offset) / 512;
         let end_lba = (end_addr - 1) / 512;
 
-        let target_addr = u16::try_from(second_stage_end() as usize).unwrap();
-        let dap = dap::DiskAddressPacket::from_lba(
-            target_addr,
-            start_lba,
-            u16::try_from(end_lba + 1 - start_lba).unwrap(),
-        );
-        writeln!(screen::Writer, "dap: {dap:?}").unwrap();
-        unsafe {
-            dap.perform_load(self.disk_number);
-        }
+        let mut number_of_sectors = end_lba + 1 - start_lba;
+        let mut target_addr = buf.as_ptr_range().start as u32;
 
-        let data = unsafe { slice::from_raw_parts(target_addr as *const u8, buf.len()) };
-        buf.copy_from_slice(data);
+        loop {
+            let sectors = u64::min(number_of_sectors, 32) as u16;
+            let dap = dap::DiskAddressPacket::from_lba(
+                start_lba,
+                sectors,
+                (target_addr & 0b1111) as u16,
+                (target_addr >> 4).try_into().unwrap(),
+            );
+            writeln!(screen::Writer, "dap: {dap:?}").unwrap();
+            unsafe {
+                dap.perform_load(self.disk_number);
+            }
+
+            start_lba += u64::from(sectors);
+            number_of_sectors -= u64::from(sectors);
+            target_addr = target_addr + u32::from(sectors) * 512;
+
+            if number_of_sectors == 0 {
+                break;
+            }
+        }
 
         self.current_offset = end_addr;
     }

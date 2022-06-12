@@ -38,7 +38,10 @@ struct Bpb {
 
 impl Bpb {
     fn parse<D: Read + Seek>(disk: &mut D) -> Self {
-        let mut raw = [0u8; 512];
+        let mut raw = {
+            let buffer = unsafe { &mut BUFFER[..] };
+            &mut buffer[..512]
+        };
         disk.read_exact(&mut raw);
 
         let bytes_per_sector = u16::from_le_bytes(raw[11..13].try_into().unwrap());
@@ -142,27 +145,50 @@ impl<D: Read + Seek> FileSystem<D> {
         }
     }
 
-    pub fn lookup_file(&mut self, path: &str) -> Option<File> {
-        let root = self.read_root_dir();
-        for entry in root {
-            write!(screen::Writer, "entry: ").unwrap();
-            match entry {
-                Ok(RawDirectoryEntry::Normal(entry)) => {
-                    writeln!(screen::Writer, "{}", entry.short_filename_main).unwrap();
+    pub fn find_file_in_root_dir(&mut self, name: &str) -> Option<File> {
+        let mut root_entries = self.read_root_dir().filter_map(|e| e.ok());
+        let raw_entry = root_entries.find(|e| e.eq_name(name))?;
+
+        let entry = match raw_entry {
+            RawDirectoryEntry::Normal(entry) => DirectoryEntry {
+                short_name: entry.short_filename_main,
+                short_name_extension: entry.short_filename_extension,
+                long_name_1: &[],
+                long_name_2: &[],
+                long_name_3: &[],
+                file_size: entry.file_size,
+                first_cluster: entry.first_cluster,
+                attributes: entry.attributes,
+            },
+            RawDirectoryEntry::LongName(long_name) => match root_entries.next() {
+                Some(RawDirectoryEntry::LongName(_)) => unimplemented!(),
+                Some(RawDirectoryEntry::Normal(entry)) => DirectoryEntry {
+                    short_name: entry.short_filename_main,
+                    short_name_extension: entry.short_filename_extension,
+                    long_name_1: long_name.name_1,
+                    long_name_2: long_name.name_2,
+                    long_name_3: long_name.name_3,
+                    file_size: entry.file_size,
+                    first_cluster: entry.first_cluster,
+                    attributes: entry.attributes,
+                },
+                None => {
+                    panic!("next none");
+                    return None;
                 }
-                Ok(RawDirectoryEntry::LongName(entry)) => {
-                    for c in entry.name() {
-                        match c {
-                            Ok(c) => write!(screen::Writer, "{c}").unwrap(),
-                            Err(_) => write!(screen::Writer, "X").unwrap(),
-                        }
-                    }
-                    writeln!(screen::Writer).unwrap();
-                }
-                Err(()) => writeln!(screen::Writer, "<failed to read>").unwrap(),
-            }
+            },
+        };
+
+        writeln!(screen::Writer, "entry: {entry:?}").unwrap();
+
+        if entry.is_directory() {
+            None
+        } else {
+            Some(File {
+                first_cluster: entry.first_cluster,
+                file_size: entry.file_size,
+            })
         }
-        todo!();
     }
 
     fn read_root_dir<'a>(&'a mut self) -> impl Iterator<Item = Result<RawDirectoryEntry, ()>> + 'a {
@@ -195,6 +221,76 @@ enum FatType {
     Fat12,
     Fat16,
     Fat32,
+}
+
+#[derive(Clone)]
+pub struct DirectoryEntry<'a> {
+    short_name: &'a str,
+    short_name_extension: &'a str,
+    long_name_1: &'a [u8],
+    long_name_2: &'a [u8],
+    long_name_3: &'a [u8],
+    file_size: u32,
+    first_cluster: u32,
+    attributes: u8,
+}
+
+impl<'a> DirectoryEntry<'a> {
+    pub fn name(&self) -> impl Iterator<Item = Result<char, DecodeUtf16Error>> + 'a {
+        let mut long_name = {
+            let iter = self
+                .long_name_1
+                .chunks(2)
+                .chain(self.long_name_2.chunks(2))
+                .chain(self.long_name_3.chunks(2))
+                .map(|c| u16::from_le_bytes(c.try_into().unwrap()))
+                .take_while(|&c| c != 0);
+            char::decode_utf16(iter).peekable()
+        };
+        let short_name = {
+            let iter = self.short_name.chars();
+            let extension_iter = {
+                let raw = ".".chars().chain(self.short_name_extension.chars());
+                raw.take(if self.short_name_extension.is_empty() {
+                    0
+                } else {
+                    self.short_name_extension.len() + 1
+                })
+            };
+            iter.chain(extension_iter).map(Ok)
+        };
+
+        if long_name.peek().is_some() {
+            long_name.chain(short_name.take(0))
+        } else {
+            long_name.chain(short_name.take(usize::MAX))
+        }
+    }
+
+    pub fn is_directory(&self) -> bool {
+        self.attributes & directory_attributes::DIRECTORY != 0
+    }
+}
+
+impl core::fmt::Debug for DirectoryEntry<'_> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        struct NamePrinter<'a>(&'a DirectoryEntry<'a>);
+        impl core::fmt::Debug for NamePrinter<'_> {
+            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                for char in self.0.name().filter_map(|e| e.ok()) {
+                    write!(f, "{char}")?;
+                }
+                Ok(())
+            }
+        }
+
+        f.debug_struct("DirectoryEntry")
+            .field("name", &NamePrinter(self))
+            .field("file_size", &self.file_size)
+            .field("first_cluster", &self.first_cluster)
+            .field("attributes", &self.attributes)
+            .finish()
+    }
 }
 
 #[derive(Debug)]
@@ -257,10 +353,14 @@ impl<'a> RawDirectoryEntry<'a> {
             fn slice_to_string(slice: &[u8]) -> Result<&str, ()> {
                 const SKIP_SPACE: u8 = 0x20;
                 let mut iter = slice.into_iter().copied();
-                let start_idx = iter.position(|c| c != SKIP_SPACE).ok_or(())?;
-                let end_idx = start_idx + iter.position(|c| c == SKIP_SPACE).unwrap_or(slice.len());
-
-                core::str::from_utf8(&slice[start_idx..end_idx]).map_err(|_| ())
+                match iter.position(|c| c != SKIP_SPACE) {
+                    Some(start_idx) => {
+                        let end_idx =
+                            start_idx + iter.position(|c| c == SKIP_SPACE).unwrap_or(slice.len());
+                        core::str::from_utf8(&slice[start_idx..end_idx]).map_err(|_| ())
+                    }
+                    None => Ok(""),
+                }
             }
             let short_filename_main = slice_to_string(&raw[0..8])?;
             let short_filename_extension = slice_to_string(&raw[8..11])?;
@@ -275,6 +375,17 @@ impl<'a> RawDirectoryEntry<'a> {
                 first_cluster,
                 file_size,
             }))
+        }
+    }
+
+    pub fn eq_name(&self, name: &str) -> bool {
+        match self {
+            RawDirectoryEntry::Normal(entry) => entry
+                .short_filename_main
+                .chars()
+                .chain(entry.short_filename_extension.chars())
+                .eq(name.chars()),
+            RawDirectoryEntry::LongName(entry) => entry.name().eq(name.chars().map(Ok)),
         }
     }
 }

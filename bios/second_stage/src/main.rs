@@ -3,7 +3,6 @@
 
 use byteorder::{ByteOrder, LittleEndian};
 use core::{fmt::Write as _, slice};
-use disk::Read;
 use mbr_nostd::{PartitionTableEntry, PartitionType};
 
 mod dap;
@@ -68,45 +67,15 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
         base_offset: u64::from(fat_partition.logical_block_address) * 512,
         current_offset: 0,
     };
-
-    let mut fs = fat::FileSystem::parse(disk.clone());
-    let kernel = fs
-        .lookup_file("kernel-x86_64")
-        .expect("no `kernel-x86_64` file found");
     screen::print_char(b'2');
 
-    let mut buffer = [0u8; 512];
-    disk.read_exact(&mut buffer);
+    let mut fs = fat::FileSystem::parse(disk.clone());
     screen::print_char(b'3');
 
-    let kernel_first_cluster = todo!();
-    loop {}
-
-    // try to parse FAT file system
-    // let fat_slice = unsafe {
-    //     slice::from_raw_parts(
-    //         partition_buf as *const u8,
-    //         usize::try_from(second_stage_partition.sector_count).unwrap_or_else(|_| fail(b'a'))
-    //             * 512,
-    //     )
-    // };
-
-    // print_char(b'4');
-    // let boot_sector = fat::BootSector::deserialize(fat_slice);
-    // let root_dir = boot_sector.bpb.root_dir_first_cluster;
-    // boot_sector.bpb.check_root_dir();
-
-    // print_char(b'5');
-
-    // TODO: get root dir
-
-    // TODO: get offset of `second_stage` file
-
-    // TODO: get offset of `kernel-x86_64` file
-
-    // TODO: load `second_stage` file into memory
-
-    // TODO: jump to `second_stage`, pass offset of `kernel-x86_64` and disk number as arguments
+    let kernel = fs
+        .find_file_in_root_dir("kernel-x86_64")
+        .expect("no `kernel-x86_64` file found");
+    screen::print_char(b'4');
 
     loop {}
 }
