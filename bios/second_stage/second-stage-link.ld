@@ -6,11 +6,17 @@ SECTIONS {
     .start : {
         *(.start)
     }
-    .rodata : {
+    .text : ALIGN(512) {
+        *(.text .text.*)
+    }
+    .rodata : ALIGN(512) {
         *(.rodata .rodata.*)
     }
-    .text : {
-        *(.text .text.*)
+    .bss : ALIGN(512) {
+        *(.bss .bss.*)
+    }
+    .data : ALIGN(512) {
+        *(.data .data.*)
     }
 
     . = ALIGN(512);
