@@ -16,5 +16,5 @@
 	"panic-strategy": "abort",
 	"os": "none",
 	"vendor": "unknown",
-	"relocation-model": "static"
+	"relocation-model": "pie"
 }
