@@ -237,13 +237,19 @@ impl<D: Read + Seek> FileSystem<D> {
     pub fn file_clusters<'a>(
         &'a mut self,
         file: &File,
-    ) -> impl Iterator<Item = Result<u32, ()>> + 'a {
+    ) -> impl Iterator<Item = Result<Cluster, ()>> + 'a {
         Traverser {
             current_entry: file.first_cluster,
             bpb: &self.bpb,
             disk: &mut self.disk,
         }
     }
+}
+
+#[derive(Debug)]
+pub struct Cluster {
+    pub start_offset: u64,
+    pub len_bytes: u32,
 }
 
 struct Traverser<'a, D> {
@@ -256,7 +262,7 @@ impl<D> Traverser<'_, D>
 where
     D: Read + Seek,
 {
-    fn next_cluster(&mut self) -> Result<Option<u32>, ()> {
+    fn next_cluster(&mut self) -> Result<Option<Cluster>, ()> {
         let entry = classify_fat_entry(
             self.bpb.fat_type(),
             self.current_entry,
@@ -269,20 +275,14 @@ where
         };
         let cluster_start =
             self.bpb.data_offset() + (u64::from(entry) - 2) * self.bpb.bytes_per_cluster() as u64;
-        // handle_read(
-        //     self.traverser.handle,
-        //     cluster_start,
-        //     self.traverser.bpb.bytes_per_cluster() as usize,
-        //     &mut self.traverser.buf,
-        // )?;
-        // if let Some(t) = f(&self.traverser.buf) {
-        //     break Ok(Some(t));
-        // }
         let next_entry =
             fat_entry_of_nth_cluster(self.disk, self.bpb.fat_type(), self.bpb.fat_offset(), entry);
         self.current_entry = next_entry;
 
-        Ok(Some(entry))
+        Ok(Some(Cluster {
+            start_offset: cluster_start,
+            len_bytes: self.bpb.bytes_per_cluster(),
+        }))
     }
 }
 
@@ -290,7 +290,7 @@ impl<D> Iterator for Traverser<'_, D>
 where
     D: Read + Seek,
 {
-    type Item = Result<u32, ()>;
+    type Item = Result<Cluster, ()>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.next_cluster().transpose()
