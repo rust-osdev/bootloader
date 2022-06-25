@@ -27,7 +27,7 @@ fn second_stage_end() -> *const u8 {
 #[no_mangle]
 #[link_section = ".start"]
 pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
-    write!(screen::Writer, "\nSECOND STAGE: ").unwrap();
+    writeln!(screen::Writer, " -> SECOND STAGE").unwrap();
 
     // parse partition table
     let partitions = {
@@ -59,7 +59,6 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
         fat_partition.partition_type,
         PartitionType::Fat12(_) | PartitionType::Fat16(_) | PartitionType::Fat32(_)
     ));
-    writeln!(screen::Writer, "1").unwrap();
 
     // load fat partition
     let mut disk = disk::DiskAccess {
@@ -67,19 +66,25 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
         base_offset: u64::from(fat_partition.logical_block_address) * 512,
         current_offset: 0,
     };
-    writeln!(screen::Writer, "2").unwrap();
 
     let mut fs = fat::FileSystem::parse(disk.clone());
-    writeln!(screen::Writer, "3").unwrap();
 
     let kernel = fs
         .find_file_in_root_dir("kernel-x86_64")
         .expect("no `kernel-x86_64` file found");
-    writeln!(screen::Writer, "4").unwrap();
 
     for cluster in fs.file_clusters(&kernel) {
-        writeln!(screen::Writer, "kernel cluster: {cluster:?}").unwrap();
+        let cluster = cluster.unwrap();
+        writeln!(
+            screen::Writer,
+            "kernel cluster: start: {:#x}, len: {}",
+            cluster.start_offset,
+            cluster.len_bytes
+        )
+        .unwrap();
     }
+
+    writeln!(screen::Writer, "DONE").unwrap();
 
     // TODO: Retrieve memory map
 

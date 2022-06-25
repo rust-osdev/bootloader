@@ -10,7 +10,6 @@ pub struct DiskAccess {
 
 impl Read for DiskAccess {
     fn read_exact(&mut self, input_buf: &mut [u8]) {
-        writeln!(screen::Writer, "read {} bytes", input_buf.len()).unwrap();
         static mut TMP_BUF: [u8; 512] = [0; 512];
         let tmp_buf = unsafe { &mut TMP_BUF[..] };
         let (buf, copy_needed) = if input_buf.len() >= tmp_buf.len() {
@@ -35,7 +34,6 @@ impl Read for DiskAccess {
                 (target_addr & 0b1111) as u16,
                 (target_addr >> 4).try_into().unwrap(),
             );
-            writeln!(screen::Writer, "dap: {dap:?}").unwrap();
             unsafe {
                 dap.perform_load(self.disk_number);
             }
@@ -57,14 +55,11 @@ impl Read for DiskAccess {
                 input_buf[i] = tmp_buf[i];
             }
         }
-
-        writeln!(screen::Writer, "read {} bytes done", input_buf.len()).unwrap();
     }
 }
 
 impl Seek for DiskAccess {
     fn seek(&mut self, pos: SeekFrom) -> u64 {
-        writeln!(screen::Writer, "seek to {pos:?}").unwrap();
         match pos {
             SeekFrom::Start(offset) => {
                 self.current_offset = offset;
