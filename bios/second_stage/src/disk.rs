@@ -9,8 +9,15 @@ pub struct DiskAccess {
 }
 
 impl Read for DiskAccess {
-    fn read_exact(&mut self, buf: &mut [u8]) {
-        writeln!(screen::Writer, "read {} bytes", buf.len()).unwrap();
+    fn read_exact(&mut self, input_buf: &mut [u8]) {
+        writeln!(screen::Writer, "read {} bytes", input_buf.len()).unwrap();
+        static mut TMP_BUF: [u8; 512] = [0; 512];
+        let tmp_buf = unsafe { &mut TMP_BUF[..] };
+        let (buf, copy_needed) = if input_buf.len() >= tmp_buf.len() {
+            (&mut input_buf[..], false)
+        } else {
+            (&mut tmp_buf[..], true)
+        };
         assert_eq!(buf.len() % 512, 0);
 
         let end_addr = self.base_offset + self.current_offset + u64::try_from(buf.len()).unwrap();
@@ -43,6 +50,15 @@ impl Read for DiskAccess {
         }
 
         self.current_offset = end_addr;
+
+        if copy_needed {
+            let len = input_buf.len();
+            for i in 0..len {
+                input_buf[i] = tmp_buf[i];
+            }
+        }
+
+        writeln!(screen::Writer, "read {} bytes done", input_buf.len()).unwrap();
     }
 }
 

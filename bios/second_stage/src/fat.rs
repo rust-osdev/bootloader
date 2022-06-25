@@ -1,4 +1,4 @@
-// based on https://crates.io/crates/mini_fat
+// based on https://crates.io/crates/mini_fat by https://github.com/gridbugs
 
 use crate::{
     disk::{Read, Seek, SeekFrom},
@@ -9,8 +9,6 @@ use core::{char::DecodeUtf16Error, fmt::Write as _};
 const DIRECTORY_ENTRY_BYTES: usize = 32;
 const UNUSED_ENTRY_PREFIX: u8 = 0xE5;
 const END_OF_DIRECTORY_PREFIX: u8 = 0;
-
-static mut BUFFER: [u8; 0x4000] = [0; 0x4000];
 
 pub struct File {
     first_cluster: u32,
@@ -38,8 +36,9 @@ struct Bpb {
 
 impl Bpb {
     fn parse<D: Read + Seek>(disk: &mut D) -> Self {
+        static mut BPB_BUFFER: [u8; 512] = [0; 512];
         let mut raw = {
-            let buffer = unsafe { &mut BUFFER[..] };
+            let buffer = unsafe { &mut BPB_BUFFER[..] };
             &mut buffer[..512]
         };
         disk.read_exact(&mut raw);
@@ -130,6 +129,25 @@ impl Bpb {
         (self.reserved_sector_count as u64 + (self.num_fats as u64 * self.fat_size_16 as u64))
             * self.bytes_per_sector as u64
     }
+
+    fn maximum_valid_cluster(&self) -> u32 {
+        self.count_of_clusters() + 1
+    }
+
+    fn fat_offset(&self) -> u64 {
+        self.reserved_sector_count as u64 * self.bytes_per_sector as u64
+    }
+
+    fn data_offset(&self) -> u64 {
+        self.root_directory_size() as u64
+            + ((self.reserved_sector_count as u64
+                + self.fat_size_in_sectors() as u64 * self.num_fats as u64)
+                * self.bytes_per_sector as u64)
+    }
+
+    pub fn bytes_per_cluster(&self) -> u32 {
+        self.bytes_per_sector as u32 * self.sectors_per_cluster as u32
+    }
 }
 
 pub struct FileSystem<D> {
@@ -199,7 +217,8 @@ impl<D: Read + Seek> FileSystem<D> {
             }
             FatType::Fat12 | FatType::Fat16 => {
                 let root_directory_size = self.bpb.root_directory_size();
-                let buffer = unsafe { &mut BUFFER[..] };
+                static mut ROOT_DIR_BUFFER: [u8; 0x4000] = [0; 0x4000];
+                let buffer = unsafe { &mut ROOT_DIR_BUFFER[..] };
                 assert!(root_directory_size <= buffer.len());
                 let raw = &mut buffer[..root_directory_size];
 
@@ -214,6 +233,68 @@ impl<D: Read + Seek> FileSystem<D> {
             }
         }
     }
+
+    pub fn file_clusters<'a>(
+        &'a mut self,
+        file: &File,
+    ) -> impl Iterator<Item = Result<u32, ()>> + 'a {
+        Traverser {
+            current_entry: file.first_cluster,
+            bpb: &self.bpb,
+            disk: &mut self.disk,
+        }
+    }
+}
+
+struct Traverser<'a, D> {
+    disk: &'a mut D,
+    current_entry: u32,
+    bpb: &'a Bpb,
+}
+
+impl<D> Traverser<'_, D>
+where
+    D: Read + Seek,
+{
+    fn next_cluster(&mut self) -> Result<Option<u32>, ()> {
+        let entry = classify_fat_entry(
+            self.bpb.fat_type(),
+            self.current_entry,
+            self.bpb.maximum_valid_cluster(),
+        )
+        .map_err(|_| ())?;
+        let entry = match entry {
+            FileFatEntry::AllocatedCluster(cluster) => cluster,
+            FileFatEntry::EndOfFile => return Ok(None),
+        };
+        let cluster_start =
+            self.bpb.data_offset() + (u64::from(entry) - 2) * self.bpb.bytes_per_cluster() as u64;
+        // handle_read(
+        //     self.traverser.handle,
+        //     cluster_start,
+        //     self.traverser.bpb.bytes_per_cluster() as usize,
+        //     &mut self.traverser.buf,
+        // )?;
+        // if let Some(t) = f(&self.traverser.buf) {
+        //     break Ok(Some(t));
+        // }
+        let next_entry =
+            fat_entry_of_nth_cluster(self.disk, self.bpb.fat_type(), self.bpb.fat_offset(), entry);
+        self.current_entry = next_entry;
+
+        Ok(Some(entry))
+    }
+}
+
+impl<D> Iterator for Traverser<'_, D>
+where
+    D: Read + Seek,
+{
+    type Item = Result<u32, ()>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.next_cluster().transpose()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -221,6 +302,16 @@ enum FatType {
     Fat12,
     Fat16,
     Fat32,
+}
+
+impl FatType {
+    fn fat_entry_defective(self) -> u32 {
+        match self {
+            Self::Fat12 => 0xFF7,
+            Self::Fat16 => 0xFFF7,
+            Self::Fat32 => 0x0FFFFFF7,
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -398,4 +489,74 @@ mod directory_attributes {
     pub const DIRECTORY: u8 = 0x10;
 
     pub const LONG_NAME: u8 = READ_ONLY | HIDDEN | SYSTEM | VOLUME_ID;
+}
+
+fn classify_fat_entry(
+    fat_type: FatType,
+    entry: u32,
+    maximum_valid_cluster: u32,
+) -> Result<FileFatEntry, FatLookupError> {
+    match entry {
+        0 => Err(FatLookupError::FreeCluster),
+        1 => Err(FatLookupError::UnspecifiedEntryOne),
+        entry => {
+            if entry <= maximum_valid_cluster {
+                Ok(FileFatEntry::AllocatedCluster(entry))
+            } else if entry < fat_type.fat_entry_defective() {
+                Err(FatLookupError::ReservedEntry)
+            } else if entry == fat_type.fat_entry_defective() {
+                Err(FatLookupError::DefectiveCluster)
+            } else {
+                Ok(FileFatEntry::EndOfFile)
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum FatLookupError {
+    FreeCluster,
+    DefectiveCluster,
+    UnspecifiedEntryOne,
+    ReservedEntry,
+}
+
+enum FileFatEntry {
+    AllocatedCluster(u32),
+    EndOfFile,
+}
+
+fn fat_entry_of_nth_cluster<D>(disk: &mut D, fat_type: FatType, fat_start: u64, n: u32) -> u32
+where
+    D: Seek + Read,
+{
+    debug_assert!(n >= 2);
+    match fat_type {
+        FatType::Fat32 => {
+            let base = n as u64 * 4;
+            disk.seek(SeekFrom::Start(fat_start + base));
+            let mut buf = [0; 4];
+            disk.read_exact(&mut buf);
+            u32::from_le_bytes(buf) & 0x0FFFFFFF
+        }
+        FatType::Fat16 => {
+            let base = n as u64 * 2;
+            disk.seek(SeekFrom::Start(fat_start + base));
+            let mut buf = [0; 2];
+            disk.read_exact(&mut buf);
+            u16::from_le_bytes(buf) as u32
+        }
+        FatType::Fat12 => {
+            let base = n as u64 + (n as u64 / 2);
+            disk.seek(SeekFrom::Start(fat_start + base));
+            let mut buf = [0; 2];
+            disk.read_exact(&mut buf);
+            let entry16 = u16::from_le_bytes(buf);
+            if n & 1 == 0 {
+                (entry16 & 0xFFF) as u32
+            } else {
+                (entry16 >> 4) as u32
+            }
+        }
+    }
 }

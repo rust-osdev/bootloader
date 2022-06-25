@@ -59,7 +59,7 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
         fat_partition.partition_type,
         PartitionType::Fat12(_) | PartitionType::Fat16(_) | PartitionType::Fat32(_)
     ));
-    screen::print_char(b'1');
+    writeln!(screen::Writer, "1").unwrap();
 
     // load fat partition
     let mut disk = disk::DiskAccess {
@@ -67,15 +67,19 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
         base_offset: u64::from(fat_partition.logical_block_address) * 512,
         current_offset: 0,
     };
-    screen::print_char(b'2');
+    writeln!(screen::Writer, "2").unwrap();
 
     let mut fs = fat::FileSystem::parse(disk.clone());
-    screen::print_char(b'3');
+    writeln!(screen::Writer, "3").unwrap();
 
     let kernel = fs
         .find_file_in_root_dir("kernel-x86_64")
         .expect("no `kernel-x86_64` file found");
-    screen::print_char(b'4');
+    writeln!(screen::Writer, "4").unwrap();
+
+    for cluster in fs.file_clusters(&kernel) {
+        writeln!(screen::Writer, "kernel cluster: {cluster:?}").unwrap();
+    }
 
     // TODO: Retrieve memory map
 
