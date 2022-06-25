@@ -48,6 +48,7 @@ fn build_uefi_bootloader(out_dir: &Path) -> PathBuf {
         .arg("-Zbuild-std-features=compiler-builtins-mem");
     cmd.arg("--root").arg(out_dir);
     cmd.env_remove("RUSTFLAGS");
+    cmd.env_remove("CARGO_ENCODED_RUSTFLAGS");
     let status = cmd
         .status()
         .expect("failed to run cargo install for uefi bootloader");
@@ -85,6 +86,7 @@ fn build_bios_boot_sector(out_dir: &Path) -> PathBuf {
         .arg("-Zbuild-std-features=compiler-builtins-mem");
     cmd.arg("--root").arg(out_dir);
     cmd.env_remove("RUSTFLAGS");
+    cmd.env_remove("CARGO_ENCODED_RUSTFLAGS");
     cmd.env_remove("RUSTC_WORKSPACE_WRAPPER"); // used by clippy
     let status = cmd
         .status()
@@ -127,6 +129,7 @@ fn build_bios_second_stage(out_dir: &Path) -> PathBuf {
         .arg("-Zbuild-std-features=compiler-builtins-mem");
     cmd.arg("--root").arg(out_dir);
     cmd.env_remove("RUSTFLAGS");
+    cmd.env_remove("CARGO_ENCODED_RUSTFLAGS");
     cmd.env_remove("RUSTC_WORKSPACE_WRAPPER"); // used by clippy
     let status = cmd
         .status()
