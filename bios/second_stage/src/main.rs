@@ -5,9 +5,12 @@ use byteorder::{ByteOrder, LittleEndian};
 use core::{arch::asm, fmt::Write as _, mem::size_of, slice};
 use mbr_nostd::{PartitionTableEntry, PartitionType};
 
+use crate::protected_mode::enter_unreal_mode;
+
 mod dap;
 mod disk;
 mod fat;
+mod protected_mode;
 mod screen;
 
 /// We use this partition type to store the second bootloader stage;
@@ -25,6 +28,8 @@ fn second_stage_end() -> *const u8 {
 #[link_section = ".start"]
 pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
     screen::Writer.write_str(" -> SECOND STAGE").unwrap();
+
+    enter_unreal_mode();
 
     // parse partition table
     let partitions = {
