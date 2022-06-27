@@ -192,8 +192,6 @@ impl<D: Read + Seek> FileSystem<D> {
             },
         };
 
-        writeln!(screen::Writer, "entry: {entry:?}").unwrap();
-
         if entry.is_directory() {
             None
         } else {
@@ -359,27 +357,6 @@ impl<'a> DirectoryEntry<'a> {
 
     pub fn is_directory(&self) -> bool {
         self.attributes & directory_attributes::DIRECTORY != 0
-    }
-}
-
-impl core::fmt::Debug for DirectoryEntry<'_> {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        struct NamePrinter<'a>(&'a DirectoryEntry<'a>);
-        impl core::fmt::Debug for NamePrinter<'_> {
-            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-                for char in self.0.name().filter_map(|e| e.ok()) {
-                    write!(f, "{char}")?;
-                }
-                Ok(())
-            }
-        }
-
-        f.debug_struct("DirectoryEntry")
-            .field("name", &NamePrinter(self))
-            .field("file_size", &self.file_size)
-            .field("first_cluster", &self.first_cluster)
-            .field("attributes", &self.attributes)
-            .finish()
     }
 }
 

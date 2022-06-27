@@ -27,7 +27,7 @@ fn second_stage_end() -> *const u8 {
 #[no_mangle]
 #[link_section = ".start"]
 pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
-    writeln!(screen::Writer, " -> SECOND STAGE").unwrap();
+    screen::Writer.write_str(" -> SECOND STAGE").unwrap();
 
     // parse partition table
     let partitions = {
