@@ -1,5 +1,4 @@
-use crate::{dap, screen};
-use core::fmt::Write as _;
+use crate::dap;
 
 #[derive(Clone)]
 pub struct DiskAccess {
@@ -10,7 +9,7 @@ pub struct DiskAccess {
 
 impl Read for DiskAccess {
     fn read_exact(&mut self, len: usize) -> &[u8] {
-        static mut TMP_BUF: AlignedBuffer<512> = AlignedBuffer {
+        static mut TMP_BUF: AlignedArrayBuffer<512> = AlignedArrayBuffer {
             buffer: [0; 512],
             limit: 512,
         };
@@ -22,7 +21,7 @@ impl Read for DiskAccess {
         &buf.buffer[..len]
     }
 
-    fn read_exact_into(&mut self, buf: &mut dyn AlignedSlice) {
+    fn read_exact_into(&mut self, buf: &mut dyn AlignedBuffer) {
         let buf = buf.slice_mut();
         assert_eq!(buf.len() % 512, 0);
 
@@ -77,7 +76,7 @@ impl Seek for DiskAccess {
 
 pub trait Read {
     fn read_exact(&mut self, len: usize) -> &[u8];
-    fn read_exact_into(&mut self, buf: &mut dyn AlignedSlice);
+    fn read_exact_into(&mut self, buf: &mut dyn AlignedBuffer);
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -91,21 +90,26 @@ pub trait Seek {
 }
 
 #[repr(align(2))]
-pub struct AlignedBuffer<const LEN: usize> {
+pub struct AlignedArrayBuffer<const LEN: usize> {
     pub buffer: [u8; LEN],
     pub limit: usize,
 }
 
-pub trait AlignedSlice {
+pub trait AlignedBuffer {
     fn slice(&self) -> &[u8];
     fn slice_mut(&mut self) -> &mut [u8];
+    fn set_limit(&mut self, limit: usize);
 }
 
-impl<const LEN: usize> AlignedSlice for AlignedBuffer<LEN> {
+impl<const LEN: usize> AlignedBuffer for AlignedArrayBuffer<LEN> {
     fn slice(&self) -> &[u8] {
         &self.buffer[..self.limit]
     }
     fn slice_mut(&mut self) -> &mut [u8] {
         &mut self.buffer[..self.limit]
+    }
+    fn set_limit(&mut self, limit: usize) {
+        assert!(limit <= LEN);
+        self.limit = limit;
     }
 }

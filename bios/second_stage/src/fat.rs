@@ -1,9 +1,6 @@
 // based on https://crates.io/crates/mini_fat by https://github.com/gridbugs
 
-use crate::{
-    disk::{AlignedBuffer, AlignedSlice, Read, Seek, SeekFrom},
-    screen,
-};
+use crate::disk::{AlignedBuffer, Read, Seek, SeekFrom};
 use core::{char::DecodeUtf16Error, fmt::Write as _};
 
 const DIRECTORY_ENTRY_BYTES: usize = 32;
@@ -158,8 +155,12 @@ impl<D: Read + Seek> FileSystem<D> {
         }
     }
 
-    pub fn find_file_in_root_dir(&mut self, name: &str) -> Option<File> {
-        let mut root_entries = self.read_root_dir().filter_map(|e| e.ok());
+    pub fn find_file_in_root_dir(
+        &mut self,
+        name: &str,
+        buffer: &mut dyn AlignedBuffer,
+    ) -> Option<File> {
+        let mut root_entries = self.read_root_dir(buffer).filter_map(|e| e.ok());
         let raw_entry = root_entries.find(|e| e.eq_name(name))?;
 
         let entry = match raw_entry {
@@ -202,7 +203,10 @@ impl<D: Read + Seek> FileSystem<D> {
         }
     }
 
-    fn read_root_dir<'a>(&'a mut self) -> impl Iterator<Item = Result<RawDirectoryEntry, ()>> + 'a {
+    fn read_root_dir<'a>(
+        &'a mut self,
+        buffer: &'a mut (dyn AlignedBuffer + 'a),
+    ) -> impl Iterator<Item = Result<RawDirectoryEntry, ()>> + 'a {
         match self.bpb.fat_type() {
             FatType::Fat32 => {
                 self.bpb.root_cluster;
@@ -210,12 +214,7 @@ impl<D: Read + Seek> FileSystem<D> {
             }
             FatType::Fat12 | FatType::Fat16 => {
                 let root_directory_size = self.bpb.root_directory_size();
-                static mut ROOT_DIR_BUFFER: AlignedBuffer<0x4000> = AlignedBuffer {
-                    buffer: [0; 0x4000],
-                    limit: 0x4000,
-                };
-                let buffer = unsafe { &mut ROOT_DIR_BUFFER };
-                buffer.limit = root_directory_size;
+                buffer.set_limit(root_directory_size);
 
                 self.disk
                     .seek(SeekFrom::Start(self.bpb.root_directory_offset()));

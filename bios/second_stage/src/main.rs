@@ -2,7 +2,8 @@
 #![no_main]
 
 use byteorder::{ByteOrder, LittleEndian};
-use core::{arch::asm, fmt::Write as _, mem::size_of, slice};
+use core::{fmt::Write as _, slice};
+use disk::AlignedArrayBuffer;
 use mbr_nostd::{PartitionTableEntry, PartitionType};
 
 use crate::protected_mode::enter_unreal_mode;
@@ -23,6 +24,11 @@ extern "C" {
 fn second_stage_end() -> *const u8 {
     unsafe { &_second_stage_end }
 }
+
+static mut DISK_BUFFER: AlignedArrayBuffer<0x4000> = AlignedArrayBuffer {
+    buffer: [0; 0x4000],
+    limit: 0x4000,
+};
 
 #[no_mangle]
 #[link_section = ".start"]
@@ -71,8 +77,10 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
 
     let mut fs = fat::FileSystem::parse(disk.clone());
 
+    let disk_buffer = unsafe { &mut DISK_BUFFER };
+
     let kernel = fs
-        .find_file_in_root_dir("kernel-x86_64")
+        .find_file_in_root_dir("kernel-x86_64", disk_buffer)
         .expect("no `kernel-x86_64` file found");
 
     for cluster in fs.file_clusters(&kernel) {
