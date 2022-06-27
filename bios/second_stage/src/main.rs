@@ -2,15 +2,12 @@
 #![no_main]
 
 use byteorder::{ByteOrder, LittleEndian};
-use core::{fmt::Write as _, slice};
+use core::{arch::asm, fmt::Write as _, mem::size_of, slice};
 use mbr_nostd::{PartitionTableEntry, PartitionType};
 
 mod dap;
 mod disk;
 mod fat;
-// mod fat_old;
-// mod fat_bpb;
-// mod mini_fat;
 mod screen;
 
 /// We use this partition type to store the second bootloader stage;
