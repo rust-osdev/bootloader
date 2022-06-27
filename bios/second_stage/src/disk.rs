@@ -9,14 +9,21 @@ pub struct DiskAccess {
 }
 
 impl Read for DiskAccess {
-    fn read_exact(&mut self, input_buf: &mut [u8]) {
-        static mut TMP_BUF: [u8; 512] = [0; 512];
-        let tmp_buf = unsafe { &mut TMP_BUF[..] };
-        let (buf, copy_needed) = if input_buf.len() >= tmp_buf.len() {
-            (&mut input_buf[..], false)
-        } else {
-            (&mut tmp_buf[..], true)
+    fn read_exact(&mut self, len: usize) -> &[u8] {
+        static mut TMP_BUF: AlignedBuffer<512> = AlignedBuffer {
+            buffer: [0; 512],
+            limit: 512,
         };
+        let buf = unsafe { &mut TMP_BUF };
+        assert!(len <= buf.buffer.len());
+
+        self.read_exact_into(buf);
+
+        &buf.buffer[..len]
+    }
+
+    fn read_exact_into(&mut self, buf: &mut dyn AlignedSlice) {
+        let buf = buf.slice_mut();
         assert_eq!(buf.len() % 512, 0);
 
         let end_addr = self.base_offset + self.current_offset + u64::try_from(buf.len()).unwrap();
@@ -48,13 +55,6 @@ impl Read for DiskAccess {
         }
 
         self.current_offset = end_addr;
-
-        if copy_needed {
-            let len = input_buf.len();
-            for i in 0..len {
-                input_buf[i] = tmp_buf[i];
-            }
-        }
     }
 }
 
@@ -76,7 +76,8 @@ impl Seek for DiskAccess {
 }
 
 pub trait Read {
-    fn read_exact(&mut self, buf: &mut [u8]);
+    fn read_exact(&mut self, len: usize) -> &[u8];
+    fn read_exact_into(&mut self, buf: &mut dyn AlignedSlice);
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -87,4 +88,24 @@ pub enum SeekFrom {
 
 pub trait Seek {
     fn seek(&mut self, pos: SeekFrom) -> u64;
+}
+
+#[repr(align(2))]
+pub struct AlignedBuffer<const LEN: usize> {
+    pub buffer: [u8; LEN],
+    pub limit: usize,
+}
+
+pub trait AlignedSlice {
+    fn slice(&self) -> &[u8];
+    fn slice_mut(&mut self) -> &mut [u8];
+}
+
+impl<const LEN: usize> AlignedSlice for AlignedBuffer<LEN> {
+    fn slice(&self) -> &[u8] {
+        &self.buffer[..self.limit]
+    }
+    fn slice_mut(&mut self) -> &mut [u8] {
+        &mut self.buffer[..self.limit]
+    }
 }

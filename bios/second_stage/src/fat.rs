@@ -1,7 +1,7 @@
 // based on https://crates.io/crates/mini_fat by https://github.com/gridbugs
 
 use crate::{
-    disk::{Read, Seek, SeekFrom},
+    disk::{AlignedBuffer, AlignedSlice, Read, Seek, SeekFrom},
     screen,
 };
 use core::{char::DecodeUtf16Error, fmt::Write as _};
@@ -36,12 +36,7 @@ struct Bpb {
 
 impl Bpb {
     fn parse<D: Read + Seek>(disk: &mut D) -> Self {
-        static mut BPB_BUFFER: [u8; 512] = [0; 512];
-        let mut raw = {
-            let buffer = unsafe { &mut BPB_BUFFER[..] };
-            &mut buffer[..512]
-        };
-        disk.read_exact(&mut raw);
+        let raw = disk.read_exact(512);
 
         let bytes_per_sector = u16::from_le_bytes(raw[11..13].try_into().unwrap());
         let sectors_per_cluster = raw[13];
@@ -217,16 +212,20 @@ impl<D: Read + Seek> FileSystem<D> {
             }
             FatType::Fat12 | FatType::Fat16 => {
                 let root_directory_size = self.bpb.root_directory_size();
-                static mut ROOT_DIR_BUFFER: [u8; 0x4000] = [0; 0x4000];
-                let buffer = unsafe { &mut ROOT_DIR_BUFFER[..] };
-                assert!(root_directory_size <= buffer.len());
-                let raw = &mut buffer[..root_directory_size];
+                static mut ROOT_DIR_BUFFER: AlignedBuffer<0x4000> = AlignedBuffer {
+                    buffer: [0; 0x4000],
+                    limit: 0x4000,
+                };
+                let buffer = unsafe { &mut ROOT_DIR_BUFFER };
+                buffer.limit = root_directory_size;
 
                 self.disk
                     .seek(SeekFrom::Start(self.bpb.root_directory_offset()));
-                self.disk.read_exact(raw);
+                self.disk.read_exact_into(buffer);
 
-                raw.chunks(DIRECTORY_ENTRY_BYTES)
+                buffer
+                    .slice()
+                    .chunks(DIRECTORY_ENTRY_BYTES)
                     .take_while(|raw_entry| raw_entry[0] != END_OF_DIRECTORY_PREFIX)
                     .filter(|raw_entry| raw_entry[0] != UNUSED_ENTRY_PREFIX)
                     .map(RawDirectoryEntry::parse)
@@ -535,22 +534,22 @@ where
         FatType::Fat32 => {
             let base = n as u64 * 4;
             disk.seek(SeekFrom::Start(fat_start + base));
-            let mut buf = [0; 4];
-            disk.read_exact(&mut buf);
+            let buf = disk.read_exact(4);
+            let buf: [u8; 4] = buf.try_into().unwrap();
             u32::from_le_bytes(buf) & 0x0FFFFFFF
         }
         FatType::Fat16 => {
             let base = n as u64 * 2;
             disk.seek(SeekFrom::Start(fat_start + base));
-            let mut buf = [0; 2];
-            disk.read_exact(&mut buf);
+            let buf = disk.read_exact(2);
+            let buf: [u8; 2] = buf.try_into().unwrap();
             u16::from_le_bytes(buf) as u32
         }
         FatType::Fat12 => {
             let base = n as u64 + (n as u64 / 2);
             disk.seek(SeekFrom::Start(fat_start + base));
-            let mut buf = [0; 2];
-            disk.read_exact(&mut buf);
+            let buf = disk.read_exact(2);
+            let buf: [u8; 2] = buf.try_into().unwrap();
             let entry16 = u16::from_le_bytes(buf);
             if n & 1 == 0 {
                 (entry16 & 0xFFF) as u32
