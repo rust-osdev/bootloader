@@ -97,15 +97,15 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
 
     writeln!(screen::Writer, "DONE").unwrap();
 
+    // TODO: Load `kernel` into DISK_BUFFER, then copy it to protected mode
+    // address (might require multiple iterations for large kernels)
+
     // TODO: Retrieve memory map
+    // TODO: VESA config
 
-    // TODO: Set up protected mode, or unreal mode
-
-    // TODO: Load `kernel` to protected mode address
-
-    // TODO: Set up long mode with identity-mapping
-
-    // TODO: Load third stage that uses `bootloader-common` crate and jump to it
+    // TODO: Load third stage using DISK_BUFFER, then copy it to protected mode addr
+    // TODO: Set up long mode with identity-mapping, then jump to third stage (passing
+    // kernel, memory map, and vesa info as arguments)
 
     loop {}
 }
