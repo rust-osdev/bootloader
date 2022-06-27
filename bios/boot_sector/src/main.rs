@@ -3,13 +3,11 @@
 #![warn(unsafe_op_in_unsafe_fn)]
 
 use core::{arch::global_asm, slice};
-use error::NO_SECOND_STAGE_PARTITION;
 use fail::{print_char, UnwrapOrFail};
 
 global_asm!(include_str!("boot.s"));
 
 mod dap;
-mod error;
 mod fail;
 mod mbr;
 
