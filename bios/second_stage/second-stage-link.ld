@@ -6,20 +6,33 @@ SECTIONS {
     .start : {
         *(.start)
     }
-    .text : ALIGN(512) {
+    .text : {
         *(.text .text.*)
     }
-    .rodata : ALIGN(512) {
+    .rodata : {
         *(.rodata .rodata.*)
     }
-    .bss : ALIGN(512) {
+    .data : {
+        *(.data .data.*)
+    }
+    .bss : {
         *(.bss .bss.*)
     }
-    .data : ALIGN(512) {
-        *(.data .data.*)
+    .eh_frame : {
+        *(.eh_frame .eh_frame.*)
+    }
+    .eh_frame_hdr : {
+        *(.eh_frame_hdr .eh_frame_hdr.*)
     }
 
     . = ALIGN(512);
 
     _second_stage_end = .;
+
+    . = 0x0007FFFF - 2;
+    .end_marker :
+    {
+        SHORT(0xdead)       /* magic number for bootable disk */
+    }
+    . = 0x7c00 + 512;
 }
