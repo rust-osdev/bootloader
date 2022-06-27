@@ -82,6 +82,7 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
     let kernel = fs
         .find_file_in_root_dir("kernel-x86_64", disk_buffer)
         .expect("no `kernel-x86_64` file found");
+    disk_buffer.reset_limit();
 
     for cluster in fs.file_clusters(&kernel) {
         let cluster = cluster.unwrap();

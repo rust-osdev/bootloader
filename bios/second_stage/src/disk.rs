@@ -95,6 +95,12 @@ pub struct AlignedArrayBuffer<const LEN: usize> {
     pub limit: usize,
 }
 
+impl<const LEN: usize> AlignedArrayBuffer<LEN> {
+    pub fn reset_limit(&mut self) {
+        self.limit = LEN;
+    }
+}
+
 pub trait AlignedBuffer {
     fn slice(&self) -> &[u8];
     fn slice_mut(&mut self) -> &mut [u8];
