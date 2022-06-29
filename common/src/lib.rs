@@ -8,13 +8,22 @@ use bootloader_api::{
     info::{FrameBuffer, FrameBufferInfo, MemoryRegion, TlsTemplate},
     BootInfo, BootloaderConfig,
 };
-use core::{alloc::Layout, arch::asm, mem::MaybeUninit, slice};
+use core::{
+    alloc::Layout,
+    arch::asm,
+    mem::{size_of, MaybeUninit},
+    slice,
+};
 use level_4_entries::UsedLevel4Entries;
 use usize_conversions::{FromUsize, IntoUsize};
 use x86_64::{
-    structures::paging::{
-        page_table::PageTableLevel, FrameAllocator, Mapper, OffsetPageTable, Page, PageSize,
-        PageTable, PageTableFlags, PageTableIndex, PhysFrame, Size2MiB, Size4KiB,
+    instructions::tables::{lgdt, sgdt},
+    structures::{
+        gdt::GlobalDescriptorTable,
+        paging::{
+            page_table::PageTableLevel, FrameAllocator, Mapper, OffsetPageTable, Page, PageSize,
+            PageTable, PageTableFlags, PageTableIndex, PhysFrame, Size2MiB, Size4KiB,
+        },
     },
     PhysAddr, VirtAddr,
 };
@@ -201,8 +210,20 @@ where
         .allocate_frame()
         .expect("failed to allocate GDT frame");
     gdt::create_and_load(gdt_frame);
+    let gdt = mapping_addr(
+        config.mappings.gdt,
+        u64::from_usize(size_of::<GlobalDescriptorTable>()),
+        4096,
+        &mut used_entries,
+    );
+    let gdt_page = Page::from_start_address(gdt).unwrap();
     match unsafe {
-        kernel_page_table.identity_map(gdt_frame, PageTableFlags::PRESENT, frame_allocator)
+        kernel_page_table.map_to(
+            gdt_page,
+            gdt_frame,
+            PageTableFlags::PRESENT,
+            frame_allocator,
+        )
     } {
         Ok(tlb) => tlb.flush(),
         Err(err) => panic!("failed to identity map frame {:?}: {:?}", gdt_frame, err),
@@ -459,6 +480,7 @@ where
 
         kernel_slice_start,
         kernel_slice_len,
+        gdt,
         context_switch_trampoline: trampoline_page.start_address(),
         context_switch_page_table,
         context_switch_page_table_frame,
@@ -488,6 +510,8 @@ pub struct Mappings {
     pub kernel_slice_start: u64,
     /// Size of the kernel slice allocation in memory.
     pub kernel_slice_len: u64,
+    /// The address of the GDT in the kernel's address space.
+    pub gdt: VirtAddr,
     /// The address of the context switch trampoline in the bootloader's address space.
     pub context_switch_trampoline: VirtAddr,
     /// The page table used for context switch from the bootloader to the kernel.
@@ -611,6 +635,7 @@ pub fn switch_to_kernel(
         ..
     } = page_tables;
     let addresses = Addresses {
+        gdt: mappings.gdt,
         context_switch_trampoline: mappings.context_switch_trampoline,
         context_switch_page_table: mappings.context_switch_page_table_frame,
         context_switch_addr: mappings.context_switch_addr,
@@ -645,6 +670,18 @@ pub struct PageTables {
 
 /// Performs the actual context switch.
 unsafe fn context_switch(addresses: Addresses) -> ! {
+    // Update the GDT base address.
+    let mut gdt_pointer = sgdt();
+    gdt_pointer.base = addresses.gdt;
+    unsafe {
+        // SAFETY: Note that the base address points to memory that is only
+        //         mapped in the kernel's page table. We can do this because
+        //         just loading the GDT doesn't cause any immediate loads and
+        //         by the time the base address is dereferenced the context
+        //         switch will be done.
+        lgdt(&gdt_pointer);
+    }
+
     unsafe {
         asm!(
             "mov rsp, {}; sub rsp, 8; jmp {}",
@@ -661,6 +698,7 @@ unsafe fn context_switch(addresses: Addresses) -> ! {
 
 /// Memory addresses required for the context switch.
 struct Addresses {
+    gdt: VirtAddr,
     context_switch_trampoline: VirtAddr,
     context_switch_page_table: PhysFrame,
     context_switch_addr: VirtAddr,

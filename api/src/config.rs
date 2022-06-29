@@ -35,7 +35,7 @@ impl BootloaderConfig {
         0x3D,
     ];
     #[doc(hidden)]
-    pub const SERIALIZED_LEN: usize = 115;
+    pub const SERIALIZED_LEN: usize = 124;
 
     /// Creates a new default configuration with the following values:
     ///
@@ -72,6 +72,7 @@ impl BootloaderConfig {
             kernel_stack,
             boot_info,
             framebuffer,
+            gdt,
             physical_memory,
             page_table_recursive,
             aslr,
@@ -94,30 +95,31 @@ impl BootloaderConfig {
         let buf = concat_31_9(buf, kernel_stack.serialize());
         let buf = concat_40_9(buf, boot_info.serialize());
         let buf = concat_49_9(buf, framebuffer.serialize());
+        let buf = concat_58_9(buf, gdt.serialize());
 
-        let buf = concat_58_10(
+        let buf = concat_67_10(
             buf,
             match physical_memory {
                 Option::None => [0; 10],
                 Option::Some(m) => concat_1_9([1], m.serialize()),
             },
         );
-        let buf = concat_68_10(
+        let buf = concat_77_10(
             buf,
             match page_table_recursive {
                 Option::None => [0; 10],
                 Option::Some(m) => concat_1_9([1], m.serialize()),
             },
         );
-        let buf = concat_78_1(buf, [(*aslr) as u8]);
-        let buf = concat_79_9(
+        let buf = concat_87_1(buf, [(*aslr) as u8]);
+        let buf = concat_88_9(
             buf,
             match dynamic_range_start {
                 Option::None => [0; 9],
                 Option::Some(addr) => concat_1_8([1], addr.to_le_bytes()),
             },
         );
-        let buf = concat_88_9(
+        let buf = concat_97_9(
             buf,
             match dynamic_range_end {
                 Option::None => [0; 9],
@@ -125,14 +127,14 @@ impl BootloaderConfig {
             },
         );
 
-        let buf = concat_97_9(
+        let buf = concat_106_9(
             buf,
             match minimum_framebuffer_height {
                 Option::None => [0; 9],
                 Option::Some(addr) => concat_1_8([1], addr.to_le_bytes()),
             },
         );
-        let buf = concat_106_9(
+        let buf = concat_115_9(
             buf,
             match minimum_framebuffer_width {
                 Option::None => [0; 9],
@@ -189,6 +191,7 @@ impl BootloaderConfig {
             let (&kernel_stack, s) = split_array_ref(s);
             let (&boot_info, s) = split_array_ref(s);
             let (&framebuffer, s) = split_array_ref(s);
+            let (&gdt, s) = split_array_ref(s);
             let (&physical_memory_some, s) = split_array_ref(s);
             let (&physical_memory, s) = split_array_ref(s);
             let (&page_table_recursive_some, s) = split_array_ref(s);
@@ -203,6 +206,7 @@ impl BootloaderConfig {
                 kernel_stack: Mapping::deserialize(&kernel_stack)?,
                 boot_info: Mapping::deserialize(&boot_info)?,
                 framebuffer: Mapping::deserialize(&framebuffer)?,
+                gdt: Mapping::deserialize(&gdt)?,
                 physical_memory: match physical_memory_some {
                     [0] if physical_memory == [0; 9] => Option::None,
                     [1] => Option::Some(Mapping::deserialize(&physical_memory)?),
@@ -351,6 +355,8 @@ pub struct Mappings {
     pub boot_info: Mapping,
     /// Specifies the mapping of the frame buffer memory region.
     pub framebuffer: Mapping,
+    /// Specifies the mapping of the GDT.
+    pub gdt: Mapping,
     /// The bootloader supports to map the whole physical memory into the virtual address
     /// space at some offset. This is useful for accessing and modifying the page tables set
     /// up by the bootloader.
@@ -388,6 +394,7 @@ impl Mappings {
             kernel_stack: Mapping::new_default(),
             boot_info: Mapping::new_default(),
             framebuffer: Mapping::new_default(),
+            gdt: Mapping::new_default(),
             physical_memory: Option::None,
             page_table_recursive: Option::None,
             aslr: false,
@@ -404,6 +411,7 @@ impl Mappings {
             kernel_stack: Mapping::random(),
             boot_info: Mapping::random(),
             framebuffer: Mapping::random(),
+            gdt: Mapping::random(),
             physical_memory: if phys {
                 Option::Some(Mapping::random())
             } else {
