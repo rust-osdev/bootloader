@@ -127,3 +127,7 @@ macro_rules! entry_point {
         }
     };
 }
+
+#[used]
+#[no_mangle]
+pub static _fltused: i32 = 0;
