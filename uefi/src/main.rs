@@ -1,6 +1,7 @@
 #![no_std]
 #![no_main]
 #![feature(abi_efiapi)]
+#![feature(alloc_error_handler)]
 #![deny(unsafe_op_in_unsafe_fn)]
 
 extern crate alloc;
@@ -506,4 +507,9 @@ fn panic(info: &PanicInfo) -> ! {
     loop {
         unsafe { asm!("cli; hlt") };
     }
+}
+
+#[alloc_error_handler]
+fn alloc_err(_layout: core::alloc::Layout) -> ! {
+    panic!("Out of memory")
 }
