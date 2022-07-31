@@ -3,6 +3,17 @@
 version = 3
 
 [[package]]
+name = "acpi"
+version = "4.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "55237649c6e747ea67e5ed45125af5e6a35ea1250c5e44995eb6049a955bd004"
+dependencies = [
+ "bit_field",
+ "log",
+ "rsdp",
+]
+
+[[package]]
 name = "anyhow"
 version = "1.0.56"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -115,8 +126,10 @@ dependencies = [
 name = "bootloader-x86_64-uefi"
 version = "0.1.0-alpha.0"
 dependencies = [
+ "acpi",
  "bootloader-x86_64-common",
  "bootloader_api",
+ "conquer-once",
  "log",
  "uefi",
  "x86_64",

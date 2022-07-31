@@ -31,6 +31,9 @@ pub mod level_4_entries;
 pub mod load_kernel;
 /// Provides a logger type that logs output as text to pixel-based framebuffers.
 pub mod logger;
+/// Provides a series of kernel-switch-safe abstractions around the `acpi` crate
+pub mod portable_acpi;
+use portable_acpi::PortableAcpiTables;
 
 const PAGE_SIZE: u64 = 4096;
 
@@ -51,6 +54,7 @@ pub struct SystemInfo {
     pub framebuffer_info: FrameBufferInfo,
     /// Address of the _Root System Description Pointer_ structure of the ACPI standard.
     pub rsdp_addr: Option<PhysAddr>,
+    pub acpi_tables: Option<PortableAcpiTables>,
 }
 
 pub struct Kernel<'a> {

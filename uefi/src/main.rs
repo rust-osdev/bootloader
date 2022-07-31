@@ -48,11 +48,10 @@ use x86_64::{
     PhysAddr, VirtAddr,
 };
 
-pub mod portable_acpi;
 use portable_acpi::PortableAcpiTables;
 mod memory_descriptor;
 
-pub static ACPI_TABLES: OnceCell<PortableAcpiTables> = OnceCell::uninit();
+static ACPI_TABLES: VeryUnsafeCell<Option<PortableAcpiTables>> = VeryUnsafeCell::new(None);
 
 #[derive(Clone)]
 struct BootAcpi;
@@ -139,7 +138,7 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
         match unsafe { AcpiTables::from_rsdp(BootAcpi, rsdp as usize) } {
             Ok(tables) => {
                 let portable_tables = PortableAcpiTables::new(tables);
-                ACPI_TABLES.get_or_init(move || portable_tables);
+                unsafe { *ACPI_TABLES.get() = Some(portable_tables) };
                 // Debug
                 // info!("Interrupt model: {:#?}", ACPI_TABLES.get().unwrap().info.interrupt);
             }
@@ -185,6 +184,7 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
                 .or_else(|| config_entries.find(|entry| matches!(entry.guid, cfg::ACPI_GUID)));
             rsdp.map(|entry| PhysAddr::new(entry.address as u64))
         },
+        acpi_tables: Some(unsafe { *ACPI_TABLES.get().unwrap() }),
     };
 
     // make sure to drop the allocator before switching

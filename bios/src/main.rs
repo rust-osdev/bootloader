@@ -88,6 +88,7 @@ fn bootloader_main(
         framebuffer_addr,
         framebuffer_info,
         rsdp_addr: detect_rsdp(),
+        acpi_tables: None,
     };
 
     load_and_switch_to_kernel(kernel, frame_allocator, page_tables, system_info);
