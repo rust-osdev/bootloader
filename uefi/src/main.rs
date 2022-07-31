@@ -26,8 +26,13 @@ use uefi::{
             IpAddress,
         },
     },
-    table::boot::{
-        AllocateType, MemoryDescriptor, MemoryType, OpenProtocolAttributes, OpenProtocolParams,
+    table::{
+        boot::{
+            AllocateType, MemoryDescriptor, MemoryType, OpenProtocolAttributes, OpenProtocolParams,
+        },
+        cfg::{
+            ACPI_GUID, ACPI2_GUID,
+        }
     },
     CStr16, CStr8,
 };
