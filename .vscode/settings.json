@@ -1,0 +1,27 @@
+{
+    "rust-analyzer.checkOnSave.allTargets": false,
+    "rust-analyzer.checkOnSave.extraArgs": [
+        "-Zbuild-std=core,alloc",
+    ],
+    "rust-analyzer.server.extraEnv": {
+        "CARGO": "/opt/rust/bin/cargo",
+        "RUSTC": "/opt/rust/bin/rustc"
+    },
+    "rust-analyzer.cargo.target": "x86_64-unknown-uefi",
+    "editor.formatOnSave": true,
+    "rust-analyzer.checkOnSave.enable": true,
+    "rust-analyzer.checkOnSave.overrideCommand": [
+        "cargo",
+        "c",
+        "-p",
+        "bootloader-x86_64-uefi",
+        "--target",
+        "x86_64-unknown-uefi",
+        "-Zbuild-std=core",
+        "--message-format=json"
+    ],
+    "rust-analyzer.restartServerOnConfigChange": true,
+    "rust-analyzer.runnableEnv": {
+        "PATH": "/opt/rust/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl"
+    }
+}
