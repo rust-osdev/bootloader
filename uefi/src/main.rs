@@ -3,9 +3,13 @@
 #![feature(abi_efiapi)]
 #![deny(unsafe_op_in_unsafe_fn)]
 
+extern crate alloc;
+
 use crate::memory_descriptor::UefiMemoryDescriptor;
+use acpi::{AcpiHandler, AcpiTables, PhysicalMapping};
 use bootloader_api::{info::FrameBufferInfo, BootloaderConfig};
 use bootloader_x86_64_common::{legacy_memory_region::LegacyFrameAllocator, Kernel, SystemInfo};
+use conquer_once::spin::OnceCell;
 use core::{arch::asm, cell::UnsafeCell, fmt::Write, mem, panic::PanicInfo, ptr, slice};
 use uefi::{
     prelude::{entry, Boot, Handle, Status, SystemTable},
@@ -32,7 +36,32 @@ use x86_64::{
     PhysAddr, VirtAddr,
 };
 
+pub mod portable_acpi;
+use portable_acpi::PortableAcpiTables;
 mod memory_descriptor;
+
+pub static ACPI_TABLES: OnceCell<PortableAcpiTables> = OnceCell::uninit();
+
+#[derive(Clone)]
+struct BootAcpi;
+
+impl AcpiHandler for BootAcpi {
+    unsafe fn map_physical_region<T>(
+        &self,
+        physical_address: usize,
+        size: usize,
+    ) -> PhysicalMapping<Self, T> {
+        PhysicalMapping::new(
+            physical_address,
+            NonNull::new(physical_address as *mut _).unwrap(),
+            size,
+            size,
+            Self,
+        )
+    }
+
+    fn unmap_physical_region<T>(_region: &acpi::PhysicalMapping<Self, T>) {}
+}
 
 static SYSTEM_TABLE: VeryUnsafeCell<Option<SystemTable<Boot>>> = VeryUnsafeCell::new(None);
 
@@ -65,6 +94,12 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
         *SYSTEM_TABLE.get() = Some(st.unsafe_clone());
     }
 
+    // needed for ACPI table parsing
+    unsafe { uefi::alloc::init(st.boot_services()) }
+
+    // clone the boot system table locally to parse the ACPI tables
+    let local_table_clone = unsafe { st.unsafe_clone() };
+
     st.stdout().clear().unwrap();
     writeln!(
         st.stdout(),
@@ -80,6 +115,25 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
     unsafe {
         *SYSTEM_TABLE.get() = None;
     }
+
+    // actually do the ACPI table parsing now
+    let mut config = local_table_clone.config_table().iter();
+    if let Some(rsdp) = config
+        .find(|e| matches!(e.guid, ACPI_GUID | ACPI2_GUID))
+        .map(|e| e.address)
+    {
+        match unsafe { AcpiTables::from_rsdp(BootAcpi, rsdp as usize) } {
+            Ok(tables) => {
+                let portable_tables = PortableAcpiTables::new(tables);
+                ACPI_TABLES.get_or_init(move || portable_tables);
+                // Debug
+                // info!("Interrupt model: {:#?}", ACPI_TABLES.get().unwrap().info.interrupt);
+            }
+            Err(e) => panic!("Error attempting to access the ACPI tables: {:#?}", e),
+        }
+    } else {
+        panic!("Couldn't find the RSDP address")
+    };
 
     log::info!("UEFI bootloader started");
     log::info!("Reading kernel and configuration from disk was successful");
@@ -118,6 +172,9 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
             rsdp.map(|entry| PhysAddr::new(entry.address as u64))
         },
     };
+
+    // make sure to drop the allocator before switching
+    uefi::alloc::exit_boot_services();
 
     bootloader_x86_64_common::load_and_switch_to_kernel(
         kernel,

@@ -11,5 +11,10 @@ license = "MIT/Apache-2.0"
 bootloader_api = { version = "0.1.0-alpha.0", path = "../api" }
 bootloader-x86_64-common = { version = "0.1.0-alpha.0", path = "../common" }
 log = "0.4.14"
-uefi = "0.16.0"
+uefi = { version = "0.16.0", features = ["alloc"] }
 x86_64 = "0.14.8"
+acpi = "4.1.0"
+
+[dependencies.conquer-once]
+version = "0.3.2"
+default-features = false
