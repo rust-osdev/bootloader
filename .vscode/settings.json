@@ -1,8 +1,5 @@
 {
     "rust-analyzer.checkOnSave.allTargets": false,
-    "rust-analyzer.checkOnSave.extraArgs": [
-        "-Zbuild-std=core,alloc",
-    ],
     "rust-analyzer.server.extraEnv": {
         "CARGO": "/opt/rust/bin/cargo",
         "RUSTC": "/opt/rust/bin/rustc"
@@ -17,7 +14,7 @@
         "bootloader-x86_64-uefi",
         "--target",
         "x86_64-unknown-uefi",
-        "-Zbuild-std=core",
+        "-Zbuild-std=core,alloc",
         "--message-format=json"
     ],
     "rust-analyzer.restartServerOnConfigChange": true,
