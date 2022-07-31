@@ -19,6 +19,7 @@ use {
 /// Drop-in replacement for `acpi::platform::interrupt::Apic` that uses slices instead of vectors
 /// for easy transportation across the UEFI Boot Services boundary
 #[derive(Debug)]
+#[repr(C)]
 pub struct PortableApic {
     pub local_apic_address: u64,
     pub io_apics: &'static mut [IoApic],
@@ -137,6 +138,7 @@ unsafe impl Sync for PortableApic {}
 /// Drop-in replacement for `acpi::InterruptModel` that uses slices instead of vectors
 /// for easy transportation across the UEFI Boot Services boundary
 #[derive(Debug, Clone)]
+#[repr(C)]
 pub enum PortableInterruptModel {
     Unknown,
     Apic(PortableApic),
@@ -158,6 +160,7 @@ unsafe impl Sync for PortableInterruptModel {}
 
 /// Drop-in replacement for `acpi::platform::ProcessorInfo` that uses slices instead of vectors
 /// for easy transportation across the UEFI Boot Services boundary
+#[repr(C)]
 pub struct PortableProcessorInfo {
     pub boot_processor: Processor,
     pub app_processors: &'static mut [Processor],
@@ -192,6 +195,7 @@ unsafe impl Sync for PortableProcessorInfo {}
 
 /// Like `acpi::platform::PmTimer` except `Clone`
 #[derive(Clone)]
+#[repr(C)]
 pub struct ClonePmTimer {
     pub base: GenericAddress,
     pub supports_32bit: bool,
@@ -213,6 +217,7 @@ unsafe impl Sync for ClonePmTimer {}
 /// Drop-in replacement for `acpi::platform::PlatformInfo` that uses slices instead of vectors
 /// for easy transportation across the UEFI Boot Services boundary
 #[derive(Clone)]
+#[repr(C)]
 pub struct PortablePlatformInfo {
     pub power: PowerProfile,
     pub interrupt: PortableInterruptModel,
@@ -253,6 +258,7 @@ unsafe impl Sync for PortablePlatformInfo {}
 
 /// Drop-in replacement for `acpi::AcpiTables` that uses slices instead of vectors and BTreeMaps
 /// for easy transportation across the UEFI Boot Services boundary
+#[repr(C)]
 pub struct PortableAcpiTables {
     pub revision: u8,
     pub sdts: &'static mut [(Signature, Sdt)],
