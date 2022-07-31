@@ -10,7 +10,15 @@ use acpi::{AcpiHandler, AcpiTables, PhysicalMapping};
 use bootloader_api::{info::FrameBufferInfo, BootloaderConfig};
 use bootloader_x86_64_common::{legacy_memory_region::LegacyFrameAllocator, Kernel, SystemInfo};
 use conquer_once::spin::OnceCell;
-use core::{arch::asm, cell::UnsafeCell, fmt::Write, mem, panic::PanicInfo, ptr::{self, NonNull}, slice};
+use core::{
+    arch::asm,
+    cell::UnsafeCell,
+    fmt::Write,
+    mem,
+    panic::PanicInfo,
+    ptr::{self, NonNull},
+    slice,
+};
 use uefi::{
     prelude::{entry, Boot, Handle, Status, SystemTable},
     proto::{
