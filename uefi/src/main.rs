@@ -30,9 +30,7 @@ use uefi::{
         boot::{
             AllocateType, MemoryDescriptor, MemoryType, OpenProtocolAttributes, OpenProtocolParams,
         },
-        cfg::{
-            ACPI_GUID, ACPI2_GUID,
-        }
+        cfg::{ACPI2_GUID, ACPI_GUID},
     },
     CStr16, CStr8,
 };
