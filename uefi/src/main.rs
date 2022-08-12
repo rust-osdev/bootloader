@@ -7,6 +7,7 @@ use crate::memory_descriptor::UefiMemoryDescriptor;
 use bootloader_api::{info::FrameBufferInfo, BootloaderConfig};
 use bootloader_x86_64_common::{legacy_memory_region::LegacyFrameAllocator, Kernel, SystemInfo};
 use core::{arch::asm, cell::UnsafeCell, fmt::Write, mem, panic::PanicInfo, ptr, slice};
+use memory_descriptor::KERNEL_MEMORY_TYPE;
 use uefi::{
     prelude::{entry, Boot, Handle, Status, SystemTable},
     proto::{
@@ -60,7 +61,7 @@ fn efi_main(image: Handle, st: SystemTable<Boot>) -> Status {
 }
 
 fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
-    // temporarily clone the system table for printing panics
+    // temporarily clone the y table for printing panics
     unsafe {
         *SYSTEM_TABLE.get() = Some(st.unsafe_clone());
     }
@@ -202,7 +203,7 @@ fn load_kernel_file_from_disk(image: Handle, st: &SystemTable<Boot>) -> Option<&
         .boot_services()
         .allocate_pages(
             AllocateType::AnyPages,
-            MemoryType::LOADER_DATA,
+            KERNEL_MEMORY_TYPE,
             ((kernel_size - 1) / 4096) + 1,
         )
         .unwrap() as *mut u8;
@@ -282,7 +283,7 @@ fn load_kernel_file_from_tftp_boot_server(
         .boot_services()
         .allocate_pages(
             AllocateType::AnyPages,
-            MemoryType::LOADER_DATA,
+            KERNEL_MEMORY_TYPE,
             ((kernel_size - 1) / 4096) + 1,
         )
         .expect("Failed to allocate memory for the kernel file") as *mut u8;

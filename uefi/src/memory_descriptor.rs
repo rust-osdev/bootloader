@@ -7,6 +7,7 @@ use x86_64::PhysAddr;
 pub struct UefiMemoryDescriptor(pub MemoryDescriptor);
 
 const PAGE_SIZE: u64 = 4096;
+pub const KERNEL_MEMORY_TYPE: MemoryType = MemoryType::custom(0x80000000);
 
 impl<'a> LegacyMemoryRegion for UefiMemoryDescriptor {
     fn start(&self) -> PhysAddr {
@@ -20,6 +21,7 @@ impl<'a> LegacyMemoryRegion for UefiMemoryDescriptor {
     fn kind(&self) -> MemoryRegionKind {
         match self.0.ty {
             MemoryType::CONVENTIONAL => MemoryRegionKind::Usable,
+            other if other == KERNEL_MEMORY_TYPE => MemoryRegionKind::Kernel,
             other => MemoryRegionKind::UnknownUefi(other.0),
         }
     }
