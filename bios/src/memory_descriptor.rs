@@ -17,6 +17,10 @@ impl LegacyMemoryRegion for E820MemoryRegion {
             other => MemoryRegionKind::UnknownBios(other),
         }
     }
+
+    fn usable_after_bootloader_exit(&self) -> bool {
+        matches!(self.kind(), MemoryRegionKind::Usable)
+    }
 }
 
 /// A physical memory region returned by an `e820` BIOS call.

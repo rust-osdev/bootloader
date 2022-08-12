@@ -14,8 +14,8 @@ pub trait LegacyMemoryRegion: Copy + core::fmt::Debug {
     /// Returns the type of the region, e.g. whether it is usable or reserved.
     fn kind(&self) -> MemoryRegionKind;
 
-    /// Mark additional regions as usable just before the bootloader jumps to the kernel.
-    fn on_bootloader_exit(&mut self) {}
+    /// Some regions become usable when the bootloader jumps to the kernel.
+    fn usable_after_bootloader_exit(&self) -> bool;
 }
 
 /// A physical frame allocator based on a BIOS or UEFI provided memory map.
@@ -104,11 +104,10 @@ where
     ) -> &mut [MemoryRegion] {
         let mut next_index = 0;
 
-        for mut descriptor in self.original {
+        for descriptor in self.original {
             let mut start = descriptor.start();
             let end = start + descriptor.len();
             let next_free = self.next_frame.start_address();
-            descriptor.on_bootloader_exit();
             let kind = match descriptor.kind() {
                 MemoryRegionKind::Usable => {
                     if end <= next_free {
@@ -129,6 +128,14 @@ where
                         start = next_free;
                         MemoryRegionKind::Usable
                     }
+                }
+                _ if descriptor.usable_after_bootloader_exit() => {
+                    // Region was not usable before, but it will be as soon as
+                    // the bootloader passes control to the kernel. We don't
+                    // need to check against `next_free` because the
+                    // LegacyFrameAllocator only allocates memory from usable
+                    // descriptors.
+                    MemoryRegionKind::Usable
                 }
                 other => other,
             };
