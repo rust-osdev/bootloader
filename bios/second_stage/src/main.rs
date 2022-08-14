@@ -8,7 +8,7 @@ use mbr_nostd::{PartitionTableEntry, PartitionType};
 
 use crate::{
     disk::{AlignedBuffer, Read, Seek, SeekFrom},
-    protected_mode::enter_unreal_mode,
+    protected_mode::{copy_to_protected_mode, enter_unreal_mode},
 };
 
 mod dap;
@@ -19,6 +19,8 @@ mod screen;
 
 /// We use this partition type to store the second bootloader stage;
 const BOOTLOADER_SECOND_STAGE_PARTITION_TYPE: u8 = 0x20;
+
+const KERNEL_DST: *mut u8 = (2 * 1024 * 1024) as *mut u8;
 
 extern "C" {
     static _second_stage_end: u8;
@@ -113,7 +115,12 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
             disk.read_exact_into(disk_buffer);
 
             let slice = &disk_buffer.buffer[..usize::try_from(len).unwrap()];
-            // TODO: copy slice to protected mode address
+            unsafe {
+                copy_to_protected_mode(
+                    KERNEL_DST.wrapping_add(usize::try_from(offset).unwrap()),
+                    slice,
+                )
+            };
 
             offset += len;
         }

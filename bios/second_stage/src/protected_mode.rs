@@ -86,6 +86,13 @@ pub fn enter_unreal_mode() {
     }
 }
 
+pub unsafe fn copy_to_protected_mode(target: *mut u8, bytes: &[u8]) {
+    for (offset, byte) in bytes.iter().enumerate() {
+        let dst = target.wrapping_add(offset);
+        unsafe { asm!("mov [{}], {}", in(reg) dst, in(reg) byte) };
+    }
+}
+
 fn write_cr0(val: u32) {
     unsafe { asm!("mov cr0, {}", in(reg) val, options(nostack, preserves_flags)) };
 }
