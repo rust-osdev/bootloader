@@ -86,8 +86,15 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
 
     let disk_buffer = unsafe { &mut DISK_BUFFER };
 
-    load_file("boot-stage-3", STAGE_3_DST, &mut fs, &mut disk, disk_buffer);
+    let stage_3_len = load_file("boot-stage-3", STAGE_3_DST, &mut fs, &mut disk, disk_buffer);
     writeln!(screen::Writer, "stage 3 loaded").unwrap();
+    let stage_4_dst = {
+        let stage_3_end = STAGE_3_DST.wrapping_add(usize::try_from(stage_3_len).unwrap());
+        let align_offset = stage_3_end.align_offset(512);
+        stage_3_end.wrapping_add(align_offset)
+    };
+    load_file("boot-stage-4", stage_4_dst, &mut fs, &mut disk, disk_buffer);
+    writeln!(screen::Writer, "stage 4 loaded").unwrap();
     load_file("kernel-x86_64", KERNEL_DST, &mut fs, &mut disk, disk_buffer);
     writeln!(screen::Writer, "kernel loaded").unwrap();
 
@@ -105,15 +112,17 @@ fn load_file(
     fs: &mut fat::FileSystem<disk::DiskAccess>,
     disk: &mut disk::DiskAccess,
     disk_buffer: &mut AlignedArrayBuffer<16384>,
-) {
+) -> u64 {
     let disk_buffer_size = disk_buffer.buffer.len();
     let kernel = fs
         .find_file_in_root_dir(file_name, disk_buffer)
         .expect("file not found");
+    let mut total_size = 0;
     for cluster in fs.file_clusters(&kernel) {
         let cluster = cluster.unwrap();
         let cluster_start = cluster.start_offset;
         let cluster_end = cluster_start + u64::from(cluster.len_bytes);
+        total_size += u64::from(cluster.len_bytes);
 
         let mut offset = 0;
         loop {
@@ -150,6 +159,7 @@ fn load_file(
             offset += len;
         }
     }
+    total_size
 }
 
 /// Taken from https://github.com/rust-lang/rust/blob/e100ec5bc7cd768ec17d75448b29c9ab4a39272b/library/core/src/slice/mod.rs#L1673-L1677

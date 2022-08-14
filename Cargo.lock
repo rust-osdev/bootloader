@@ -58,7 +58,7 @@ name = "bootloader"
 version = "0.11.0-alpha.0"
 dependencies = [
  "anyhow",
- "bootloader-x86_64-bios",
+ "bootloader-x86_64-bios-stage-4",
  "bootloader_test_runner",
  "fatfs",
  "gpt",
@@ -68,18 +68,6 @@ dependencies = [
  "test_kernel_higher_half",
  "test_kernel_map_phys_mem",
  "test_kernel_pie",
-]
-
-[[package]]
-name = "bootloader-x86_64-bios"
-version = "0.1.0-alpha.0"
-dependencies = [
- "bootloader-x86_64-common",
- "bootloader_api",
- "log",
- "rsdp",
- "usize_conversions",
- "x86_64",
 ]
 
 [[package]]
@@ -97,6 +85,18 @@ dependencies = [
 [[package]]
 name = "bootloader-x86_64-bios-stage-3"
 version = "0.1.0"
+
+[[package]]
+name = "bootloader-x86_64-bios-stage-4"
+version = "0.1.0-alpha.0"
+dependencies = [
+ "bootloader-x86_64-common",
+ "bootloader_api",
+ "log",
+ "rsdp",
+ "usize_conversions",
+ "x86_64",
+]
 
 [[package]]
 name = "bootloader-x86_64-common"

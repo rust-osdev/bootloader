@@ -4,9 +4,11 @@ use std::{
 };
 
 const BOOTLOADER_X86_64_UEFI_VERSION: &str = "0.1.0-alpha.0";
+
 const BOOTLOADER_X86_64_BIOS_BOOT_SECTOR_VERSION: &str = "0.1.0-alpha.0";
 const BOOTLOADER_X86_64_BIOS_STAGE_2_VERSION: &str = "0.1.0-alpha.0";
 const BOOTLOADER_X86_64_BIOS_STAGE_3_VERSION: &str = "0.1.0-alpha.0";
+const BOOTLOADER_X86_64_BIOS_STAGE_4_VERSION: &str = "0.1.0-alpha.0";
 
 fn main() {
     let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
@@ -35,6 +37,12 @@ fn main() {
     println!(
         "cargo:rustc-env=BIOS_STAGE_3_PATH={}",
         bios_stage_3_path.display()
+    );
+
+    let bios_stage_4_path = build_bios_stage_4(&out_dir);
+    println!(
+        "cargo:rustc-env=BIOS_STAGE_4_PATH={}",
+        bios_stage_4_path.display()
     );
 }
 
@@ -190,6 +198,12 @@ fn build_bios_stage_3(out_dir: &Path) -> PathBuf {
     } else {
         panic!("failed to build bios stage-3");
     };
+    convert_elf_to_bin(elf_path)
+}
+
+fn build_bios_stage_4(out_dir: &Path) -> PathBuf {
+    let elf_path =
+        PathBuf::from(std::env::var("CARGO_BIN_FILE_BOOTLOADER_X86_64_BIOS_STAGE_4").unwrap());
     convert_elf_to_bin(elf_path)
 }
 

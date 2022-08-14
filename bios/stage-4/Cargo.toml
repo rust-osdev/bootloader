@@ -1,14 +1,14 @@
 [package]
-name = "bootloader-x86_64-bios"
+name = "bootloader-x86_64-bios-stage-4"
 version = "0.1.0-alpha.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bootloader_api = { version = "0.1.0-alpha.0", path = "../api" }
-bootloader-x86_64-common = { version = "0.1.0-alpha.0", path = "../common" }
+bootloader_api = { version = "0.1.0-alpha.0", path = "../../api" }
+bootloader-x86_64-common = { version = "0.1.0-alpha.0", path = "../../common" }
 log = "0.4.14"
 x86_64 = "0.14.8"
-usize_conversions = "0.2.0"
 rsdp = "2.0.0"
+usize_conversions = "0.2.0"
