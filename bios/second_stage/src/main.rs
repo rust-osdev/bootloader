@@ -32,7 +32,6 @@ fn second_stage_end() -> *const u8 {
 
 static mut DISK_BUFFER: AlignedArrayBuffer<0x4000> = AlignedArrayBuffer {
     buffer: [0; 0x4000],
-    limit: 0x4000,
 };
 
 #[no_mangle]
@@ -83,9 +82,8 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
     let mut fs = fat::FileSystem::parse(disk.clone());
 
     let disk_buffer = unsafe { &mut DISK_BUFFER };
-    let disk_buffer_size = u64::try_from(disk_buffer.buffer.len()).unwrap();
+    let disk_buffer_size = disk_buffer.buffer.len();
 
-    disk_buffer.reset_limit();
     let kernel = fs
         .find_file_in_root_dir("kernel-x86_64", disk_buffer)
         .expect("no `kernel-x86_64` file found");
@@ -101,7 +99,10 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
             if range_start >= cluster_end {
                 break;
             }
-            let range_end = u64::min(range_start + disk_buffer_size, cluster_end);
+            let range_end = u64::min(
+                range_start + u64::try_from(disk_buffer_size).unwrap(),
+                cluster_end,
+            );
             let len = range_end - range_start;
 
             writeln!(
@@ -111,8 +112,7 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
             .unwrap();
 
             disk.seek(SeekFrom::Start(range_start));
-            disk_buffer.reset_limit();
-            disk.read_exact_into(disk_buffer);
+            disk.read_exact_into(disk_buffer_size, disk_buffer);
 
             let slice = &disk_buffer.buffer[..usize::try_from(len).unwrap()];
             unsafe {

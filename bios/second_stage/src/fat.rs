@@ -214,11 +214,10 @@ impl<D: Read + Seek> FileSystem<D> {
             }
             FatType::Fat12 | FatType::Fat16 => {
                 let root_directory_size = self.bpb.root_directory_size();
-                buffer.set_limit(root_directory_size);
 
                 self.disk
                     .seek(SeekFrom::Start(self.bpb.root_directory_offset()));
-                self.disk.read_exact_into(buffer);
+                self.disk.read_exact_into(root_directory_size, buffer);
 
                 buffer
                     .slice()
