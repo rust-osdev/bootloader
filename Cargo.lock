@@ -95,6 +95,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "bootloader-x86_64-bios-third-stage"
+version = "0.1.0"
+
+[[package]]
 name = "bootloader-x86_64-common"
 version = "0.1.0-alpha.0"
 dependencies = [

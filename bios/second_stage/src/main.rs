@@ -20,7 +20,8 @@ mod screen;
 /// We use this partition type to store the second bootloader stage;
 const BOOTLOADER_SECOND_STAGE_PARTITION_TYPE: u8 = 0x20;
 
-const KERNEL_DST: *mut u8 = (2 * 1024 * 1024) as *mut u8;
+const THIRD_STAGE_DST: *mut u8 = 0x0010_0000 as *mut u8; // 1MiB (typically 14MiB accessible here)
+const KERNEL_DST: *mut u8 = 0x0100_0000 as *mut u8; // 16MiB
 
 extern "C" {
     static _second_stage_end: u8;
@@ -83,8 +84,15 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
 
     let disk_buffer = unsafe { &mut DISK_BUFFER };
 
+    load_file(
+        "boot-stage-3",
+        THIRD_STAGE_DST,
+        &mut fs,
+        &mut disk,
+        disk_buffer,
+    );
+    writeln!(screen::Writer, "third stage loaded").unwrap();
     load_file("kernel-x86_64", KERNEL_DST, &mut fs, &mut disk, disk_buffer);
-
     writeln!(screen::Writer, "kernel loaded").unwrap();
 
     // TODO: Retrieve memory map

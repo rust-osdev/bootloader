@@ -17,6 +17,7 @@ members = [
     "bios",
     "bios/boot_sector",
     "bios/second_stage",
+    "bios/third_stage",
     "tests/runner",
     "tests/test_kernels/default_settings",
     "tests/test_kernels/map_phys_mem",
@@ -65,6 +66,12 @@ overflow-checks = false
 [profile.second-stage]
 inherits = "release"
 opt-level = "s"
+codegen-units = 1
+debug = false
+overflow-checks = true
+
+[profile.third-stage]
+inherits = "release"
 codegen-units = 1
 debug = false
 overflow-checks = true

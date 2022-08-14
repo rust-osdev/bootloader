@@ -76,14 +76,17 @@ mod mbr;
 mod pxe;
 
 const KERNEL_FILE_NAME: &str = "kernel-x86_64";
+const BIOS_THIRD_STAGE: &str = "boot-stage-3";
 
 /// Creates a bootable FAT partition at the given path.
 pub fn create_boot_partition(kernel_binary: &Path, out_path: &Path) -> anyhow::Result<()> {
     let bootloader_path = Path::new(env!("UEFI_BOOTLOADER_PATH"));
+    let third_stage_path = Path::new(env!("BIOS_THIRD_STAGE_PATH"));
 
     let mut files = BTreeMap::new();
     files.insert("efi/boot/bootx64.efi", bootloader_path);
     files.insert(KERNEL_FILE_NAME, kernel_binary);
+    files.insert(BIOS_THIRD_STAGE, third_stage_path);
 
     fat::create_fat_filesystem(files, &out_path).context("failed to create UEFI FAT filesystem")?;
 
