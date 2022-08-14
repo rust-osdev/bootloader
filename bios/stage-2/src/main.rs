@@ -9,7 +9,7 @@ use mbr_nostd::{PartitionTableEntry, PartitionType};
 use crate::{
     disk::{AlignedBuffer, Read, Seek, SeekFrom},
     protected_mode::{
-        copy_to_protected_mode, enter_protected_mode_and_jump_to_third_stage, enter_unreal_mode,
+        copy_to_protected_mode, enter_protected_mode_and_jump_to_stage_3, enter_unreal_mode,
     },
 };
 
@@ -22,7 +22,7 @@ mod screen;
 /// We use this partition type to store the second bootloader stage;
 const BOOTLOADER_SECOND_STAGE_PARTITION_TYPE: u8 = 0x20;
 
-const THIRD_STAGE_DST: *mut u8 = 0x0010_0000 as *mut u8; // 1MiB (typically 14MiB accessible here)
+const STAGE_3_DST: *mut u8 = 0x0010_0000 as *mut u8; // 1MiB (typically 14MiB accessible here)
 const KERNEL_DST: *mut u8 = 0x0100_0000 as *mut u8; // 16MiB
 
 extern "C" {
@@ -86,21 +86,15 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
 
     let disk_buffer = unsafe { &mut DISK_BUFFER };
 
-    load_file(
-        "boot-stage-3",
-        THIRD_STAGE_DST,
-        &mut fs,
-        &mut disk,
-        disk_buffer,
-    );
-    writeln!(screen::Writer, "third stage loaded").unwrap();
+    load_file("boot-stage-3", STAGE_3_DST, &mut fs, &mut disk, disk_buffer);
+    writeln!(screen::Writer, "stage 3 loaded").unwrap();
     load_file("kernel-x86_64", KERNEL_DST, &mut fs, &mut disk, disk_buffer);
     writeln!(screen::Writer, "kernel loaded").unwrap();
 
     // TODO: Retrieve memory map
     // TODO: VESA config
 
-    enter_protected_mode_and_jump_to_third_stage(THIRD_STAGE_DST);
+    enter_protected_mode_and_jump_to_stage_3(STAGE_3_DST);
 
     loop {}
 }

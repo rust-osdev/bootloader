@@ -76,17 +76,17 @@ mod mbr;
 mod pxe;
 
 const KERNEL_FILE_NAME: &str = "kernel-x86_64";
-const BIOS_THIRD_STAGE: &str = "boot-stage-3";
+const BIOS_STAGE_3: &str = "boot-stage-3";
 
 /// Creates a bootable FAT partition at the given path.
 pub fn create_boot_partition(kernel_binary: &Path, out_path: &Path) -> anyhow::Result<()> {
     let bootloader_path = Path::new(env!("UEFI_BOOTLOADER_PATH"));
-    let third_stage_path = Path::new(env!("BIOS_THIRD_STAGE_PATH"));
+    let stage_3_path = Path::new(env!("BIOS_STAGE_3_PATH"));
 
     let mut files = BTreeMap::new();
     files.insert("efi/boot/bootx64.efi", bootloader_path);
     files.insert(KERNEL_FILE_NAME, kernel_binary);
-    files.insert(BIOS_THIRD_STAGE, third_stage_path);
+    files.insert(BIOS_STAGE_3, stage_3_path);
 
     fat::create_fat_filesystem(files, &out_path).context("failed to create UEFI FAT filesystem")?;
 
@@ -108,11 +108,11 @@ pub fn create_bios_disk_image(
     out_mbr_path: &Path,
 ) -> anyhow::Result<()> {
     let bootsector_path = Path::new(env!("BIOS_BOOT_SECTOR_PATH"));
-    let second_stage_path = Path::new(env!("BIOS_SECOND_STAGE_PATH"));
+    let stage_2_path = Path::new(env!("BIOS_STAGE_2_PATH"));
 
     mbr::create_mbr_disk(
         bootsector_path,
-        second_stage_path,
+        stage_2_path,
         boot_partition_path,
         out_mbr_path,
     )

@@ -4,6 +4,6 @@ fn main() {
     let local_path = Path::new(env!("CARGO_MANIFEST_DIR"));
     println!(
         "cargo:rustc-link-arg-bins=--script={}",
-        local_path.join("second-stage-link.ld").display()
+        local_path.join("stage-2-link.ld").display()
     )
 }

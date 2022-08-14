@@ -87,7 +87,7 @@ name = "bootloader-x86_64-bios-boot-sector"
 version = "0.1.0"
 
 [[package]]
-name = "bootloader-x86_64-bios-second-stage"
+name = "bootloader-x86_64-bios-stage-2"
 version = "0.1.0"
 dependencies = [
  "byteorder",
@@ -95,7 +95,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "bootloader-x86_64-bios-third-stage"
+name = "bootloader-x86_64-bios-stage-3"
 version = "0.1.0"
 
 [[package]]

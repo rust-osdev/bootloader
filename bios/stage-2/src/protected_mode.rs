@@ -102,7 +102,7 @@ pub unsafe fn read_from_protected_mode(ptr: *mut u8) -> u8 {
     res
 }
 
-pub fn enter_protected_mode_and_jump_to_third_stage(entry_point: *const u8) {
+pub fn enter_protected_mode_and_jump_to_stage_3(entry_point: *const u8) {
     let (entry_point_high, entry_point_low) = {
         let addr = entry_point as u32;
         (addr >> 16, addr & u32::from(u16::MAX))

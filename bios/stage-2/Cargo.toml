@@ -1,5 +1,5 @@
 [package]
-name = "bootloader-x86_64-bios-third-stage"
+name = "bootloader-x86_64-bios-stage-2"
 version = "0.1.0"
 authors = ["Philipp Oppermann <dev@phil-opp.com>"]
 edition = "2021"
@@ -7,3 +7,5 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+mbr-nostd = "0.1.0"
+byteorder = { version = "1.4.3", default-features = false }

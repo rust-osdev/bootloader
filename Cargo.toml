@@ -16,8 +16,7 @@ members = [
     "uefi",
     "bios",
     "bios/boot_sector",
-    "bios/second_stage",
-    "bios/third_stage",
+    "bios/stage-*",
     "tests/runner",
     "tests/test_kernels/default_settings",
     "tests/test_kernels/map_phys_mem",
@@ -55,7 +54,7 @@ lto = false
 debug = true
 overflow-checks = true
 
-[profile.first-stage]
+[profile.stage-1]
 inherits = "release"
 opt-level = "s"
 lto = true
@@ -63,14 +62,14 @@ codegen-units = 1
 debug = false
 overflow-checks = false
 
-[profile.second-stage]
+[profile.stage-2]
 inherits = "release"
 opt-level = "s"
 codegen-units = 1
 debug = false
 overflow-checks = true
 
-[profile.third-stage]
+[profile.stage-3]
 inherits = "release"
 codegen-units = 1
 debug = false

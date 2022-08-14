@@ -5,8 +5,8 @@ use std::{
 
 const BOOTLOADER_X86_64_UEFI_VERSION: &str = "0.1.0-alpha.0";
 const BOOTLOADER_X86_64_BIOS_BOOT_SECTOR_VERSION: &str = "0.1.0-alpha.0";
-const BOOTLOADER_X86_64_BIOS_SECOND_STAGE_VERSION: &str = "0.1.0-alpha.0";
-const BOOTLOADER_X86_64_BIOS_THIRD_STAGE_VERSION: &str = "0.1.0-alpha.0";
+const BOOTLOADER_X86_64_BIOS_STAGE_2_VERSION: &str = "0.1.0-alpha.0";
+const BOOTLOADER_X86_64_BIOS_STAGE_3_VERSION: &str = "0.1.0-alpha.0";
 
 fn main() {
     let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
@@ -25,16 +25,16 @@ fn main() {
         "cargo:rustc-env=BIOS_BOOT_SECTOR_PATH={}",
         bios_boot_sector_path.display()
     );
-    let bios_second_stage_path = build_bios_second_stage(&out_dir);
+    let bios_stage_2_path = build_bios_stage_2(&out_dir);
     println!(
-        "cargo:rustc-env=BIOS_SECOND_STAGE_PATH={}",
-        bios_second_stage_path.display()
+        "cargo:rustc-env=BIOS_STAGE_2_PATH={}",
+        bios_stage_2_path.display()
     );
 
-    let bios_third_stage_path = build_bios_third_stage(&out_dir);
+    let bios_stage_3_path = build_bios_stage_3(&out_dir);
     println!(
-        "cargo:rustc-env=BIOS_THIRD_STAGE_PATH={}",
-        bios_third_stage_path.display()
+        "cargo:rustc-env=BIOS_STAGE_3_PATH={}",
+        bios_stage_3_path.display()
     );
 }
 
@@ -87,8 +87,8 @@ fn build_bios_boot_sector(out_dir: &Path) -> PathBuf {
             .arg(BOOTLOADER_X86_64_BIOS_BOOT_SECTOR_VERSION);
     }
     cmd.arg("--locked");
-    cmd.arg("--target").arg("x86-16bit.json");
-    cmd.arg("--profile").arg("first-stage");
+    cmd.arg("--target").arg("i386-code16-boot-sector.json");
+    cmd.arg("--profile").arg("stage-1");
     cmd.arg("-Zbuild-std=core")
         .arg("-Zbuild-std-features=compiler-builtins-mem");
     cmd.arg("--root").arg(out_dir);
@@ -113,25 +113,24 @@ fn build_bios_boot_sector(out_dir: &Path) -> PathBuf {
     convert_elf_to_bin(elf_path)
 }
 
-fn build_bios_second_stage(out_dir: &Path) -> PathBuf {
+fn build_bios_stage_2(out_dir: &Path) -> PathBuf {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
     let mut cmd = Command::new(cargo);
-    cmd.arg("install")
-        .arg("bootloader-x86_64-bios-second-stage");
+    cmd.arg("install").arg("bootloader-x86_64-bios-stage-2");
     let local_path = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("bios")
-        .join("second_stage");
+        .join("stage-2");
     if local_path.exists() {
         // local build
         cmd.arg("--path").arg(&local_path);
         println!("cargo:rerun-if-changed={}", local_path.display());
     } else {
         cmd.arg("--version")
-            .arg(BOOTLOADER_X86_64_BIOS_SECOND_STAGE_VERSION);
+            .arg(BOOTLOADER_X86_64_BIOS_STAGE_2_VERSION);
     }
     cmd.arg("--locked");
-    cmd.arg("--target").arg("x86-16bit-second-stage.json");
-    cmd.arg("--profile").arg("second-stage");
+    cmd.arg("--target").arg("i386-code16-stage-2.json");
+    cmd.arg("--profile").arg("stage-2");
     cmd.arg("-Zbuild-std=core")
         .arg("-Zbuild-std-features=compiler-builtins-mem");
     cmd.arg("--root").arg(out_dir);
@@ -142,9 +141,7 @@ fn build_bios_second_stage(out_dir: &Path) -> PathBuf {
         .status()
         .expect("failed to run cargo install for bios second stage");
     let elf_path = if status.success() {
-        let path = out_dir
-            .join("bin")
-            .join("bootloader-x86_64-bios-second-stage");
+        let path = out_dir.join("bin").join("bootloader-x86_64-bios-stage-2");
         assert!(
             path.exists(),
             "bios second stage executable does not exist after building"
@@ -156,24 +153,24 @@ fn build_bios_second_stage(out_dir: &Path) -> PathBuf {
     convert_elf_to_bin(elf_path)
 }
 
-fn build_bios_third_stage(out_dir: &Path) -> PathBuf {
+fn build_bios_stage_3(out_dir: &Path) -> PathBuf {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
     let mut cmd = Command::new(cargo);
-    cmd.arg("install").arg("bootloader-x86_64-bios-third-stage");
+    cmd.arg("install").arg("bootloader-x86_64-bios-stage-3");
     let local_path = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("bios")
-        .join("third_stage");
+        .join("stage-3");
     if local_path.exists() {
         // local build
         cmd.arg("--path").arg(&local_path);
         println!("cargo:rerun-if-changed={}", local_path.display());
     } else {
         cmd.arg("--version")
-            .arg(BOOTLOADER_X86_64_BIOS_THIRD_STAGE_VERSION);
+            .arg(BOOTLOADER_X86_64_BIOS_STAGE_3_VERSION);
     }
     cmd.arg("--locked");
-    cmd.arg("--target").arg("i686-third-stage.json");
-    cmd.arg("--profile").arg("third-stage");
+    cmd.arg("--target").arg("i686-stage-3.json");
+    cmd.arg("--profile").arg("stage-3");
     cmd.arg("-Zbuild-std=core")
         .arg("-Zbuild-std-features=compiler-builtins-mem");
     cmd.arg("--root").arg(out_dir);
@@ -182,18 +179,16 @@ fn build_bios_third_stage(out_dir: &Path) -> PathBuf {
     cmd.env_remove("RUSTC_WORKSPACE_WRAPPER"); // used by clippy
     let status = cmd
         .status()
-        .expect("failed to run cargo install for bios third stage");
+        .expect("failed to run cargo install for bios stage-3");
     let elf_path = if status.success() {
-        let path = out_dir
-            .join("bin")
-            .join("bootloader-x86_64-bios-third-stage");
+        let path = out_dir.join("bin").join("bootloader-x86_64-bios-stage-3");
         assert!(
             path.exists(),
-            "bios third stage executable does not exist after building"
+            "bios stage-3 executable does not exist after building"
         );
         path
     } else {
-        panic!("failed to build bios third stage");
+        panic!("failed to build bios stage-3");
     };
     convert_elf_to_bin(elf_path)
 }
