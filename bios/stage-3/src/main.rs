@@ -7,6 +7,10 @@ mod paging;
 #[no_mangle]
 #[link_section = ".start"]
 pub extern "C" fn _start() {
+    // set up identity mapping, enable paging, and switch CPU into long
+    // mode (32-bit compatibility mode)
+    paging::init();
+
     // TODO: Set up long mode with identity-mapping, then jump to 4th stage (passing
     // kernel, memory map, and vesa info as arguments)
 
