@@ -6,7 +6,10 @@ use core::{fmt::Write as _, slice};
 use disk::AlignedArrayBuffer;
 use mbr_nostd::{PartitionTableEntry, PartitionType};
 
-use crate::protected_mode::enter_unreal_mode;
+use crate::{
+    disk::{AlignedBuffer, Read, Seek, SeekFrom},
+    protected_mode::enter_unreal_mode,
+};
 
 mod dap;
 mod disk;
@@ -33,7 +36,7 @@ static mut DISK_BUFFER: AlignedArrayBuffer<0x4000> = AlignedArrayBuffer {
 #[no_mangle]
 #[link_section = ".start"]
 pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
-    screen::Writer.write_str(" -> SECOND STAGE").unwrap();
+    screen::Writer.write_str(" -> SECOND STAGE\n").unwrap();
 
     enter_unreal_mode();
 
@@ -78,27 +81,45 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
     let mut fs = fat::FileSystem::parse(disk.clone());
 
     let disk_buffer = unsafe { &mut DISK_BUFFER };
+    let disk_buffer_size = u64::try_from(disk_buffer.buffer.len()).unwrap();
 
+    disk_buffer.reset_limit();
     let kernel = fs
         .find_file_in_root_dir("kernel-x86_64", disk_buffer)
         .expect("no `kernel-x86_64` file found");
-    disk_buffer.reset_limit();
 
     for cluster in fs.file_clusters(&kernel) {
         let cluster = cluster.unwrap();
-        writeln!(
-            screen::Writer,
-            "kernel cluster: start: {:#x}, len: {}",
-            cluster.start_offset,
-            cluster.len_bytes
-        )
-        .unwrap();
+        let cluster_start = cluster.start_offset;
+        let cluster_end = cluster_start + u64::from(cluster.len_bytes);
+
+        let mut offset = 0;
+        loop {
+            let range_start = cluster_start + offset;
+            if range_start >= cluster_end {
+                break;
+            }
+            let range_end = u64::min(range_start + disk_buffer_size, cluster_end);
+            let len = range_end - range_start;
+
+            writeln!(
+                screen::Writer,
+                "loading kernel bytes {range_start:#x}..{range_end:#x}"
+            )
+            .unwrap();
+
+            disk.seek(SeekFrom::Start(range_start));
+            disk_buffer.reset_limit();
+            disk.read_exact_into(disk_buffer);
+
+            let slice = &disk_buffer.buffer[..usize::try_from(len).unwrap()];
+            // TODO: copy slice to protected mode address
+
+            offset += len;
+        }
     }
 
-    writeln!(screen::Writer, "DONE").unwrap();
-
-    // TODO: Load `kernel` into DISK_BUFFER, then copy it to protected mode
-    // address (might require multiple iterations for large kernels)
+    writeln!(screen::Writer, "kernel loaded").unwrap();
 
     // TODO: Retrieve memory map
     // TODO: VESA config
