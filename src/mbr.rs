@@ -1,7 +1,7 @@
 use anyhow::Context;
 use std::{
     fs::{self, File},
-    io::{self, Read, Seek, SeekFrom},
+    io::{self, Seek, SeekFrom},
     path::Path,
 };
 const SECTOR_SIZE: u32 = 512;
@@ -91,7 +91,8 @@ pub fn create_mbr_disk(
     // fat partition
     disk.seek(SeekFrom::Start(
         (boot_partition_start_sector * SECTOR_SIZE).into(),
-    ));
+    ))
+    .context("seek failed")?;
     io::copy(&mut boot_partition, &mut disk)
         .context("failed to copy FAT image to MBR disk image")?;
 

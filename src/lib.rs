@@ -68,12 +68,7 @@ for all possible configuration options.
 #![warn(missing_docs)]
 
 use anyhow::Context;
-use std::{
-    collections::BTreeMap,
-    fs::{self, File},
-    io::{self, Seek},
-    path::Path,
-};
+use std::{collections::BTreeMap, path::Path};
 
 mod fat;
 mod gpt;
