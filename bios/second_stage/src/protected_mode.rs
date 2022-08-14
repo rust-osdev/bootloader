@@ -1,4 +1,7 @@
-use core::{arch::asm, mem::size_of};
+use core::{
+    arch::{asm, global_asm},
+    mem::size_of,
+};
 
 static GDT: GdtProtectedMode = GdtProtectedMode::new();
 
@@ -65,17 +68,14 @@ pub fn enter_unreal_mode() {
     GDT.clear_interrupts_and_load();
 
     // set protected mode bit
-    let mut cr0: u32;
-    unsafe {
-        asm!("mov {}, cr0", out(reg) cr0, options(nomem, nostack, preserves_flags));
-    }
-    let cr0_protected = cr0 | 1;
-    write_cr0(cr0_protected);
+    let cr0 = set_protected_mode_bit();
 
+    // load GDT
     unsafe {
         asm!("mov bx, 0x10", "mov ds, bx");
     }
 
+    // unset protected mode bit again
     write_cr0(cr0);
 
     unsafe {
@@ -86,11 +86,58 @@ pub fn enter_unreal_mode() {
     }
 }
 
+#[no_mangle]
 pub unsafe fn copy_to_protected_mode(target: *mut u8, bytes: &[u8]) {
     for (offset, byte) in bytes.iter().enumerate() {
         let dst = target.wrapping_add(offset);
-        unsafe { asm!("mov [{}], {}", in(reg) dst, in(reg) byte) };
+        unsafe { asm!("nop", "nop", "mov [{}], {}", in(reg) dst, in(reg_byte) *byte) };
+        assert_eq!(read_from_protected_mode(dst), *byte);
     }
+}
+
+#[no_mangle]
+pub unsafe fn read_from_protected_mode(ptr: *mut u8) -> u8 {
+    let res;
+    unsafe { asm!("nop", "nop", "mov {}, [{}]", out(reg_byte) res, in(reg) ptr) };
+    res
+}
+
+pub fn enter_protected_mode_and_jump_to_third_stage(entry_point: *const u8) {
+    let (entry_point_high, entry_point_low) = {
+        let addr = entry_point as u32;
+        (addr >> 16, addr & u32::from(u16::MAX))
+    };
+
+    unsafe { asm!("cli") };
+    set_protected_mode_bit();
+    unsafe {
+        // asm!("ljmp $0x8, $protected_mode", options(att_syntax));
+        asm!("ljmp $0x8, $2f", "2:", options(att_syntax));
+        asm!(
+            "
+        .code32
+        mov bx, 0x10
+        mov ds, bx
+        mov es, bx
+        mov ss, bx
+        shl eax, 16
+        or eax, {0}
+        jmp eax
+        2:
+        jmp 2b
+        "
+        , in(reg) entry_point_low, in("ax") entry_point_high, out("ebx") _);
+    }
+}
+
+fn set_protected_mode_bit() -> u32 {
+    let mut cr0: u32;
+    unsafe {
+        asm!("mov {}, cr0", out(reg) cr0, options(nomem, nostack, preserves_flags));
+    }
+    let cr0_protected = cr0 | 1;
+    write_cr0(cr0_protected);
+    cr0
 }
 
 fn write_cr0(val: u32) {

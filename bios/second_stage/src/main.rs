@@ -8,7 +8,9 @@ use mbr_nostd::{PartitionTableEntry, PartitionType};
 
 use crate::{
     disk::{AlignedBuffer, Read, Seek, SeekFrom},
-    protected_mode::{copy_to_protected_mode, enter_unreal_mode},
+    protected_mode::{
+        copy_to_protected_mode, enter_protected_mode_and_jump_to_third_stage, enter_unreal_mode,
+    },
 };
 
 mod dap;
@@ -98,9 +100,7 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
     // TODO: Retrieve memory map
     // TODO: VESA config
 
-    // TODO: Load third stage using DISK_BUFFER, then copy it to protected mode addr
-    // TODO: Set up long mode with identity-mapping, then jump to third stage (passing
-    // kernel, memory map, and vesa info as arguments)
+    enter_protected_mode_and_jump_to_third_stage(THIRD_STAGE_DST);
 
     loop {}
 }

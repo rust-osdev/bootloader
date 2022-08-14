@@ -4,6 +4,15 @@
 #[no_mangle]
 #[link_section = ".start"]
 pub extern "C" fn _start() {
+    // TODO: Set up long mode with identity-mapping, then jump to 4th stage (passing
+    // kernel, memory map, and vesa info as arguments)
+
+    let vga = 0xb8000 as *mut u16;
+
+    for i in 0..(80 * 25) {
+        unsafe { vga.wrapping_add(i).write_volatile(0x0f01) };
+    }
+
     loop {}
 }
 
