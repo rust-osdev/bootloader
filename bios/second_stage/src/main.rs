@@ -82,12 +82,32 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
     let mut fs = fat::FileSystem::parse(disk.clone());
 
     let disk_buffer = unsafe { &mut DISK_BUFFER };
+
+    load_file("kernel-x86_64", KERNEL_DST, &mut fs, &mut disk, disk_buffer);
+
+    writeln!(screen::Writer, "kernel loaded").unwrap();
+
+    // TODO: Retrieve memory map
+    // TODO: VESA config
+
+    // TODO: Load third stage using DISK_BUFFER, then copy it to protected mode addr
+    // TODO: Set up long mode with identity-mapping, then jump to third stage (passing
+    // kernel, memory map, and vesa info as arguments)
+
+    loop {}
+}
+
+fn load_file(
+    file_name: &str,
+    dst: *mut u8,
+    fs: &mut fat::FileSystem<disk::DiskAccess>,
+    disk: &mut disk::DiskAccess,
+    disk_buffer: &mut AlignedArrayBuffer<16384>,
+) {
     let disk_buffer_size = disk_buffer.buffer.len();
-
     let kernel = fs
-        .find_file_in_root_dir("kernel-x86_64", disk_buffer)
-        .expect("no `kernel-x86_64` file found");
-
+        .find_file_in_root_dir(file_name, disk_buffer)
+        .expect("file not found");
     for cluster in fs.file_clusters(&kernel) {
         let cluster = cluster.unwrap();
         let cluster_start = cluster.start_offset;
@@ -107,7 +127,7 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
 
             writeln!(
                 screen::Writer,
-                "loading kernel bytes {range_start:#x}..{range_end:#x}"
+                "loading bytes {range_start:#x}..{range_end:#x}"
             )
             .unwrap();
 
@@ -116,26 +136,12 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
 
             let slice = &disk_buffer.buffer[..usize::try_from(len).unwrap()];
             unsafe {
-                copy_to_protected_mode(
-                    KERNEL_DST.wrapping_add(usize::try_from(offset).unwrap()),
-                    slice,
-                )
+                copy_to_protected_mode(dst.wrapping_add(usize::try_from(offset).unwrap()), slice)
             };
 
             offset += len;
         }
     }
-
-    writeln!(screen::Writer, "kernel loaded").unwrap();
-
-    // TODO: Retrieve memory map
-    // TODO: VESA config
-
-    // TODO: Load third stage using DISK_BUFFER, then copy it to protected mode addr
-    // TODO: Set up long mode with identity-mapping, then jump to third stage (passing
-    // kernel, memory map, and vesa info as arguments)
-
-    loop {}
 }
 
 /// Taken from https://github.com/rust-lang/rust/blob/e100ec5bc7cd768ec17d75448b29c9ab4a39272b/library/core/src/slice/mod.rs#L1673-L1677
