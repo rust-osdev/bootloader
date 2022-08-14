@@ -32,7 +32,6 @@ SECTIONS {
     . = 0x0007FFFF - 2;
     .end_marker :
     {
-        SHORT(0xdead)       /* magic number for bootable disk */
+        SHORT(0xdead)
     }
-    . = 0x7c00 + 512;
 }
