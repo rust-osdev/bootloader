@@ -146,6 +146,12 @@ fn load_file(
             unsafe {
                 copy_to_protected_mode(dst.wrapping_add(usize::try_from(offset).unwrap()), slice)
             };
+            let written = unsafe {
+                protected_mode::read_from_protected_mode(
+                    dst.wrapping_add(usize::try_from(offset).unwrap()),
+                )
+            };
+            assert_eq!(slice[0], written);
 
             offset += len;
         }
