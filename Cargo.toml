@@ -71,7 +71,7 @@ overflow-checks = true
 [profile.stage-3]
 inherits = "release"
 codegen-units = 1
-debug = false
+debug = true
 overflow-checks = true
 
 [profile.test.package.test_kernel_higher_half]
