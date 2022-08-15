@@ -6,7 +6,7 @@ mod paging;
 
 #[no_mangle]
 #[link_section = ".start"]
-pub extern "C" fn _start() {
+pub extern "C" fn _start(stage_4_addr: u32, kernel_addr: u32) {
     // set up identity mapping, enable paging, and switch CPU into long
     // mode (32-bit compatibility mode)
     paging::init();

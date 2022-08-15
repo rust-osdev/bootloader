@@ -1,5 +1,6 @@
 use core::{
     arch::{asm, global_asm},
+    fmt::Write as _,
     mem::size_of,
 };
 
@@ -102,31 +103,47 @@ pub unsafe fn read_from_protected_mode(ptr: *mut u8) -> u8 {
     res
 }
 
-pub fn enter_protected_mode_and_jump_to_stage_3(entry_point: *const u8) {
-    let (entry_point_high, entry_point_low) = {
-        let addr = entry_point as u32;
-        (addr >> 16, addr & u32::from(u16::MAX))
-    };
-
+pub fn enter_protected_mode_and_jump_to_stage_3(
+    entry_point: *const u8,
+    stage_4: *const u8,
+    kernel: *const u8,
+) {
     unsafe { asm!("cli") };
     set_protected_mode_bit();
     unsafe {
-        // asm!("ljmp $0x8, $protected_mode", options(att_syntax));
+        asm!(
+            // align the stack
+            "and esp, 0xffffff00",
+            // push arguments
+            "push {kernel_addr}",
+            "push {stage_4_addr}",
+            // push entry point address
+            "mov ebx, {entry_point}",
+            "push {entry_point}",
+            stage_4_addr = in(reg) stage_4 as u32,
+            kernel_addr = in(reg) kernel as u32,
+            entry_point = in(reg) entry_point as u32,
+            out("ebx") _
+        );
         asm!("ljmp $0x8, $2f", "2:", options(att_syntax));
         asm!(
-            "
-        .code32
-        mov bx, 0x10
-        mov ds, bx
-        mov es, bx
-        mov ss, bx
-        shl eax, 16
-        or eax, {0}
-        jmp eax
-        2:
-        jmp 2b
-        "
-        , in(reg) entry_point_low, in("ax") entry_point_high, out("ebx") _);
+            ".code32",
+
+            // reload segment registers
+            "mov bx, 0x10",
+            "mov ds, bx",
+            "mov es, bx",
+            "mov ss, bx",
+
+            // jump to third stage
+            "pop eax",
+            "call eax",
+
+            // enter endless loop in case third stage returns
+            "2:",
+            "jmp 2b",
+            out("eax") _
+        );
     }
 }
 
