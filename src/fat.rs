@@ -45,7 +45,7 @@ pub fn create_fat_filesystem(
 
     // format the file system and open it
     let format_options = fatfs::FormatVolumeOptions::new().volume_label(label);
-    fatfs::format_volume(&fat_file, format_options).context("Failed to format UEFI FAT file")?;
+    fatfs::format_volume(&fat_file, format_options).context("Failed to format FAT file")?;
     let filesystem = fatfs::FileSystem::new(&fat_file, fatfs::FsOptions::new())
         .context("Failed to open FAT file system of UEFI FAT file")?;
 
