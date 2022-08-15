@@ -9,13 +9,17 @@ pub struct DiskAccess {
 
 impl Read for DiskAccess {
     fn read_exact(&mut self, len: usize) -> &[u8] {
-        static mut TMP_BUF: AlignedArrayBuffer<512> = AlignedArrayBuffer { buffer: [0; 512] };
+        let current_sector_offset = usize::try_from(self.current_offset % 512).unwrap();
+
+        static mut TMP_BUF: AlignedArrayBuffer<1024> = AlignedArrayBuffer {
+            buffer: [0; 512 * 2],
+        };
         let buf = unsafe { &mut TMP_BUF };
-        assert!(len <= buf.buffer.len());
+        assert!(current_sector_offset + len <= buf.buffer.len());
 
-        self.read_exact_into(512, buf);
+        self.read_exact_into(buf.buffer.len(), buf);
 
-        &buf.buffer[..len]
+        &buf.buffer[current_sector_offset..][..len]
     }
 
     fn read_exact_into(&mut self, len: usize, buf: &mut dyn AlignedBuffer) {
