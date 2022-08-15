@@ -87,16 +87,16 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
     let disk_buffer = unsafe { &mut DISK_BUFFER };
 
     let stage_3_len = load_file("boot-stage-3", STAGE_3_DST, &mut fs, &mut disk, disk_buffer);
-    writeln!(screen::Writer, "stage 3 loaded").unwrap();
+    writeln!(screen::Writer, "stage 3 loaded at {STAGE_3_DST:#p}").unwrap();
     let stage_4_dst = {
         let stage_3_end = STAGE_3_DST.wrapping_add(usize::try_from(stage_3_len).unwrap());
         let align_offset = stage_3_end.align_offset(512);
         stage_3_end.wrapping_add(align_offset)
     };
     load_file("boot-stage-4", stage_4_dst, &mut fs, &mut disk, disk_buffer);
-    writeln!(screen::Writer, "stage 4 loaded").unwrap();
+    writeln!(screen::Writer, "stage 4 loaded at {stage_4_dst:#p}").unwrap();
     load_file("kernel-x86_64", KERNEL_DST, &mut fs, &mut disk, disk_buffer);
-    writeln!(screen::Writer, "kernel loaded").unwrap();
+    writeln!(screen::Writer, "kernel loaded at {KERNEL_DST:#p}").unwrap();
 
     // TODO: Retrieve memory map
     // TODO: VESA config
