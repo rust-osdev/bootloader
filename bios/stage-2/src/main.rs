@@ -114,11 +114,12 @@ fn load_file(
     disk_buffer: &mut AlignedArrayBuffer<16384>,
 ) -> u64 {
     let disk_buffer_size = disk_buffer.buffer.len();
-    let kernel = fs
+    let file = fs
         .find_file_in_root_dir(file_name, disk_buffer)
         .expect("file not found");
-    let mut total_size = 0;
-    for cluster in fs.file_clusters(&kernel) {
+    let file_size = file.file_size().into();
+
+    for cluster in fs.file_clusters(&file) {
         let cluster = cluster.unwrap();
         let cluster_start = cluster.start_offset;
         let cluster_end = cluster_start + u64::from(cluster.len_bytes);
@@ -159,7 +160,7 @@ fn load_file(
             offset += len;
         }
     }
-    total_size
+    file_size
 }
 
 /// Taken from https://github.com/rust-lang/rust/blob/e100ec5bc7cd768ec17d75448b29c9ab4a39272b/library/core/src/slice/mod.rs#L1673-L1677
