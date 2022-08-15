@@ -33,6 +33,7 @@ struct Bpb {
 
 impl Bpb {
     fn parse<D: Read + Seek>(disk: &mut D) -> Self {
+        disk.seek(SeekFrom::Start(0));
         let raw = disk.read_exact(512);
 
         let bytes_per_sector = u16::from_le_bytes(raw[11..13].try_into().unwrap());
