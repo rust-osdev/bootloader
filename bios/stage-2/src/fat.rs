@@ -244,6 +244,7 @@ impl<D: Read + Seek> FileSystem<D> {
 
 #[derive(Debug)]
 pub struct Cluster {
+    pub index: u32,
     pub start_offset: u64,
     pub len_bytes: u32,
 }
@@ -273,9 +274,11 @@ where
             self.bpb.data_offset() + (u64::from(entry) - 2) * self.bpb.bytes_per_cluster() as u64;
         let next_entry =
             fat_entry_of_nth_cluster(self.disk, self.bpb.fat_type(), self.bpb.fat_offset(), entry);
+        let index = self.current_entry;
         self.current_entry = next_entry;
 
         Ok(Some(Cluster {
+            index,
             start_offset: cluster_start,
             len_bytes: self.bpb.bytes_per_cluster(),
         }))
