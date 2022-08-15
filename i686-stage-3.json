@@ -6,7 +6,7 @@
     "executables": true,
     "linker-flavor": "ld.lld",
     "linker": "rust-lld",
-    "llvm-target": "i686-unknown-none",
+    "llvm-target": "i386-unknown-none",
     "max-atomic-width": 64,
     "position-independent-executables": false,
     "disable-redzone": true,
@@ -17,5 +17,5 @@
     "os": "none",
     "vendor": "unknown",
     "relocation-model": "static",
-    "features": "+soft-float,+sse"
+    "features": "+soft-float,-sse,-mmx"
 }
