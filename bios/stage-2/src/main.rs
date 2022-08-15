@@ -119,11 +119,11 @@ fn load_file(
         .expect("file not found");
     let file_size = file.file_size().into();
 
+    let mut total_offset = 0;
     for cluster in fs.file_clusters(&file) {
         let cluster = cluster.unwrap();
         let cluster_start = cluster.start_offset;
         let cluster_end = cluster_start + u64::from(cluster.len_bytes);
-        total_size += u64::from(cluster.len_bytes);
 
         let mut offset = 0;
         loop {
@@ -137,27 +137,17 @@ fn load_file(
             );
             let len = range_end - range_start;
 
-            writeln!(
-                screen::Writer,
-                "loading bytes {range_start:#x}..{range_end:#x}"
-            )
-            .unwrap();
-
             disk.seek(SeekFrom::Start(range_start));
             disk.read_exact_into(disk_buffer_size, disk_buffer);
 
             let slice = &disk_buffer.buffer[..usize::try_from(len).unwrap()];
-            unsafe {
-                copy_to_protected_mode(dst.wrapping_add(usize::try_from(offset).unwrap()), slice)
-            };
-            let written = unsafe {
-                protected_mode::read_from_protected_mode(
-                    dst.wrapping_add(usize::try_from(offset).unwrap()),
-                )
-            };
+            unsafe { copy_to_protected_mode(dst.wrapping_add(total_offset), slice) };
+            let written =
+                unsafe { protected_mode::read_from_protected_mode(dst.wrapping_add(total_offset)) };
             assert_eq!(slice[0], written);
 
             offset += len;
+            total_offset += usize::try_from(len).unwrap();
         }
     }
     file_size
