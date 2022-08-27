@@ -40,7 +40,7 @@ impl GdtProtectedMode {
 
     fn clear_interrupts_and_load(&'static self) {
         let pointer = GdtPointer {
-            base: &GDT,
+            base: self,
             limit: (3 * size_of::<u64>() - 1) as u16,
         };
 
