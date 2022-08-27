@@ -9,14 +9,14 @@ SECTIONS {
     .text : {
         *(.text .text.*)
     }
+    .bss : {
+        *(.bss .bss.*)
+    }
     .rodata : {
         *(.rodata .rodata.*)
     }
     .data : {
         *(.data .data.*)
-    }
-    .bss : {
-        *(.bss .bss.*)
     }
     .eh_frame : {
         *(.eh_frame .eh_frame.*)
