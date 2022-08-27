@@ -75,9 +75,14 @@ name = "bootloader-x86_64-bios-boot-sector"
 version = "0.1.0"
 
 [[package]]
+name = "bootloader-x86_64-bios-common"
+version = "0.1.0"
+
+[[package]]
 name = "bootloader-x86_64-bios-stage-2"
 version = "0.1.0"
 dependencies = [
+ "bootloader-x86_64-bios-common",
  "byteorder",
  "mbr-nostd",
 ]
@@ -85,11 +90,15 @@ dependencies = [
 [[package]]
 name = "bootloader-x86_64-bios-stage-3"
 version = "0.1.0"
+dependencies = [
+ "bootloader-x86_64-bios-common",
+]
 
 [[package]]
 name = "bootloader-x86_64-bios-stage-4"
 version = "0.1.0-alpha.0"
 dependencies = [
+ "bootloader-x86_64-bios-common",
  "bootloader-x86_64-common",
  "bootloader_api",
  "log",

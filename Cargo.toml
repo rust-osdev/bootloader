@@ -16,6 +16,7 @@ members = [
     "uefi",
     "bios/boot_sector",
     "bios/stage-*",
+    "bios/common",
     "tests/runner",
     "tests/test_kernels/default_settings",
     "tests/test_kernels/map_phys_mem",

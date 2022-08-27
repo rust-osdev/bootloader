@@ -1,3 +1,4 @@
+use bootloader_x86_64_bios_common::Addresses;
 use core::{
     arch::{asm, global_asm},
     fmt::Write as _,
@@ -103,11 +104,7 @@ pub unsafe fn read_from_protected_mode(ptr: *mut u8) -> u8 {
     res
 }
 
-pub fn enter_protected_mode_and_jump_to_stage_3(
-    entry_point: *const u8,
-    stage_4: *const u8,
-    kernel: *const u8,
-) {
+pub fn enter_protected_mode_and_jump_to_stage_3(entry_point: *const u8, addresses: &Addresses) {
     unsafe { asm!("cli") };
     set_protected_mode_bit();
     unsafe {
@@ -115,13 +112,10 @@ pub fn enter_protected_mode_and_jump_to_stage_3(
             // align the stack
             "and esp, 0xffffff00",
             // push arguments
-            "push {kernel_addr}",
-            "push {stage_4_addr}",
+            "push {addr}",
             // push entry point address
-            "mov ebx, {entry_point}",
             "push {entry_point}",
-            stage_4_addr = in(reg) stage_4 as u32,
-            kernel_addr = in(reg) kernel as u32,
+            addr = in(reg) addresses as *const _ as u32,
             entry_point = in(reg) entry_point as u32,
             out("ebx") _
         );

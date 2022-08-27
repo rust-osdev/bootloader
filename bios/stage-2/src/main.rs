@@ -1,17 +1,17 @@
 #![no_std]
 #![no_main]
 
-use byteorder::{ByteOrder, LittleEndian};
-use core::{fmt::Write as _, slice};
-use disk::AlignedArrayBuffer;
-use mbr_nostd::{PartitionTableEntry, PartitionType};
-
 use crate::{
     disk::{AlignedBuffer, Read, Seek, SeekFrom},
     protected_mode::{
         copy_to_protected_mode, enter_protected_mode_and_jump_to_stage_3, enter_unreal_mode,
     },
 };
+use bootloader_x86_64_bios_common::{Addresses, Region};
+use byteorder::{ByteOrder, LittleEndian};
+use core::{fmt::Write as _, slice};
+use disk::AlignedArrayBuffer;
+use mbr_nostd::{PartitionTableEntry, PartitionType};
 
 mod dap;
 mod disk;
@@ -90,18 +90,33 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
     writeln!(screen::Writer, "stage 3 loaded at {STAGE_3_DST:#p}").unwrap();
     let stage_4_dst = {
         let stage_3_end = STAGE_3_DST.wrapping_add(usize::try_from(stage_3_len).unwrap());
-        let align_offset = stage_3_end.align_offset(512);
-        stage_3_end.wrapping_add(align_offset)
+        assert!(STAGE_4_DST > stage_3_end);
+        STAGE_4_DST
     };
-    load_file("boot-stage-4", stage_4_dst, &mut fs, &mut disk, disk_buffer);
+    let stage_4_len = load_file("boot-stage-4", stage_4_dst, &mut fs, &mut disk, disk_buffer);
     writeln!(screen::Writer, "stage 4 loaded at {stage_4_dst:#p}").unwrap();
-    load_file("kernel-x86_64", KERNEL_DST, &mut fs, &mut disk, disk_buffer);
+    let kernel_len = load_file("kernel-x86_64", KERNEL_DST, &mut fs, &mut disk, disk_buffer);
     writeln!(screen::Writer, "kernel loaded at {KERNEL_DST:#p}").unwrap();
 
     // TODO: Retrieve memory map
     // TODO: VESA config
 
-    enter_protected_mode_and_jump_to_stage_3(STAGE_3_DST, stage_4_dst, KERNEL_DST);
+    let addresses = Addresses {
+        stage_4: Region {
+            start: stage_4_dst as u64,
+            len: stage_4_len,
+        },
+        kernel: Region {
+            start: KERNEL_DST as u64,
+            len: kernel_len,
+        },
+        // TODO
+        memory_map: Region { start: 0, len: 0 },
+        // TODO
+        framebuffer: Region { start: 0, len: 0 },
+    };
+
+    enter_protected_mode_and_jump_to_stage_3(STAGE_3_DST, &addresses);
 
     loop {}
 }
