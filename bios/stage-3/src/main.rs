@@ -6,6 +6,7 @@ use crate::vga_buffer::Writer;
 use bootloader_x86_64_bios_common::Addresses;
 use core::{arch::asm, fmt::Write as _};
 
+mod gdt;
 mod paging;
 mod vga_buffer;
 
@@ -19,16 +20,54 @@ pub extern "C" fn _start(addresses: &Addresses) {
     // mode (32-bit compatibility mode)
     paging::init();
 
-    // TODO: Set up long mode with identity-mapping, then jump to 4th stage (passing
-    // kernel, memory map, and vesa info as arguments)
-
-    writeln!(Writer, "Paging init done");
+    gdt::LONG_MODE_GDT.load();
+    enter_long_mode_and_jump_to_stage_4(addresses);
 
     loop {}
 }
 
+#[no_mangle]
+pub fn enter_long_mode_and_jump_to_stage_4(addresses: &Addresses) {
+    let _ = writeln!(Writer, "Paging init done, jumping to stage 4");
+    unsafe {
+        asm!(
+            // align the stack
+            "and esp, 0xffffff00",
+            // push arguments (extended to 64 bit)
+            "push 0",
+            "push {addr}",
+            // push entry point address (extended to 64 bit)
+            "push 0",
+            "push {entry_point}",
+            addr = in(reg) addresses as *const _ as u32,
+            entry_point = in(reg) addresses.stage_4.start as u32,
+            out("ebx") _
+        );
+        asm!("ljmp $0x8, $2f", "2:", options(att_syntax));
+        asm!(
+            ".code64",
+
+            // reload segment registers
+            "mov bx, 0x10",
+            "mov ds, bx",
+            "mov es, bx",
+            "mov ss, bx",
+
+            // jump to 4th stage
+            "pop rax",
+            "pop rdi",
+            "call rax",
+
+            // enter endless loop in case 4th stage returns
+            "2:",
+            "jmp 2b",
+            out("eax") _
+        );
+    }
+}
+
 #[panic_handler]
 pub fn panic(info: &core::panic::PanicInfo) -> ! {
-    writeln!(Writer, "PANIC: {info}");
+    let _ = writeln!(Writer, "PANIC: {info}");
     loop {}
 }
