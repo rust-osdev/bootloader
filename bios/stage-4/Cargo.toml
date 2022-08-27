@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 bootloader_api = { version = "0.1.0-alpha.0", path = "../../api" }
+bootloader-x86_64-bios-common = { version = "0.1.0", path = "../common" }
 bootloader-x86_64-common = { version = "0.1.0-alpha.0", path = "../../common" }
 log = "0.4.14"
 x86_64 = "0.14.8"

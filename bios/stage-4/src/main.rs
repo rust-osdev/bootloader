@@ -2,12 +2,17 @@
 #![no_main]
 
 use crate::memory_descriptor::E820MemoryRegion;
+use crate::vga_buffer::Writer;
 use bootloader_api::info::{FrameBufferInfo, PixelFormat};
+use bootloader_x86_64_bios_common::Addresses;
 use bootloader_x86_64_common::{
-    load_and_switch_to_kernel, logger::LOGGER, Kernel, PageTables, SystemInfo,
+    legacy_memory_region::LegacyFrameAllocator, load_and_switch_to_kernel, logger::LOGGER, Kernel,
+    PageTables, SystemInfo,
 };
 use core::{
     arch::{asm, global_asm},
+    fmt::Write,
+    mem::size_of,
     panic::PanicInfo,
     slice,
 };
@@ -19,18 +24,27 @@ use x86_64::structures::paging::{
 use x86_64::{PhysAddr, VirtAddr};
 
 mod memory_descriptor;
+mod vga_buffer;
 
-fn bootloader_main(
-    kernel_start: PhysAddr,
-    kernel_size: u64,
-    memory_map_addr: VirtAddr,
-    memory_map_entry_count: u64,
-) -> ! {
-    use bootloader_x86_64_common::legacy_memory_region::LegacyFrameAllocator;
+#[no_mangle]
+#[link_section = ".start"]
+pub extern "C" fn _start(addresses: &Addresses) -> ! {
+    Writer.clear_screen();
+    writeln!(Writer, "4th Stage").unwrap();
+    writeln!(Writer, "{addresses:#x?}").unwrap();
 
     let e820_memory_map = {
-        let ptr = usize_from(memory_map_addr.as_u64()) as *const E820MemoryRegion;
-        unsafe { slice::from_raw_parts(ptr, usize_from(memory_map_entry_count)) }
+        assert!(
+            addresses.memory_map.start != 0,
+            "memory map address must be set"
+        );
+        let ptr = usize_from(addresses.memory_map.start) as *const E820MemoryRegion;
+        unsafe {
+            slice::from_raw_parts(
+                ptr,
+                usize_from(addresses.memory_map.len / size_of::<E820MemoryRegion>() as u64),
+            )
+        }
     };
     let max_phys_addr = e820_memory_map
         .iter()
@@ -38,6 +52,14 @@ fn bootloader_main(
         .max()
         .expect("no physical memory regions found");
 
+    let kernel_start = {
+        assert!(
+            addresses.kernel.start != 0,
+            "kernel start address must be set"
+        );
+        PhysAddr::new(addresses.kernel.start)
+    };
+    let kernel_size = addresses.kernel.len;
     let mut frame_allocator = {
         let kernel_end = PhysFrame::containing_address(kernel_start + kernel_size - 1u64);
         let next_free = kernel_end + 1;
@@ -71,7 +93,7 @@ fn bootloader_main(
         }
     }
 
-    let framebuffer_addr = todo!();
+    let framebuffer_addr = PhysAddr::new(addresses.framebuffer.start);
     let framebuffer_info = todo!();
 
     log::info!("BIOS boot");
@@ -191,6 +213,9 @@ fn detect_rsdp() -> Option<PhysAddr> {
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
+    // TODO remove
+    let _ = writeln!(Writer, "{info}");
+
     unsafe { LOGGER.get().map(|l| l.force_unlock()) };
     log::error!("{}", info);
     loop {
