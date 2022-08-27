@@ -58,7 +58,6 @@ name = "bootloader"
 version = "0.11.0-alpha.0"
 dependencies = [
  "anyhow",
- "bootloader-x86_64-bios-stage-4",
  "bootloader_test_runner",
  "fatfs",
  "gpt",

@@ -202,8 +202,43 @@ fn build_bios_stage_3(out_dir: &Path) -> PathBuf {
 }
 
 fn build_bios_stage_4(out_dir: &Path) -> PathBuf {
-    let elf_path =
-        PathBuf::from(std::env::var("CARGO_BIN_FILE_BOOTLOADER_X86_64_BIOS_STAGE_4").unwrap());
+    let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
+    let mut cmd = Command::new(cargo);
+    cmd.arg("install").arg("bootloader-x86_64-bios-stage-4");
+    let local_path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("bios")
+        .join("stage-4");
+    if local_path.exists() {
+        // local build
+        cmd.arg("--path").arg(&local_path);
+        println!("cargo:rerun-if-changed={}", local_path.display());
+    } else {
+        cmd.arg("--version")
+            .arg(BOOTLOADER_X86_64_BIOS_STAGE_4_VERSION);
+    }
+    cmd.arg("--locked");
+    cmd.arg("--target").arg("x86_64-stage-4.json");
+    cmd.arg("--profile").arg("stage-4");
+    cmd.arg("-Zbuild-std=core")
+        .arg("-Zbuild-std-features=compiler-builtins-mem");
+    cmd.arg("--root").arg(out_dir);
+    cmd.env_remove("RUSTFLAGS");
+    cmd.env_remove("CARGO_ENCODED_RUSTFLAGS");
+    cmd.env_remove("RUSTC_WORKSPACE_WRAPPER"); // used by clippy
+    let status = cmd
+        .status()
+        .expect("failed to run cargo install for bios stage-4");
+    let elf_path = if status.success() {
+        let path = out_dir.join("bin").join("bootloader-x86_64-bios-stage-4");
+        assert!(
+            path.exists(),
+            "bios stage-4 executable does not exist after building"
+        );
+        path
+    } else {
+        panic!("failed to build bios stage-4");
+    };
+
     convert_elf_to_bin(elf_path)
 }
 

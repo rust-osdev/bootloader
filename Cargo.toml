@@ -32,12 +32,6 @@ fatfs = "0.3.4"
 gpt = "3.0.0"
 mbrman = "0.4.2"
 
-[build-dependencies.bootloader-x86_64-bios-stage-4]
-version = "0.1.0-alpha.0"
-path = "bios/stage-4"
-artifact = ["bin"]
-target = "x86_64-unknown-none"
-
 [dev-dependencies]
 bootloader_test_runner = { path = "tests/runner" }
 test_kernel_default_settings = { path = "tests/test_kernels/default_settings", artifact = "bin", target = "x86_64-unknown-none" }
@@ -71,7 +65,11 @@ overflow-checks = true
 
 [profile.stage-3]
 inherits = "release"
-codegen-units = 1
+debug = true
+overflow-checks = true
+
+[profile.stage-4]
+inherits = "release"
 debug = true
 overflow-checks = true
 
