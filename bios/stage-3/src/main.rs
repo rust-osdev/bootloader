@@ -3,7 +3,7 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 
 use crate::vga_buffer::Writer;
-use bootloader_x86_64_bios_common::Addresses;
+use bootloader_x86_64_bios_common::BiosInfo;
 use core::{arch::asm, fmt::Write as _};
 
 mod gdt;
@@ -12,22 +12,22 @@ mod vga_buffer;
 
 #[no_mangle]
 #[link_section = ".start"]
-pub extern "C" fn _start(addresses: &Addresses) {
+pub extern "C" fn _start(info: &BiosInfo) {
     // Writer.clear_screen();
-    writeln!(Writer, "Third Stage ({addresses:#x?})").unwrap();
+    writeln!(Writer, "Third Stage ({info:#x?})").unwrap();
 
     // set up identity mapping, enable paging, and switch CPU into long
     // mode (32-bit compatibility mode)
     paging::init();
 
     gdt::LONG_MODE_GDT.load();
-    enter_long_mode_and_jump_to_stage_4(addresses);
+    enter_long_mode_and_jump_to_stage_4(info);
 
     loop {}
 }
 
 #[no_mangle]
-pub fn enter_long_mode_and_jump_to_stage_4(addresses: &Addresses) {
+pub fn enter_long_mode_and_jump_to_stage_4(info: &BiosInfo) {
     let _ = writeln!(Writer, "Paging init done, jumping to stage 4");
     unsafe {
         asm!(
@@ -35,12 +35,12 @@ pub fn enter_long_mode_and_jump_to_stage_4(addresses: &Addresses) {
             "and esp, 0xffffff00",
             // push arguments (extended to 64 bit)
             "push 0",
-            "push {addr}",
+            "push {info}",
             // push entry point address (extended to 64 bit)
             "push 0",
             "push {entry_point}",
-            addr = in(reg) addresses as *const _ as u32,
-            entry_point = in(reg) addresses.stage_4.start as u32,
+            info = in(reg) info as *const _ as u32,
+            entry_point = in(reg) info.stage_4.start as u32,
             out("ebx") _
         );
         asm!("ljmp $0x8, $2f", "2:", options(att_syntax));

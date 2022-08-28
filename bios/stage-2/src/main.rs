@@ -7,7 +7,7 @@ use crate::{
         copy_to_protected_mode, enter_protected_mode_and_jump_to_stage_3, enter_unreal_mode,
     },
 };
-use bootloader_x86_64_bios_common::{Addresses, Region};
+use bootloader_x86_64_bios_common::{BiosInfo, FramebufferInfo, Region};
 use byteorder::{ByteOrder, LittleEndian};
 use core::{fmt::Write as _, slice};
 use disk::AlignedArrayBuffer;
@@ -100,8 +100,6 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
     let kernel_len = load_file("kernel-x86_64", KERNEL_DST, &mut fs, &mut disk, disk_buffer);
     writeln!(screen::Writer, "kernel loaded at {KERNEL_DST:#p}").unwrap();
 
-    // TODO: Retrieve memory map
-
     let mut vesa_info = vesa::VesaInfo::query(disk_buffer).unwrap();
     let (mode, mode_info) = vesa_info.get_best_mode(1000, 1000).unwrap().unwrap();
     writeln!(
@@ -112,9 +110,10 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
     )
     .unwrap();
 
-    loop {}
+    // TODO enable vesa mode
+    // TODO: Retrieve memory map
 
-    let addresses = Addresses {
+    let info = BiosInfo {
         stage_4: Region {
             start: stage_4_dst as u64,
             len: stage_4_len,
@@ -125,11 +124,20 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
         },
         // TODO
         memory_map: Region { start: 0, len: 0 },
-        // TODO
-        framebuffer: Region { start: 0, len: 0 },
+        framebuffer: FramebufferInfo {
+            region: Region {
+                start: mode_info.framebuffer_start.into(),
+                len: u64::from(mode_info.height) * u64::from(mode_info.bytes_per_scanline),
+            },
+            width: mode_info.width,
+            height: mode_info.height,
+            bytes_per_pixel: mode_info.bytes_per_pixel,
+            stride: mode_info.bytes_per_scanline / u16::from(mode_info.bytes_per_pixel),
+            pixel_format: mode_info.pixel_format,
+        },
     };
 
-    enter_protected_mode_and_jump_to_stage_3(STAGE_3_DST, &addresses);
+    enter_protected_mode_and_jump_to_stage_3(STAGE_3_DST, &info);
 
     loop {}
 }

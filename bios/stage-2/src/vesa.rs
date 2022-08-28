@@ -1,5 +1,7 @@
 // info taken from https://wiki.osdev.org/VESA_Video_Modes
 
+use bootloader_x86_64_bios_common::PixelFormat;
+
 use crate::{disk::AlignedBuffer, AlignedArrayBuffer};
 use core::{arch::asm, fmt::Write as _};
 
@@ -108,8 +110,13 @@ impl<'a> VesaInfo<'a> {
 pub struct VesaModeInfo {
     pub width: u16,
     pub height: u16,
-    pub memory_model: u8,
-    pub attributes: u16,
+    pub framebuffer_start: u32,
+    pub bytes_per_scanline: u16,
+    pub bytes_per_pixel: u8,
+    pub pixel_format: PixelFormat,
+
+    memory_model: u8,
+    attributes: u16,
 }
 
 impl VesaModeInfo {
@@ -124,13 +131,13 @@ impl VesaModeInfo {
             segment_a: u16,
             segment_b: u16,
             window_function_ptr: u32,
-            pitch: u16,
+            bytes_per_scanline: u16,
             width: u16,
             height: u16,
             w_char: u8,
             y_char: u8,
             planes: u8,
-            bpp: u8, // bytes per pixel
+            bits_per_pixel: u8,
             banks: u8,
             memory_model: u8,
             bank_size: u8,
@@ -176,6 +183,22 @@ impl VesaModeInfo {
                 Ok(VesaModeInfo {
                     width: block.width,
                     height: block.height,
+                    framebuffer_start: block.framebuffer,
+                    bytes_per_scanline: block.bytes_per_scanline,
+                    bytes_per_pixel: block.bits_per_pixel / 8,
+                    pixel_format: match (
+                        block.red_position,
+                        block.green_position,
+                        block.blue_position,
+                    ) {
+                        (0, 8, 16) => PixelFormat::Rgb,
+                        (16, 8, 0) => PixelFormat::Bgr,
+                        (red_position, green_position, blue_position) => PixelFormat::Unknown {
+                            red_position,
+                            green_position,
+                            blue_position,
+                        },
+                    },
                     memory_model: block.memory_model,
                     attributes: block.attributes,
                 })

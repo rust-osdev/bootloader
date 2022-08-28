@@ -235,6 +235,11 @@ pub enum PixelFormat {
     /// Length might be larger than 1, check [`bytes_per_pixel`][FrameBufferInfo::bytes_per_pixel]
     /// for this.
     U8,
+    Unknown {
+        red_position: u8,
+        green_position: u8,
+        blue_position: u8,
+    },
 }
 
 /// Information about the thread local storage (TLS) template.

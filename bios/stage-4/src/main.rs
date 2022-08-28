@@ -4,7 +4,7 @@
 use crate::memory_descriptor::E820MemoryRegion;
 use crate::vga_buffer::Writer;
 use bootloader_api::info::{FrameBufferInfo, PixelFormat};
-use bootloader_x86_64_bios_common::Addresses;
+use bootloader_x86_64_bios_common::BiosInfo;
 use bootloader_x86_64_common::{
     legacy_memory_region::LegacyFrameAllocator, load_and_switch_to_kernel, logger::LOGGER, Kernel,
     PageTables, SystemInfo,
@@ -28,21 +28,18 @@ mod vga_buffer;
 
 #[no_mangle]
 #[link_section = ".start"]
-pub extern "C" fn _start(addresses: &Addresses) -> ! {
+pub extern "C" fn _start(info: &BiosInfo) -> ! {
     Writer.clear_screen();
     writeln!(Writer, "4th Stage").unwrap();
-    writeln!(Writer, "{addresses:#x?}").unwrap();
+    writeln!(Writer, "{info:x?}").unwrap();
 
     let e820_memory_map = {
-        assert!(
-            addresses.memory_map.start != 0,
-            "memory map address must be set"
-        );
-        let ptr = usize_from(addresses.memory_map.start) as *const E820MemoryRegion;
+        assert!(info.memory_map.start != 0, "memory map address must be set");
+        let ptr = usize_from(info.memory_map.start) as *const E820MemoryRegion;
         unsafe {
             slice::from_raw_parts(
                 ptr,
-                usize_from(addresses.memory_map.len / size_of::<E820MemoryRegion>() as u64),
+                usize_from(info.memory_map.len / size_of::<E820MemoryRegion>() as u64),
             )
         }
     };
@@ -53,13 +50,10 @@ pub extern "C" fn _start(addresses: &Addresses) -> ! {
         .expect("no physical memory regions found");
 
     let kernel_start = {
-        assert!(
-            addresses.kernel.start != 0,
-            "kernel start address must be set"
-        );
-        PhysAddr::new(addresses.kernel.start)
+        assert!(info.kernel.start != 0, "kernel start address must be set");
+        PhysAddr::new(info.kernel.start)
     };
-    let kernel_size = addresses.kernel.len;
+    let kernel_size = info.kernel.len;
     let mut frame_allocator = {
         let kernel_end = PhysFrame::containing_address(kernel_start + kernel_size - 1u64);
         let next_free = kernel_end + 1;
@@ -93,8 +87,27 @@ pub extern "C" fn _start(addresses: &Addresses) -> ! {
         }
     }
 
-    let framebuffer_addr = PhysAddr::new(addresses.framebuffer.start);
-    let framebuffer_info = todo!();
+    let framebuffer_addr = PhysAddr::new(info.framebuffer.region.start);
+    let framebuffer_info = FrameBufferInfo {
+        byte_len: info.framebuffer.region.len.try_into().unwrap(),
+        horizontal_resolution: info.framebuffer.width.into(),
+        vertical_resolution: info.framebuffer.height.into(),
+        pixel_format: match info.framebuffer.pixel_format {
+            bootloader_x86_64_bios_common::PixelFormat::Rgb => PixelFormat::Rgb,
+            bootloader_x86_64_bios_common::PixelFormat::Bgr => PixelFormat::Bgr,
+            bootloader_x86_64_bios_common::PixelFormat::Unknown {
+                red_position,
+                green_position,
+                blue_position,
+            } => PixelFormat::Unknown {
+                red_position,
+                green_position,
+                blue_position,
+            },
+        },
+        bytes_per_pixel: info.framebuffer.bytes_per_pixel.into(),
+        stride: info.framebuffer.stride.into(),
+    };
 
     log::info!("BIOS boot");
 
