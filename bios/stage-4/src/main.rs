@@ -2,20 +2,13 @@
 #![no_main]
 
 use crate::memory_descriptor::MemoryRegion;
-use crate::screen::Writer;
 use bootloader_api::info::{FrameBufferInfo, PixelFormat};
-use bootloader_x86_64_bios_common::{BiosInfo, E820MemoryRegion};
+use bootloader_x86_64_bios_common::{BiosFramebufferInfo, BiosInfo, E820MemoryRegion};
 use bootloader_x86_64_common::{
-    legacy_memory_region::LegacyFrameAllocator, load_and_switch_to_kernel, logger::LOGGER, Kernel,
-    PageTables, SystemInfo,
+    legacy_memory_region::LegacyFrameAllocator, load_and_switch_to_kernel, Kernel, PageTables,
+    SystemInfo,
 };
-use core::{
-    arch::{asm, global_asm},
-    fmt::Write,
-    mem::size_of,
-    panic::PanicInfo,
-    slice,
-};
+use core::slice;
 use usize_conversions::usize_from;
 use x86_64::structures::paging::{FrameAllocator, OffsetPageTable};
 use x86_64::structures::paging::{
@@ -24,14 +17,13 @@ use x86_64::structures::paging::{
 use x86_64::{PhysAddr, VirtAddr};
 
 mod memory_descriptor;
-mod screen;
 
 #[no_mangle]
 #[link_section = ".start"]
 pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
-    screen::init(info.framebuffer);
-    writeln!(Writer, "4th Stage").unwrap();
-    writeln!(Writer, "{info:x?}").unwrap();
+    let framebuffer_info = init_logger(info.framebuffer);
+    log::info!("4th Stage");
+    log::info!("{info:x?}");
 
     let memory_map: &mut [E820MemoryRegion] = unsafe {
         core::slice::from_raw_parts_mut(
@@ -45,7 +37,7 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
     let max_phys_addr = memory_map
         .iter()
         .map(|r| {
-            writeln!(Writer, "start: {:#x}, len: {:#x}", r.start_addr, r.len).unwrap();
+            log::info!("start: {:#x}, len: {:#x}", r.start_addr, r.len);
             r.start_addr + r.len
         })
         .max()
@@ -92,12 +84,31 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
         }
     }
 
-    let framebuffer_addr = PhysAddr::new(info.framebuffer.region.start);
+    log::info!("BIOS boot");
+
+    let page_tables = create_page_tables(&mut frame_allocator);
+
+    let kernel_slice = {
+        let ptr = kernel_start.as_u64() as *const u8;
+        unsafe { slice::from_raw_parts(ptr, usize_from(kernel_size)) }
+    };
+    let kernel = Kernel::parse(kernel_slice);
+
+    let system_info = SystemInfo {
+        framebuffer_addr: PhysAddr::new(info.framebuffer.region.start),
+        framebuffer_info,
+        rsdp_addr: detect_rsdp(),
+    };
+
+    load_and_switch_to_kernel(kernel, frame_allocator, page_tables, system_info);
+}
+
+fn init_logger(info: BiosFramebufferInfo) -> FrameBufferInfo {
     let framebuffer_info = FrameBufferInfo {
-        byte_len: info.framebuffer.region.len.try_into().unwrap(),
-        width: info.framebuffer.width.into(),
-        height: info.framebuffer.height.into(),
-        pixel_format: match info.framebuffer.pixel_format {
+        byte_len: info.region.len.try_into().unwrap(),
+        width: info.width.into(),
+        height: info.height.into(),
+        pixel_format: match info.pixel_format {
             bootloader_x86_64_bios_common::PixelFormat::Rgb => PixelFormat::Rgb,
             bootloader_x86_64_bios_common::PixelFormat::Bgr => PixelFormat::Bgr,
             bootloader_x86_64_bios_common::PixelFormat::Unknown {
@@ -110,53 +121,20 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
                 blue_position,
             },
         },
-        bytes_per_pixel: info.framebuffer.bytes_per_pixel.into(),
-        stride: info.framebuffer.stride.into(),
+        bytes_per_pixel: info.bytes_per_pixel.into(),
+        stride: info.stride.into(),
     };
 
-    log::info!("BIOS boot");
-
-    let page_tables = create_page_tables(&mut frame_allocator);
-
-    let kernel_slice = {
-        let ptr = kernel_start.as_u64() as *const u8;
-        unsafe { slice::from_raw_parts(ptr, usize_from(kernel_size)) }
-    };
-    let kernel = Kernel::parse(kernel_slice);
-
-    let system_info = SystemInfo {
-        framebuffer_addr,
-        framebuffer_info,
-        rsdp_addr: detect_rsdp(),
+    let framebuffer = unsafe {
+        core::slice::from_raw_parts_mut(
+            info.region.start as *mut u8,
+            info.region.len.try_into().unwrap(),
+        )
     };
 
-    load_and_switch_to_kernel(kernel, frame_allocator, page_tables, system_info);
-}
+    bootloader_x86_64_common::init_logger(framebuffer, framebuffer_info);
 
-fn init_logger(
-    framebuffer_start: PhysAddr,
-    framebuffer_size: usize,
-    horizontal_resolution: usize,
-    vertical_resolution: usize,
-    bytes_per_pixel: usize,
-    stride: usize,
-    pixel_format: PixelFormat,
-) -> FrameBufferInfo {
-    let ptr = framebuffer_start.as_u64() as *mut u8;
-    let slice = unsafe { slice::from_raw_parts_mut(ptr, framebuffer_size) };
-
-    let info = FrameBufferInfo {
-        byte_len: framebuffer_size,
-        width: horizontal_resolution,
-        height: vertical_resolution,
-        bytes_per_pixel,
-        stride,
-        pixel_format,
-    };
-
-    bootloader_x86_64_common::init_logger(slice, info);
-
-    info
+    framebuffer_info
 }
 
 /// Creates page table abstraction types for both the bootloader and kernel page tables.
@@ -230,13 +208,15 @@ fn detect_rsdp() -> Option<PhysAddr> {
 }
 
 #[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
-    // TODO remove
-    let _ = writeln!(Writer, "{info}");
-
-    unsafe { LOGGER.get().map(|l| l.force_unlock()) };
+#[cfg(not(test))]
+fn panic(info: &core::panic::PanicInfo) -> ! {
+    unsafe {
+        bootloader_x86_64_common::logger::LOGGER
+            .get()
+            .map(|l| l.force_unlock())
+    };
     log::error!("{}", info);
     loop {
-        unsafe { asm!("cli; hlt") };
+        unsafe { core::arch::asm!("cli; hlt") };
     }
 }
