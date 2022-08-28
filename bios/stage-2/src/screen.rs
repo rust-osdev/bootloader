@@ -3,7 +3,7 @@ use core::{arch::asm, fmt::Write as _};
 pub fn print_char(c: u8) {
     let ax = u16::from(c) | 0x0e00;
     unsafe {
-        asm!("int 0x10", in("ax") ax, in("bx") 0);
+        asm!("push bx", "mov bx, 0", "int 0x10", "pop bx", in("ax") ax);
     }
 }
 

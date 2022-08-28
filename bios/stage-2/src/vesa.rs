@@ -35,9 +35,9 @@ impl<'a> VesaInfo<'a> {
             .split_at_mut(core::mem::size_of::<VbeInfoBlock>());
         slice.fill(0);
         let block_ptr = slice.as_mut_ptr();
-        let mut ret: u16 = 0;
+        let ret;
         unsafe {
-            asm!("mov es, bx", "int 0x10", inout("ax") 0x4f00u16 => ret, in("bx")0, in("di") block_ptr)
+            asm!("mov es, {:x}", "int 0x10", in(reg)0, inout("ax") 0x4f00u16 => ret, in("di") block_ptr)
         };
         match ret {
             0x4f => {
@@ -165,16 +165,16 @@ impl VesaModeInfo {
         slice.fill(0);
         let block_ptr = slice.as_mut_ptr();
 
-        let mut ret: u16 = 0;
+        let mut ret: u16;
         let mut target_addr = block_ptr as u32;
-        let segment = (target_addr >> 4);
+        let segment = target_addr >> 4;
         target_addr -= segment << 4;
         unsafe {
             asm!(
-                "mov es, bx", "int 0x10",
+                "mov es, {:x}", "int 0x10",
+                in(reg) segment as u16,
                 inout("ax") 0x4f01u16 => ret,
                 in("cx") mode,
-                in("bx") segment as u16,
                 in("di") target_addr as u16
             )
         };
@@ -210,8 +210,17 @@ impl VesaModeInfo {
     }
 
     pub fn enable(&self) -> Result<(), u16> {
-        let mut ret: u16 = 0;
-        unsafe { asm!("int 0x10", inout("ax") 0x4f02u16 => ret, in("bx") self.mode) };
+        let mut ret: u16;
+        unsafe {
+            asm!(
+                "push bx",
+                "mov bx, {:x}",
+                "int 0x10",
+                "pop bx",
+                in(reg) self.mode,
+                inout("ax") 0x4f02u16 => ret,
+            )
+        };
         match ret {
             0x4f => Ok(()),
             other => Err(other),

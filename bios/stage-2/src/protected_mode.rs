@@ -112,12 +112,11 @@ pub fn enter_protected_mode_and_jump_to_stage_3(entry_point: *const u8, info: &m
             // align the stack
             "and esp, 0xffffff00",
             // push arguments
-            "push {info}",
+            "push {info:e}",
             // push entry point address
-            "push {entry_point}",
+            "push {entry_point:e}",
             info = in(reg) info as *const _ as u32,
             entry_point = in(reg) entry_point as u32,
-            out("ebx") _
         );
         asm!("ljmp $0x8, $2f", "2:", options(att_syntax));
         asm!(
@@ -144,7 +143,7 @@ pub fn enter_protected_mode_and_jump_to_stage_3(entry_point: *const u8, info: &m
 fn set_protected_mode_bit() -> u32 {
     let mut cr0: u32;
     unsafe {
-        asm!("mov {}, cr0", out(reg) cr0, options(nomem, nostack, preserves_flags));
+        asm!("mov {:e}, cr0", out(reg) cr0, options(nomem, nostack, preserves_flags));
     }
     let cr0_protected = cr0 | 1;
     write_cr0(cr0_protected);
@@ -152,5 +151,5 @@ fn set_protected_mode_bit() -> u32 {
 }
 
 fn write_cr0(val: u32) {
-    unsafe { asm!("mov cr0, {}", in(reg) val, options(nostack, preserves_flags)) };
+    unsafe { asm!("mov cr0, {:e}", in(reg) val, options(nostack, preserves_flags)) };
 }

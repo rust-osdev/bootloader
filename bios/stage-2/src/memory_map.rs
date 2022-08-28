@@ -24,14 +24,18 @@ pub fn query_memory_map() -> Result<&'static mut [E820MemoryRegion], ()> {
     let mut offset = 0;
     let buf = [0u8; 24];
     loop {
-        let mut ret = 0;
-        let mut buf_written_len = 0;
+        let ret: u32;
+        let buf_written_len;
         unsafe {
             asm!(
+                "push ebx",
+                "mov ebx, edx",
+                "mov edx, 0x534D4150",
                 "int 0x15",
-                inout ("eax") 0xe820 => ret,
-                in("edx") SMAP,
-                inout("ebx") offset,
+                "mov edx, ebx",
+                "pop ebx",
+                inout("eax") 0xe820 => ret,
+                inout("edx") offset,
                 inout("ecx") buf.len() => buf_written_len,
                 in("di") &buf
             )
