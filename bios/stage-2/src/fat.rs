@@ -189,7 +189,6 @@ impl<D: Read + Seek> FileSystem<D> {
                 },
                 None => {
                     panic!("next none");
-                    return None;
                 }
             },
         };

@@ -54,6 +54,7 @@ fn hlt() {
 }
 
 #[panic_handler]
+#[cfg(not(test))]
 pub fn panic(_info: &core::panic::PanicInfo) -> ! {
     fail(b'P');
 }

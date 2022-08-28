@@ -25,8 +25,6 @@ pub fn init(info: BiosFramebufferInfo) {
 
 /// Additional vertical space between lines
 const LINE_SPACING: usize = 0;
-/// Additional vertical space between separate log messages
-const LOG_SPACING: usize = 2;
 
 struct ScreenWriter {
     framebuffer: &'static mut [u8],
@@ -50,10 +48,6 @@ impl ScreenWriter {
     fn newline(&mut self) {
         self.y_pos += 14 + LINE_SPACING;
         self.carriage_return()
-    }
-
-    fn add_vspace(&mut self, space: usize) {
-        self.y_pos += space;
     }
 
     fn carriage_return(&mut self) {

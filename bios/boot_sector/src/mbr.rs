@@ -1,19 +1,5 @@
 use super::fail::{fail, UnwrapOrFail};
 
-/// We use this partition type to store the second bootloader stage;
-const BOOTLOADER_SECOND_STAGE_PARTITION_TYPE: u8 = 0x20;
-
-/// Returns the first bootable partition in the partition table.
-pub(crate) fn boot_partition(partitions_raw: &[u8]) -> Option<PartitionTableEntry> {
-    for index in 0..4 {
-        let entry = get_partition(partitions_raw, index);
-        if entry.partition_type == BOOTLOADER_SECOND_STAGE_PARTITION_TYPE {
-            return Some(entry);
-        }
-    }
-    None
-}
-
 pub(crate) fn get_partition(partitions_raw: &[u8], index: usize) -> PartitionTableEntry {
     const PARTITIONS_AREA_SIZE: usize = 16 * 4;
     const ENTRY_SIZE: usize = 16;

@@ -3,9 +3,10 @@
 use bootloader_x86_64_bios_common::PixelFormat;
 
 use crate::{disk::AlignedBuffer, AlignedArrayBuffer};
-use core::{arch::asm, fmt::Write as _};
+use core::arch::asm;
 
 #[repr(packed)]
+#[allow(dead_code)]
 struct VbeInfoBlock {
     signature: [u8; 4], // should be "VESA"
     version: u16,       // should be 0x0300 for VBE 3.0

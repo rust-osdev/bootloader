@@ -36,6 +36,7 @@ impl core::fmt::Write for Writer {
 }
 
 #[panic_handler]
+#[cfg(not(test))]
 pub fn panic(info: &core::panic::PanicInfo) -> ! {
     let _ = writeln!(Writer, "\nPANIC: {}", info);
 

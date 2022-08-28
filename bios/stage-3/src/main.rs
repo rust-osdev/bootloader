@@ -67,6 +67,7 @@ pub fn enter_long_mode_and_jump_to_stage_4(info: &mut BiosInfo) {
 }
 
 #[panic_handler]
+#[cfg(not(test))]
 pub fn panic(info: &core::panic::PanicInfo) -> ! {
     let _ = writeln!(Writer, "PANIC: {info}");
     loop {}
