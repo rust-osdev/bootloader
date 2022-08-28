@@ -7,7 +7,7 @@ use crate::{
         copy_to_protected_mode, enter_protected_mode_and_jump_to_stage_3, enter_unreal_mode,
     },
 };
-use bootloader_x86_64_bios_common::{BiosInfo, FramebufferInfo, Region};
+use bootloader_x86_64_bios_common::{BiosFramebufferInfo, BiosInfo, Region};
 use byteorder::{ByteOrder, LittleEndian};
 use core::{fmt::Write as _, slice};
 use disk::AlignedArrayBuffer;
@@ -130,7 +130,7 @@ fn start(disk_number: u16, partition_table_start: *const u8) -> ! {
         },
         memory_map_addr: memory_map.as_mut_ptr() as u32,
         memory_map_len: memory_map.len().try_into().unwrap(),
-        framebuffer: FramebufferInfo {
+        framebuffer: BiosFramebufferInfo {
             region: Region {
                 start: vesa_mode.framebuffer_start.into(),
                 len: u64::from(vesa_mode.height) * u64::from(vesa_mode.bytes_per_scanline),

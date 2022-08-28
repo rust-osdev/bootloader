@@ -1,8 +1,5 @@
-use bootloader_x86_64_bios_common::{racy_cell::RacyCell, FramebufferInfo, PixelFormat};
-use core::{
-    fmt::{self, Write},
-    ptr,
-};
+use bootloader_x86_64_bios_common::{racy_cell::RacyCell, BiosFramebufferInfo, PixelFormat};
+use core::{fmt, ptr};
 use noto_sans_mono_bitmap::{get_bitmap, get_bitmap_width, BitmapChar, BitmapHeight, FontWeight};
 
 static WRITER: RacyCell<Option<ScreenWriter>> = RacyCell::new(None);
@@ -15,7 +12,7 @@ impl fmt::Write for Writer {
     }
 }
 
-pub fn init(info: FramebufferInfo) {
+pub fn init(info: BiosFramebufferInfo) {
     let framebuffer = unsafe {
         core::slice::from_raw_parts_mut(
             info.region.start as *mut u8,
@@ -33,13 +30,13 @@ const LOG_SPACING: usize = 2;
 
 struct ScreenWriter {
     framebuffer: &'static mut [u8],
-    info: FramebufferInfo,
+    info: BiosFramebufferInfo,
     x_pos: usize,
     y_pos: usize,
 }
 
 impl ScreenWriter {
-    pub fn new(framebuffer: &'static mut [u8], info: FramebufferInfo) -> Self {
+    pub fn new(framebuffer: &'static mut [u8], info: BiosFramebufferInfo) -> Self {
         let mut logger = Self {
             framebuffer,
             info,

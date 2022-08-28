@@ -7,7 +7,7 @@ pub mod racy_cell;
 pub struct BiosInfo {
     pub stage_4: Region,
     pub kernel: Region,
-    pub framebuffer: FramebufferInfo,
+    pub framebuffer: BiosFramebufferInfo,
     pub memory_map_addr: u32,
     pub memory_map_len: u16,
 }
@@ -15,7 +15,7 @@ pub struct BiosInfo {
 #[cfg_attr(feature = "debug", derive(Debug))]
 #[derive(Clone, Copy)]
 #[repr(C)]
-pub struct FramebufferInfo {
+pub struct BiosFramebufferInfo {
     pub region: Region,
     pub width: u16,
     pub height: u16,
