@@ -2,7 +2,7 @@
 #![no_main]
 
 use crate::{
-    disk::{AlignedBuffer, Read, Seek, SeekFrom},
+    disk::{Read, Seek, SeekFrom},
     protected_mode::{
         copy_to_protected_mode, enter_protected_mode_and_jump_to_stage_3, enter_unreal_mode,
     },
@@ -27,14 +27,6 @@ const BOOTLOADER_SECOND_STAGE_PARTITION_TYPE: u8 = 0x20;
 const STAGE_3_DST: *mut u8 = 0x0010_0000 as *mut u8; // 1MiB (typically 14MiB accessible here)
 const STAGE_4_DST: *mut u8 = 0x0020_0000 as *mut u8; // 2MiB (typically still 13MiB accessible here)
 const KERNEL_DST: *mut u8 = 0x0100_0000 as *mut u8; // 16MiB
-
-extern "C" {
-    static _second_stage_end: u8;
-}
-
-fn second_stage_end() -> *const u8 {
-    unsafe { &_second_stage_end }
-}
 
 static mut DISK_BUFFER: AlignedArrayBuffer<0x4000> = AlignedArrayBuffer {
     buffer: [0; 0x4000],

@@ -1,4 +1,4 @@
-use core::{arch::asm, fmt::Write as _};
+use core::{arch::asm, fmt::Write};
 
 pub fn print_char(c: u8) {
     let ax = u16::from(c) | 0x0e00;
@@ -20,15 +20,9 @@ pub fn print_str(s: &str) {
     }
 }
 
-fn hlt() {
-    unsafe {
-        asm!("hlt");
-    }
-}
-
 pub struct Writer;
 
-impl core::fmt::Write for Writer {
+impl Write for Writer {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
         print_str(s);
         Ok(())
@@ -41,6 +35,8 @@ pub fn panic(info: &core::panic::PanicInfo) -> ! {
     let _ = writeln!(Writer, "\nPANIC: {}", info);
 
     loop {
-        hlt();
+        unsafe {
+            asm!("hlt");
+        };
     }
 }

@@ -65,12 +65,6 @@ impl Seek for DiskAccess {
                 self.current_offset = offset;
                 self.current_offset
             }
-            SeekFrom::Current(offset) => {
-                self.current_offset = (i64::try_from(self.current_offset).unwrap() + offset)
-                    .try_into()
-                    .unwrap();
-                self.current_offset
-            }
         }
     }
 }
@@ -83,7 +77,6 @@ pub trait Read {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SeekFrom {
     Start(u64),
-    Current(i64),
 }
 
 pub trait Seek {

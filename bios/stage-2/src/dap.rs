@@ -1,6 +1,7 @@
 use core::arch::asm;
 
 #[derive(Debug, Clone, Copy)]
+#[allow(dead_code)]
 #[repr(packed)]
 pub struct DiskAddressPacket {
     /// Size of the DAP structure

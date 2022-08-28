@@ -1,7 +1,7 @@
 // based on https://crates.io/crates/mini_fat by https://github.com/gridbugs
 
 use crate::disk::{AlignedBuffer, Read, Seek, SeekFrom};
-use core::{char::DecodeUtf16Error, fmt::Write as _};
+use core::char::DecodeUtf16Error;
 
 const DIRECTORY_ENTRY_BYTES: usize = 32;
 const UNUSED_ENTRY_PREFIX: u8 = 0xE5;
@@ -312,6 +312,7 @@ impl FatType {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Clone)]
 pub struct DirectoryEntry<'a> {
     short_name: &'a str,
@@ -325,37 +326,6 @@ pub struct DirectoryEntry<'a> {
 }
 
 impl<'a> DirectoryEntry<'a> {
-    pub fn name(&self) -> impl Iterator<Item = Result<char, DecodeUtf16Error>> + 'a {
-        let mut long_name = {
-            let iter = self
-                .long_name_1
-                .chunks(2)
-                .chain(self.long_name_2.chunks(2))
-                .chain(self.long_name_3.chunks(2))
-                .map(|c| u16::from_le_bytes(c.try_into().unwrap()))
-                .take_while(|&c| c != 0);
-            char::decode_utf16(iter).peekable()
-        };
-        let short_name = {
-            let iter = self.short_name.chars();
-            let extension_iter = {
-                let raw = ".".chars().chain(self.short_name_extension.chars());
-                raw.take(if self.short_name_extension.is_empty() {
-                    0
-                } else {
-                    self.short_name_extension.len() + 1
-                })
-            };
-            iter.chain(extension_iter).map(Ok)
-        };
-
-        if long_name.peek().is_some() {
-            long_name.chain(short_name.take(0))
-        } else {
-            long_name.chain(short_name.take(usize::MAX))
-        }
-    }
-
     pub fn is_directory(&self) -> bool {
         self.attributes & directory_attributes::DIRECTORY != 0
     }
@@ -370,6 +340,7 @@ struct RawDirectoryEntryNormal<'a> {
     file_size: u32,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 struct RawDirectoryEntryLongName<'a> {
     order: u8,
