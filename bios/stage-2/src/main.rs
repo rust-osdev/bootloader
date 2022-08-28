@@ -18,6 +18,7 @@ mod disk;
 mod fat;
 mod protected_mode;
 mod screen;
+mod vesa;
 
 /// We use this partition type to store the second bootloader stage;
 const BOOTLOADER_SECOND_STAGE_PARTITION_TYPE: u8 = 0x20;
@@ -100,7 +101,18 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
     writeln!(screen::Writer, "kernel loaded at {KERNEL_DST:#p}").unwrap();
 
     // TODO: Retrieve memory map
-    // TODO: VESA config
+
+    let mut vesa_info = vesa::VesaInfo::query(disk_buffer).unwrap();
+    let (mode, mode_info) = vesa_info.get_best_mode(1000, 1000).unwrap().unwrap();
+    writeln!(
+        screen::Writer,
+        "VESA MODE: {}x{}",
+        mode_info.width,
+        mode_info.height
+    )
+    .unwrap();
+
+    loop {}
 
     let addresses = Addresses {
         stage_4: Region {
