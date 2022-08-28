@@ -1,18 +1,19 @@
 use bootloader_api::info::MemoryRegionKind;
+use bootloader_x86_64_bios_common::E820MemoryRegion;
 use bootloader_x86_64_common::legacy_memory_region::LegacyMemoryRegion;
 use x86_64::PhysAddr;
 
-impl LegacyMemoryRegion for E820MemoryRegion {
+impl LegacyMemoryRegion for MemoryRegion {
     fn start(&self) -> PhysAddr {
-        PhysAddr::new(self.start_addr)
+        PhysAddr::new(self.0.start_addr)
     }
 
     fn len(&self) -> u64 {
-        self.len
+        self.0.len
     }
 
     fn kind(&self) -> MemoryRegionKind {
-        match self.region_type {
+        match self.0.region_type {
             1 => MemoryRegionKind::Usable,
             other => MemoryRegionKind::UnknownBios(other),
         }
@@ -29,9 +30,4 @@ impl LegacyMemoryRegion for E820MemoryRegion {
 #[doc(hidden)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
-pub struct E820MemoryRegion {
-    pub start_addr: u64,
-    pub len: u64,
-    pub region_type: u32,
-    pub acpi_extended_attributes: u32,
-}
+pub struct MemoryRegion(pub E820MemoryRegion);

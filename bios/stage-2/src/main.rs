@@ -16,6 +16,7 @@ use mbr_nostd::{PartitionTableEntry, PartitionType};
 mod dap;
 mod disk;
 mod fat;
+mod memory_map;
 mod protected_mode;
 mod screen;
 mod vesa;
@@ -41,7 +42,11 @@ static mut DISK_BUFFER: AlignedArrayBuffer<0x4000> = AlignedArrayBuffer {
 
 #[no_mangle]
 #[link_section = ".start"]
-pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
+pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) -> ! {
+    start(disk_number, partition_table_start)
+}
+
+fn start(disk_number: u16, partition_table_start: *const u8) -> ! {
     screen::Writer.write_str(" -> SECOND STAGE\n").unwrap();
 
     enter_unreal_mode();
@@ -100,6 +105,9 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
     let kernel_len = load_file("kernel-x86_64", KERNEL_DST, &mut fs, &mut disk, disk_buffer);
     writeln!(screen::Writer, "kernel loaded at {KERNEL_DST:#p}").unwrap();
 
+    let memory_map = memory_map::query_memory_map().unwrap();
+    writeln!(screen::Writer, "{memory_map:x?}").unwrap();
+
     let mut vesa_info = vesa::VesaInfo::query(disk_buffer).unwrap();
     let vesa_mode = vesa_info.get_best_mode(1000, 1000).unwrap().unwrap();
     writeln!(
@@ -111,9 +119,7 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
     .unwrap();
     vesa_mode.enable().unwrap();
 
-    // TODO: Retrieve memory map
-
-    let info = BiosInfo {
+    let mut info = BiosInfo {
         stage_4: Region {
             start: stage_4_dst as u64,
             len: stage_4_len,
@@ -122,8 +128,8 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
             start: KERNEL_DST as u64,
             len: kernel_len,
         },
-        // TODO
-        memory_map: Region { start: 0, len: 0 },
+        memory_map_addr: memory_map.as_mut_ptr() as u32,
+        memory_map_len: memory_map.len().try_into().unwrap(),
         framebuffer: FramebufferInfo {
             region: Region {
                 start: vesa_mode.framebuffer_start.into(),
@@ -137,7 +143,7 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
         },
     };
 
-    enter_protected_mode_and_jump_to_stage_3(STAGE_3_DST, &info);
+    enter_protected_mode_and_jump_to_stage_3(STAGE_3_DST, &mut info);
 
     loop {}
 }

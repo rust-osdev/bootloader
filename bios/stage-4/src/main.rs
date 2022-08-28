@@ -1,10 +1,10 @@
 #![no_std]
 #![no_main]
 
-use crate::memory_descriptor::E820MemoryRegion;
+use crate::memory_descriptor::MemoryRegion;
 use crate::screen::Writer;
 use bootloader_api::info::{FrameBufferInfo, PixelFormat};
-use bootloader_x86_64_bios_common::BiosInfo;
+use bootloader_x86_64_bios_common::{BiosInfo, E820MemoryRegion};
 use bootloader_x86_64_common::{
     legacy_memory_region::LegacyFrameAllocator, load_and_switch_to_kernel, logger::LOGGER, Kernel,
     PageTables, SystemInfo,
@@ -28,24 +28,26 @@ mod screen;
 
 #[no_mangle]
 #[link_section = ".start"]
-pub extern "C" fn _start(info: &BiosInfo) -> ! {
+pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
     screen::init(info.framebuffer);
     writeln!(Writer, "4th Stage").unwrap();
     writeln!(Writer, "{info:x?}").unwrap();
 
-    let e820_memory_map = {
-        assert!(info.memory_map.start != 0, "memory map address must be set");
-        let ptr = usize_from(info.memory_map.start) as *const E820MemoryRegion;
-        unsafe {
-            slice::from_raw_parts(
-                ptr,
-                usize_from(info.memory_map.len / size_of::<E820MemoryRegion>() as u64),
-            )
-        }
+    let memory_map: &mut [E820MemoryRegion] = unsafe {
+        core::slice::from_raw_parts_mut(
+            info.memory_map_addr as *mut _,
+            info.memory_map_len.try_into().unwrap(),
+        )
     };
-    let max_phys_addr = e820_memory_map
+
+    memory_map.sort_unstable_by_key(|e| e.start_addr);
+
+    let max_phys_addr = memory_map
         .iter()
-        .map(|r| r.start_addr + r.len)
+        .map(|r| {
+            writeln!(Writer, "start: {:#x}, len: {:#x}", r.start_addr, r.len).unwrap();
+            r.start_addr + r.len
+        })
         .max()
         .expect("no physical memory regions found");
 
@@ -57,10 +59,13 @@ pub extern "C" fn _start(info: &BiosInfo) -> ! {
     let mut frame_allocator = {
         let kernel_end = PhysFrame::containing_address(kernel_start + kernel_size - 1u64);
         let next_free = kernel_end + 1;
-        LegacyFrameAllocator::new_starting_at(next_free, e820_memory_map.iter().copied())
+        LegacyFrameAllocator::new_starting_at(
+            next_free,
+            memory_map.iter().copied().map(MemoryRegion),
+        )
     };
 
-    // We identity-map all memory, so the offset between physical and virtual addresses is 0
+    // We identity-mapped all memory, so the offset between physical and virtual addresses is 0
     let phys_offset = VirtAddr::new(0);
 
     let mut bootloader_page_table = {
@@ -68,10 +73,10 @@ pub extern "C" fn _start(info: &BiosInfo) -> ! {
         let table: *mut PageTable = (phys_offset + frame.start_address().as_u64()).as_mut_ptr();
         unsafe { OffsetPageTable::new(&mut *table, phys_offset) }
     };
-    // identity-map remaining physical memory (first gigabyte is already identity-mapped)
+    // identity-map remaining physical memory (first 10 gigabytes are already identity-mapped)
     {
         let start_frame: PhysFrame<Size2MiB> =
-            PhysFrame::containing_address(PhysAddr::new(4096 * 512 * 512));
+            PhysFrame::containing_address(PhysAddr::new(4096 * 512 * 512 * 10));
         let end_frame = PhysFrame::containing_address(PhysAddr::new(max_phys_addr - 1));
         for frame in PhysFrame::range_inclusive(start_frame, end_frame) {
             unsafe {

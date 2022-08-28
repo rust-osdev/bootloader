@@ -104,7 +104,7 @@ pub unsafe fn read_from_protected_mode(ptr: *mut u8) -> u8 {
     res
 }
 
-pub fn enter_protected_mode_and_jump_to_stage_3(entry_point: *const u8, info: &BiosInfo) {
+pub fn enter_protected_mode_and_jump_to_stage_3(entry_point: *const u8, info: &mut BiosInfo) {
     unsafe { asm!("cli") };
     set_protected_mode_bit();
     unsafe {

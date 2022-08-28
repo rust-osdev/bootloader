@@ -5,13 +5,9 @@ const QEMU_ARGS: &[&str] = &[
     "isa-debug-exit,iobase=0xf4,iosize=0x04",
     "-serial",
     "stdio",
-    // "-display",
-    // "none",
+    "-display",
+    "none",
     "--no-reboot",
-    // "-d",
-    // "int",
-    "-s",
-    // "-S",
 ];
 
 pub fn run_test_kernel(kernel_binary_path: &str) {

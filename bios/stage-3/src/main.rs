@@ -12,10 +12,10 @@ mod screen;
 
 #[no_mangle]
 #[link_section = ".start"]
-pub extern "C" fn _start(info: &BiosInfo) {
+pub extern "C" fn _start(info: &mut BiosInfo) {
     screen::init(info.framebuffer);
     // Writer.clear_screen();
-    writeln!(Writer, "Third Stage ({info:#x?})").unwrap();
+    writeln!(Writer, "Third Stage ({info:x?})").unwrap();
 
     // set up identity mapping, enable paging, and switch CPU into long
     // mode (32-bit compatibility mode)
@@ -28,7 +28,7 @@ pub extern "C" fn _start(info: &BiosInfo) {
 }
 
 #[no_mangle]
-pub fn enter_long_mode_and_jump_to_stage_4(info: &BiosInfo) {
+pub fn enter_long_mode_and_jump_to_stage_4(info: &mut BiosInfo) {
     let _ = writeln!(Writer, "Paging init done, jumping to stage 4");
     unsafe {
         asm!(
