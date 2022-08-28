@@ -30,9 +30,9 @@ pub fn run_test_kernel(kernel_binary_path: &str) {
     let out_tftp_path = kernel_path.with_extension(".tftp");
     bootloader::create_uefi_pxe_tftp_folder(kernel_path, &out_tftp_path).unwrap();
 
-    // run_test_kernel_on_uefi(&out_gpt_path);
+    run_test_kernel_on_uefi(&out_gpt_path);
     run_test_kernel_on_bios(&out_mbr_path);
-    // run_test_kernel_on_uefi_pxe(&out_tftp_path);
+    run_test_kernel_on_uefi_pxe(&out_tftp_path);
 }
 
 pub fn run_test_kernel_on_uefi(out_gpt_path: &Path) {
