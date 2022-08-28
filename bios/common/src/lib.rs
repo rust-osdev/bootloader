@@ -1,6 +1,9 @@
 #![no_std]
 
+pub mod racy_cell;
+
 #[cfg_attr(feature = "debug", derive(Debug))]
+#[derive(Clone, Copy)]
 pub struct BiosInfo {
     pub stage_4: Region,
     pub kernel: Region,
@@ -9,6 +12,7 @@ pub struct BiosInfo {
 }
 
 #[cfg_attr(feature = "debug", derive(Debug))]
+#[derive(Clone, Copy)]
 pub struct FramebufferInfo {
     pub region: Region,
     pub width: u16,
@@ -19,12 +23,14 @@ pub struct FramebufferInfo {
 }
 
 #[cfg_attr(feature = "debug", derive(Debug))]
+#[derive(Clone, Copy)]
 pub struct Region {
     pub start: u64,
     pub len: u64,
 }
 
 #[cfg_attr(feature = "debug", derive(Debug))]
+#[derive(Clone, Copy)]
 pub enum PixelFormat {
     Rgb,
     Bgr,

@@ -200,9 +200,9 @@ pub struct FrameBufferInfo {
     /// The total size in bytes.
     pub byte_len: usize,
     /// The width in pixels.
-    pub horizontal_resolution: usize,
+    pub width: usize,
     /// The height in pixels.
-    pub vertical_resolution: usize,
+    pub height: usize,
     /// The color format of each pixel.
     pub pixel_format: PixelFormat,
     /// The number of bytes per pixel.

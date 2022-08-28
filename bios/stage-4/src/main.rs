@@ -2,7 +2,7 @@
 #![no_main]
 
 use crate::memory_descriptor::E820MemoryRegion;
-use crate::vga_buffer::Writer;
+use crate::screen::Writer;
 use bootloader_api::info::{FrameBufferInfo, PixelFormat};
 use bootloader_x86_64_bios_common::BiosInfo;
 use bootloader_x86_64_common::{
@@ -24,12 +24,12 @@ use x86_64::structures::paging::{
 use x86_64::{PhysAddr, VirtAddr};
 
 mod memory_descriptor;
-mod vga_buffer;
+mod screen;
 
 #[no_mangle]
 #[link_section = ".start"]
 pub extern "C" fn _start(info: &BiosInfo) -> ! {
-    Writer.clear_screen();
+    screen::init(info.framebuffer);
     writeln!(Writer, "4th Stage").unwrap();
     writeln!(Writer, "{info:x?}").unwrap();
 
@@ -90,8 +90,8 @@ pub extern "C" fn _start(info: &BiosInfo) -> ! {
     let framebuffer_addr = PhysAddr::new(info.framebuffer.region.start);
     let framebuffer_info = FrameBufferInfo {
         byte_len: info.framebuffer.region.len.try_into().unwrap(),
-        horizontal_resolution: info.framebuffer.width.into(),
-        vertical_resolution: info.framebuffer.height.into(),
+        width: info.framebuffer.width.into(),
+        height: info.framebuffer.height.into(),
         pixel_format: match info.framebuffer.pixel_format {
             bootloader_x86_64_bios_common::PixelFormat::Rgb => PixelFormat::Rgb,
             bootloader_x86_64_bios_common::PixelFormat::Bgr => PixelFormat::Bgr,
@@ -142,8 +142,8 @@ fn init_logger(
 
     let info = FrameBufferInfo {
         byte_len: framebuffer_size,
-        horizontal_resolution,
-        vertical_resolution,
+        width: horizontal_resolution,
+        height: vertical_resolution,
         bytes_per_pixel,
         stride,
         pixel_format,

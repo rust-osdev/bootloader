@@ -2,17 +2,18 @@
 #![no_main]
 #![deny(unsafe_op_in_unsafe_fn)]
 
-use crate::vga_buffer::Writer;
+use crate::screen::Writer;
 use bootloader_x86_64_bios_common::BiosInfo;
 use core::{arch::asm, fmt::Write as _};
 
 mod gdt;
 mod paging;
-mod vga_buffer;
+mod screen;
 
 #[no_mangle]
 #[link_section = ".start"]
 pub extern "C" fn _start(info: &BiosInfo) {
+    screen::init(info.framebuffer);
     // Writer.clear_screen();
     writeln!(Writer, "Third Stage ({info:#x?})").unwrap();
 

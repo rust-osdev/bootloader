@@ -101,16 +101,16 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
     writeln!(screen::Writer, "kernel loaded at {KERNEL_DST:#p}").unwrap();
 
     let mut vesa_info = vesa::VesaInfo::query(disk_buffer).unwrap();
-    let (mode, mode_info) = vesa_info.get_best_mode(1000, 1000).unwrap().unwrap();
+    let vesa_mode = vesa_info.get_best_mode(1000, 1000).unwrap().unwrap();
     writeln!(
         screen::Writer,
         "VESA MODE: {}x{}",
-        mode_info.width,
-        mode_info.height
+        vesa_mode.width,
+        vesa_mode.height
     )
     .unwrap();
+    vesa_mode.enable().unwrap();
 
-    // TODO enable vesa mode
     // TODO: Retrieve memory map
 
     let info = BiosInfo {
@@ -126,14 +126,14 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) {
         memory_map: Region { start: 0, len: 0 },
         framebuffer: FramebufferInfo {
             region: Region {
-                start: mode_info.framebuffer_start.into(),
-                len: u64::from(mode_info.height) * u64::from(mode_info.bytes_per_scanline),
+                start: vesa_mode.framebuffer_start.into(),
+                len: u64::from(vesa_mode.height) * u64::from(vesa_mode.bytes_per_scanline),
             },
-            width: mode_info.width,
-            height: mode_info.height,
-            bytes_per_pixel: mode_info.bytes_per_pixel,
-            stride: mode_info.bytes_per_scanline / u16::from(mode_info.bytes_per_pixel),
-            pixel_format: mode_info.pixel_format,
+            width: vesa_mode.width,
+            height: vesa_mode.height,
+            bytes_per_pixel: vesa_mode.bytes_per_pixel,
+            stride: vesa_mode.bytes_per_scanline / u16::from(vesa_mode.bytes_per_pixel),
+            pixel_format: vesa_mode.pixel_format,
         },
     };
 

@@ -403,8 +403,8 @@ fn init_logger(st: &SystemTable<Boot>, config: BootloaderConfig) -> (PhysAddr, F
     let slice = unsafe { slice::from_raw_parts_mut(framebuffer.as_mut_ptr(), framebuffer.size()) };
     let info = FrameBufferInfo {
         byte_len: framebuffer.size(),
-        horizontal_resolution: mode_info.resolution().0,
-        vertical_resolution: mode_info.resolution().1,
+        width: mode_info.resolution().0,
+        height: mode_info.resolution().1,
         pixel_format: match mode_info.pixel_format() {
             PixelFormat::Rgb => bootloader_api::info::PixelFormat::Rgb,
             PixelFormat::Bgr => bootloader_api::info::PixelFormat::Bgr,

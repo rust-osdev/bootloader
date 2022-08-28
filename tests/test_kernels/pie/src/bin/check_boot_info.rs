@@ -23,9 +23,7 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     assert_eq!(framebuffer.info().pixel_format, PixelFormat::Bgr);
     assert_eq!(
         framebuffer.buffer().len(),
-        framebuffer.info().stride
-            * framebuffer.info().vertical_resolution
-            * framebuffer.info().bytes_per_pixel
+        framebuffer.info().stride * framebuffer.info().height * framebuffer.info().bytes_per_pixel
     );
 
     // check defaults for optional features

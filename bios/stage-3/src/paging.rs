@@ -1,23 +1,9 @@
-use core::{arch::asm, cell::UnsafeCell};
+use bootloader_x86_64_bios_common::racy_cell::RacyCell;
+use core::arch::asm;
 
 static LEVEL_4: RacyCell<PageTable> = RacyCell::new(PageTable::empty());
 static LEVEL_3: RacyCell<PageTable> = RacyCell::new(PageTable::empty());
-static LEVEL_2: RacyCell<PageTable> = RacyCell::new(PageTable::empty());
-
-pub struct RacyCell<T>(UnsafeCell<T>);
-
-impl<T> RacyCell<T> {
-    const fn new(v: T) -> Self {
-        Self(UnsafeCell::new(v))
-    }
-
-    pub unsafe fn get_mut(&self) -> &mut T {
-        unsafe { &mut *self.0.get() }
-    }
-}
-
-unsafe impl<T> Send for RacyCell<T> where T: Send {}
-unsafe impl<T> Sync for RacyCell<T> {}
+static LEVEL_2: RacyCell<[PageTable; 10]> = RacyCell::new([PageTable::empty(); 10]);
 
 pub fn init() {
     create_mappings();
@@ -28,12 +14,17 @@ pub fn init() {
 fn create_mappings() {
     let l4 = unsafe { LEVEL_4.get_mut() };
     let l3 = unsafe { LEVEL_3.get_mut() };
-    let l2 = unsafe { LEVEL_2.get_mut() };
+    let l2s = unsafe { LEVEL_2.get_mut() };
     let common_flags = 0b11;
     l4.entries[0] = (l3 as *mut PageTable as u64) | common_flags;
-    l3.entries[0] = (l2 as *mut PageTable as u64) | common_flags;
-    for i in 0..512 {
-        l2.entries[i] = (u64::try_from(i).unwrap() * (2 * 1024 * 1024)) | common_flags | (1 << 7);
+    for i in 0..l2s.len() {
+        let l2 = &mut l2s[i];
+        l3.entries[i] = (l2 as *mut PageTable as u64) | common_flags;
+        let offset = u64::try_from(i).unwrap() * 1024 * 1024 * 1024;
+        for j in 0..512 {
+            l2.entries[j] =
+                (offset + u64::try_from(j).unwrap() * (2 * 1024 * 1024)) | common_flags | (1 << 7);
+        }
     }
 }
 
@@ -54,6 +45,7 @@ fn enable_paging() {
     unsafe { asm!("mov eax, cr0", "or eax, 1 << 31", "mov cr0, eax", out("eax")_) };
 }
 
+#[derive(Clone, Copy)]
 #[repr(align(4096))]
 struct PageTable {
     pub entries: [u64; 512],

@@ -91,6 +91,7 @@ name = "bootloader-x86_64-bios-stage-3"
 version = "0.1.0"
 dependencies = [
  "bootloader-x86_64-bios-common",
+ "noto-sans-mono-bitmap",
 ]
 
 [[package]]
@@ -101,6 +102,7 @@ dependencies = [
  "bootloader-x86_64-common",
  "bootloader_api",
  "log",
+ "noto-sans-mono-bitmap",
  "rsdp",
  "usize_conversions",
  "x86_64",

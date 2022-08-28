@@ -55,8 +55,8 @@ impl<'a> VesaInfo<'a> {
         &mut self,
         max_width: u16,
         max_height: u16,
-    ) -> Result<Option<(u16, VesaModeInfo)>, u16> {
-        let mut best: Option<(u16, VesaModeInfo)> = None;
+    ) -> Result<Option<VesaModeInfo>, u16> {
+        let mut best: Option<VesaModeInfo> = None;
         for i in 0.. {
             let mode = match self.get_mode(i) {
                 Some(mode) => mode,
@@ -84,10 +84,10 @@ impl<'a> VesaInfo<'a> {
 
             if best
                 .as_ref()
-                .map(|(_, best)| mode_info.width >= best.width || mode_info.height >= best.height)
+                .map(|best| mode_info.width >= best.width || mode_info.height >= best.height)
                 .unwrap_or(true)
             {
-                best = Some((mode, mode_info));
+                best = Some(mode_info);
             }
         }
         Ok(best)
@@ -108,6 +108,7 @@ impl<'a> VesaInfo<'a> {
 
 #[derive(Debug)]
 pub struct VesaModeInfo {
+    mode: u16,
     pub width: u16,
     pub height: u16,
     pub framebuffer_start: u32,
@@ -181,6 +182,7 @@ impl VesaModeInfo {
             0x4f => {
                 let block: &VbeModeInfo = unsafe { &*block_ptr.cast() };
                 Ok(VesaModeInfo {
+                    mode,
                     width: block.width,
                     height: block.height,
                     framebuffer_start: block.framebuffer,
@@ -203,6 +205,15 @@ impl VesaModeInfo {
                     attributes: block.attributes,
                 })
             }
+            other => Err(other),
+        }
+    }
+
+    pub fn enable(&self) -> Result<(), u16> {
+        let mut ret: u16 = 0;
+        unsafe { asm!("int 0x10", inout("ax") 0x4f02u16 => ret, in("bx") self.mode) };
+        match ret {
+            0x4f => Ok(()),
             other => Err(other),
         }
     }

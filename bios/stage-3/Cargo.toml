@@ -8,3 +8,4 @@ edition = "2021"
 
 [dependencies]
 bootloader-x86_64-bios-common = { version = "0.1.0", path = "../common" }
+noto-sans-mono-bitmap = "0.1.5"

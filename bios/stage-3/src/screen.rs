@@ -1,62 +1,45 @@
-use bootloader_api::info::{FrameBufferInfo, PixelFormat};
-use conquer_once::spin::OnceCell;
+use bootloader_x86_64_bios_common::{racy_cell::RacyCell, FramebufferInfo, PixelFormat};
 use core::{
     fmt::{self, Write},
     ptr,
 };
 use noto_sans_mono_bitmap::{get_bitmap, get_bitmap_width, BitmapChar, BitmapHeight, FontWeight};
-use spinning_top::Spinlock;
 
-/// The global logger instance used for the `log` crate.
-pub static LOGGER: OnceCell<LockedLogger> = OnceCell::uninit();
+static WRITER: RacyCell<Option<ScreenWriter>> = RacyCell::new(None);
+pub struct Writer;
 
-/// A [`Logger`] instance protected by a spinlock.
-pub struct LockedLogger(Spinlock<Logger>);
+impl fmt::Write for Writer {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        let writer = unsafe { WRITER.get_mut() }.as_mut().unwrap();
+        writer.write_str(s)
+    }
+}
+
+pub fn init(info: FramebufferInfo) {
+    let framebuffer = unsafe {
+        core::slice::from_raw_parts_mut(
+            info.region.start as *mut u8,
+            info.region.len.try_into().unwrap(),
+        )
+    };
+    let writer = ScreenWriter::new(framebuffer, info);
+    *unsafe { WRITER.get_mut() } = Some(writer);
+}
 
 /// Additional vertical space between lines
 const LINE_SPACING: usize = 0;
 /// Additional vertical space between separate log messages
 const LOG_SPACING: usize = 2;
 
-impl LockedLogger {
-    /// Create a new instance that logs to the given framebuffer.
-    pub fn new(framebuffer: &'static mut [u8], info: FrameBufferInfo) -> Self {
-        LockedLogger(Spinlock::new(Logger::new(framebuffer, info)))
-    }
-
-    /// Force-unlocks the logger to prevent a deadlock.
-    ///
-    /// This method is not memory safe and should be only used when absolutely necessary.
-    pub unsafe fn force_unlock(&self) {
-        unsafe { self.0.force_unlock() };
-    }
-}
-
-impl log::Log for LockedLogger {
-    fn enabled(&self, _metadata: &log::Metadata) -> bool {
-        true
-    }
-
-    fn log(&self, record: &log::Record) {
-        let mut logger = self.0.lock();
-        writeln!(logger, "{}:    {}", record.level(), record.args()).unwrap();
-        logger.add_vspace(LOG_SPACING);
-    }
-
-    fn flush(&self) {}
-}
-
-/// Allows logging text to a pixel-based framebuffer.
-pub struct Logger {
+struct ScreenWriter {
     framebuffer: &'static mut [u8],
-    info: FrameBufferInfo,
+    info: FramebufferInfo,
     x_pos: usize,
     y_pos: usize,
 }
 
-impl Logger {
-    /// Creates a new logger that uses the given framebuffer.
-    pub fn new(framebuffer: &'static mut [u8], info: FrameBufferInfo) -> Self {
+impl ScreenWriter {
+    pub fn new(framebuffer: &'static mut [u8], info: FramebufferInfo) -> Self {
         let mut logger = Self {
             framebuffer,
             info,
@@ -88,11 +71,11 @@ impl Logger {
     }
 
     fn width(&self) -> usize {
-        self.info.width
+        self.info.width.into()
     }
 
     fn height(&self) -> usize {
-        self.info.height
+        self.info.height.into()
     }
 
     fn write_char(&mut self, c: char) {
@@ -124,11 +107,10 @@ impl Logger {
     }
 
     fn write_pixel(&mut self, x: usize, y: usize, intensity: u8) {
-        let pixel_offset = y * self.info.stride + x;
+        let pixel_offset = y * usize::from(self.info.stride) + x;
         let color = match self.info.pixel_format {
             PixelFormat::Rgb => [intensity, intensity, intensity / 2, 0],
             PixelFormat::Bgr => [intensity / 2, intensity, intensity, 0],
-            PixelFormat::U8 => [if intensity > 200 { 0xf } else { 0 }, 0, 0, 0],
             other => {
                 // set a supported (but invalid) pixel format before panicking to avoid a double
                 // panic; it might not be readable though
@@ -137,17 +119,17 @@ impl Logger {
             }
         };
         let bytes_per_pixel = self.info.bytes_per_pixel;
-        let byte_offset = pixel_offset * bytes_per_pixel;
-        self.framebuffer[byte_offset..(byte_offset + bytes_per_pixel)]
-            .copy_from_slice(&color[..bytes_per_pixel]);
+        let byte_offset = pixel_offset * usize::from(bytes_per_pixel);
+        self.framebuffer[byte_offset..(byte_offset + usize::from(bytes_per_pixel))]
+            .copy_from_slice(&color[..usize::from(bytes_per_pixel)]);
         let _ = unsafe { ptr::read_volatile(&self.framebuffer[byte_offset]) };
     }
 }
 
-unsafe impl Send for Logger {}
-unsafe impl Sync for Logger {}
+unsafe impl Send for ScreenWriter {}
+unsafe impl Sync for ScreenWriter {}
 
-impl fmt::Write for Logger {
+impl fmt::Write for ScreenWriter {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         for c in s.chars() {
             self.write_char(c);
