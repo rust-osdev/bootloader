@@ -4,7 +4,7 @@ use core::{
     fmt::{self, Write},
     ptr,
 };
-use noto_sans_mono_bitmap::{get_bitmap, get_bitmap_width, BitmapChar, BitmapHeight, FontWeight};
+use noto_sans_mono_bitmap::{get_bitmap, BitmapChar, BitmapHeight, FontWeight};
 use spinning_top::Spinlock;
 
 /// The global logger instance used for the `log` crate.
@@ -103,9 +103,7 @@ impl Logger {
                 if self.x_pos >= self.width() {
                     self.newline();
                 }
-                const BITMAP_LETTER_WIDTH: usize =
-                    get_bitmap_width(FontWeight::Regular, BitmapHeight::Size14);
-                if self.y_pos >= (self.height() - BITMAP_LETTER_WIDTH) {
+                if self.y_pos >= (self.height() - BitmapHeight::Size14.val()) {
                     self.clear();
                 }
                 let bitmap_char = get_bitmap(c, FontWeight::Regular, BitmapHeight::Size14).unwrap();
