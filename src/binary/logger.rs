@@ -108,7 +108,10 @@ impl Logger {
                 if self.y_pos >= (self.height() - BITMAP_LETTER_WIDTH) {
                     self.clear();
                 }
-                let bitmap_char = get_bitmap(c, FontWeight::Regular, BitmapHeight::Size14).unwrap();
+                let bitmap_char = get_bitmap(c, FontWeight::Regular, BitmapHeight::Size14)
+                    .unwrap_or(
+                        get_bitmap('■', FontWeight::Regular, BitmapHeight::Size14).unwrap()
+                    );
                 self.write_rendered_char(bitmap_char);
             }
         }
