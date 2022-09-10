@@ -21,6 +21,7 @@ fn create_mappings() {
         l3.entries[i] = (l2 as *mut PageTable as u64) | common_flags;
         let offset = u64::try_from(i).unwrap() * 1024 * 1024 * 1024;
         for (j, entry) in l2.entries.iter_mut().enumerate() {
+            // map huge pages
             *entry =
                 (offset + u64::try_from(j).unwrap() * (2 * 1024 * 1024)) | common_flags | (1 << 7);
         }
