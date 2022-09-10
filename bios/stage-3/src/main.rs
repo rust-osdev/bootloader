@@ -37,11 +37,7 @@ pub fn enter_long_mode_and_jump_to_stage_4(info: &mut BiosInfo) {
             // push arguments (extended to 64 bit)
             "push 0",
             "push {info:e}",
-            // push entry point address (extended to 64 bit)
-            "push 0",
-            "push {entry_point:e}",
             info = in(reg) info as *const _ as u32,
-            entry_point = in(reg) info.stage_4.start as u32,
         );
         asm!("ljmp $0x8, $2f", "2:", options(att_syntax));
         asm!(
@@ -54,14 +50,13 @@ pub fn enter_long_mode_and_jump_to_stage_4(info: &mut BiosInfo) {
             "mov ss, bx",
 
             // jump to 4th stage
-            "pop rax",
             "pop rdi",
             "call rax",
 
             // enter endless loop in case 4th stage returns
             "2:",
             "jmp 2b",
-            out("eax") _,
+            out("rdi") _,
         );
     }
 }
