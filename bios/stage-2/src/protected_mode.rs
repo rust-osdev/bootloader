@@ -74,7 +74,7 @@ pub fn enter_unreal_mode() {
 
     // load GDT
     unsafe {
-        asm!("mov bx, 0x10", "mov ds, bx");
+        asm!("mov {0}, 0x10", "mov ds, {0}", out(reg) _);
     }
 
     // unset protected mode bit again
