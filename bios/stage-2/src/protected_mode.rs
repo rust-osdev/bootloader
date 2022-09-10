@@ -90,7 +90,9 @@ pub fn enter_unreal_mode() {
 pub unsafe fn copy_to_protected_mode(target: *mut u8, bytes: &[u8]) {
     for (offset, byte) in bytes.iter().enumerate() {
         let dst = target.wrapping_add(offset);
-        unsafe { asm!("nop", "nop", "mov [{}], {}", in(reg) dst, in(reg_byte) *byte) };
+        // we need to do the write in inline assembly because the compiler
+        // seems to truncate the address
+        unsafe { asm!("mov [{}], {}", in(reg) dst, in(reg_byte) *byte) };
         assert_eq!(read_from_protected_mode(dst), *byte);
     }
 }
@@ -98,7 +100,9 @@ pub unsafe fn copy_to_protected_mode(target: *mut u8, bytes: &[u8]) {
 #[no_mangle]
 pub unsafe fn read_from_protected_mode(ptr: *mut u8) -> u8 {
     let res;
-    unsafe { asm!("nop", "nop", "mov {}, [{}]", out(reg_byte) res, in(reg) ptr) };
+    // we need to do the read in inline assembly because the compiler
+    // seems to truncate the address
+    unsafe { asm!("mov {}, [{}]", out(reg_byte) res, in(reg) ptr) };
     res
 }
 
