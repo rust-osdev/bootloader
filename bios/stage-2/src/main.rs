@@ -97,7 +97,7 @@ fn start(disk_number: u16, partition_table_start: *const u8) -> ! {
     let kernel_len = load_file("kernel-x86_64", KERNEL_DST, &mut fs, &mut disk, disk_buffer);
     writeln!(screen::Writer, "kernel loaded at {KERNEL_DST:#p}").unwrap();
 
-    let memory_map = memory_map::query_memory_map().unwrap();
+    let memory_map = unsafe { memory_map::query_memory_map() }.unwrap();
     writeln!(screen::Writer, "{memory_map:x?}").unwrap();
 
     // TODO: load these from the kernel's config instead of hardcoding

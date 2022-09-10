@@ -14,7 +14,7 @@ static MEMORY_MAP: RacyCell<[E820MemoryRegion; 100]> = RacyCell::new(
 );
 
 /// use the INT 0x15, eax= 0xE820 BIOS function to get a memory map
-pub fn query_memory_map() -> Result<&'static mut [E820MemoryRegion], ()> {
+pub unsafe fn query_memory_map() -> Result<&'static mut [E820MemoryRegion], ()> {
     const SMAP: u32 = 0x534D4150;
 
     let memory_map = unsafe { MEMORY_MAP.get_mut() };
