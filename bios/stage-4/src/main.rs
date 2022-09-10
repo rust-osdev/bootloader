@@ -153,7 +153,7 @@ fn create_page_tables(frame_allocator: &mut impl FrameAllocator<Size4KiB>) -> Pa
     let (kernel_page_table, kernel_level_4_frame) = {
         // get an unused frame for new level 4 page table
         let frame: PhysFrame = frame_allocator.allocate_frame().expect("no unused frames");
-        log::info!("New page table at: {:#?}", &frame);
+        log::info!("New page table at: {frame:#?}");
         // get the corresponding virtual address
         let addr = phys_offset + frame.start_address().as_u64();
         // initialize a new page table
@@ -215,7 +215,7 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
             .get()
             .map(|l| l.force_unlock())
     };
-    log::error!("{}", info);
+    log::error!("{info}");
     loop {
         unsafe { core::arch::asm!("cli; hlt") };
     }

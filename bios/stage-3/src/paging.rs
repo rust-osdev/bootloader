@@ -15,14 +15,13 @@ fn create_mappings() {
     let l4 = unsafe { LEVEL_4.get_mut() };
     let l3 = unsafe { LEVEL_3.get_mut() };
     let l2s = unsafe { LEVEL_2.get_mut() };
-    let common_flags = 0b11;
+    let common_flags = 0b11; // PRESENT | WRITEABLE
     l4.entries[0] = (l3 as *mut PageTable as u64) | common_flags;
-    for i in 0..l2s.len() {
-        let l2 = &mut l2s[i];
+    for (i, l2) in l2s.iter_mut().enumerate() {
         l3.entries[i] = (l2 as *mut PageTable as u64) | common_flags;
         let offset = u64::try_from(i).unwrap() * 1024 * 1024 * 1024;
-        for j in 0..512 {
-            l2.entries[j] =
+        for (j, entry) in l2.entries.iter_mut().enumerate() {
+            *entry =
                 (offset + u64::try_from(j).unwrap() * (2 * 1024 * 1024)) | common_flags | (1 << 7);
         }
     }

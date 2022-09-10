@@ -61,7 +61,8 @@ pub fn enter_long_mode_and_jump_to_stage_4(info: &mut BiosInfo) {
             // enter endless loop in case 4th stage returns
             "2:",
             "jmp 2b",
-            out("eax") _
+            out("eax") _,
+            options(noreturn),
         );
     }
 }
