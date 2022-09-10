@@ -62,7 +62,6 @@ pub fn enter_long_mode_and_jump_to_stage_4(info: &mut BiosInfo) {
             "2:",
             "jmp 2b",
             out("eax") _,
-            options(noreturn),
         );
     }
 }
