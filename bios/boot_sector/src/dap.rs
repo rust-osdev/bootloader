@@ -39,12 +39,12 @@ impl DiskAddressPacket {
         unsafe {
             asm!(
                 "push 0x7a", // error code `z`, passed to `fail` on error
-                "mov {1:x}, si",
+                "mov {1:x}, si", // backup the `si` register, whose contents are required by LLVM
                 "mov si, {0:x}",
                 "int 0x13",
                 "jc fail",
                 "pop si", // remove error code again
-                "mov si, {1:x}",
+                "mov si, {1:x}", // restore the `si` register to its prior state
                 in(reg) self_addr,
                 out(reg) _,
                 in("ax") 0x4200u16,
