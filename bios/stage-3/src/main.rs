@@ -44,10 +44,10 @@ pub fn enter_long_mode_and_jump_to_stage_4(info: &mut BiosInfo) {
             ".code64",
 
             // reload segment registers
-            "mov bx, 0x10",
-            "mov ds, bx",
-            "mov es, bx",
-            "mov ss, bx",
+            "mov {0}, 0x10",
+            "mov ds, {0}",
+            "mov es, {0}",
+            "mov ss, {0}",
 
             // jump to 4th stage
             "pop rdi",
@@ -56,6 +56,7 @@ pub fn enter_long_mode_and_jump_to_stage_4(info: &mut BiosInfo) {
             // enter endless loop in case 4th stage returns
             "2:",
             "jmp 2b",
+            out(reg) _,
             out("rdi") _,
         );
     }
