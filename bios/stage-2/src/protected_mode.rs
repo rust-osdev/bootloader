@@ -83,8 +83,6 @@ pub fn enter_unreal_mode() {
     unsafe {
         asm!("mov ds, {0:x}", in(reg) ds, options(nostack, preserves_flags));
         asm!("sti");
-
-        asm!("mov bx, 0x0f01", "mov eax, 0xb8000", "mov [eax], bx");
     }
 }
 
