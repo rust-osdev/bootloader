@@ -2,7 +2,7 @@ use core::arch::asm;
 
 #[derive(Debug, Clone, Copy)]
 #[allow(dead_code)]
-#[repr(packed)]
+#[repr(C, packed)]
 pub struct DiskAddressPacket {
     /// Size of the DAP structure
     packet_size: u8,

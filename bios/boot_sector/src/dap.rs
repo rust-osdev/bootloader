@@ -1,6 +1,6 @@
 use core::arch::asm;
 
-#[repr(packed)]
+#[repr(C, packed)]
 #[allow(dead_code)] // the structure format is defined by the hardware
 pub struct DiskAddressPacket {
     /// Size of the DAP structure

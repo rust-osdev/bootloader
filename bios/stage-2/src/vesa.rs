@@ -5,7 +5,7 @@ use bootloader_x86_64_bios_common::PixelFormat;
 use crate::{disk::AlignedBuffer, AlignedArrayBuffer};
 use core::arch::asm;
 
-#[repr(packed)]
+#[repr(C, packed)]
 #[allow(dead_code)]
 struct VbeInfoBlock {
     signature: [u8; 4], // should be "VESA"
