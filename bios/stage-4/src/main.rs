@@ -157,8 +157,8 @@ fn create_page_tables(frame_allocator: &mut impl FrameAllocator<Size4KiB>) -> Pa
         // get the corresponding virtual address
         let addr = phys_offset + frame.start_address().as_u64();
         // initialize a new page table
-        let ptr = addr.as_mut_ptr();
-        unsafe { *ptr = PageTable::new() };
+        let ptr: *mut PageTable = addr.as_mut_ptr();
+        unsafe { ptr.write(PageTable::new()) };
         let level_4_table = unsafe { &mut *ptr };
         (
             unsafe { OffsetPageTable::new(level_4_table, phys_offset) },
