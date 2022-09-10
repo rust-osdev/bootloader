@@ -125,19 +125,20 @@ pub fn enter_protected_mode_and_jump_to_stage_3(entry_point: *const u8, info: &m
             ".code32",
 
             // reload segment registers
-            "mov bx, 0x10",
-            "mov ds, bx",
-            "mov es, bx",
-            "mov ss, bx",
+            "mov {0}, 0x10",
+            "mov ds, {0}",
+            "mov es, {0}",
+            "mov ss, {0}",
 
             // jump to third stage
-            "pop eax",
-            "call eax",
+            "pop {1}",
+            "call {1}",
 
             // enter endless loop in case third stage returns
             "2:",
             "jmp 2b",
-            out("eax") _
+            out(reg) _,
+            out(reg) _,
         );
     }
 }
