@@ -101,6 +101,8 @@ where
     pub fn construct_memory_map(
         self,
         regions: &mut [MaybeUninit<MemoryRegion>],
+        kernel_slice_start: u64,
+        kernel_slice_len: u64,
     ) -> &mut [MemoryRegion] {
         let mut next_index = 0;
 
@@ -145,7 +147,52 @@ where
                 end: end.as_u64(),
                 kind,
             };
-            Self::add_region(region, regions, &mut next_index).unwrap();
+
+            // check if region overlaps with kernel
+            let kernel_slice_end = kernel_slice_start + kernel_slice_len;
+            if region.kind == MemoryRegionKind::Usable
+                && kernel_slice_start < region.end
+                && kernel_slice_end >= region.start
+            {
+                // region overlaps with kernel -> we might need to split it
+
+                // ensure that the kernel allocation does not span multiple regions
+                assert!(
+                    kernel_slice_start >= region.start,
+                    "region overlaps with kernel, but kernel begins before region \
+                    (kernel_slice_start: {kernel_slice_start:#x}, region_start: {:#x})",
+                    region.start
+                );
+                assert!(
+                    kernel_slice_end <= region.end,
+                    "region overlaps with kernel, but region ends before kernel \
+                    (kernel_slice_end: {kernel_slice_end:#x}, region_end: {:#x})",
+                    region.end,
+                );
+
+                // split the region into three parts
+                let before_kernel = MemoryRegion {
+                    end: kernel_slice_start,
+                    ..region
+                };
+                let kernel = MemoryRegion {
+                    start: kernel_slice_start,
+                    end: kernel_slice_end,
+                    kind: MemoryRegionKind::Bootloader,
+                };
+                let after_kernel = MemoryRegion {
+                    start: kernel_slice_end,
+                    ..region
+                };
+
+                // add the three regions (empty regions are ignored in `add_region`)
+                Self::add_region(before_kernel, regions, &mut next_index).unwrap();
+                Self::add_region(kernel, regions, &mut next_index).unwrap();
+                Self::add_region(after_kernel, regions, &mut next_index).unwrap();
+            } else {
+                // add the region normally
+                Self::add_region(region, regions, &mut next_index).unwrap();
+            }
         }
 
         let initialized = &mut regions[..next_index];
@@ -161,6 +208,10 @@ where
         regions: &mut [MaybeUninit<MemoryRegion>],
         next_index: &mut usize,
     ) -> Result<(), ()> {
+        if region.start == region.end {
+            // skip zero sized regions
+            return Ok(());
+        }
         unsafe {
             regions
                 .get_mut(*next_index)

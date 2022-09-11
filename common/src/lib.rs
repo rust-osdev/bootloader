@@ -56,6 +56,8 @@ pub struct SystemInfo {
 pub struct Kernel<'a> {
     pub elf: ElfFile<'a>,
     pub config: BootloaderConfig,
+    pub start_address: *const u8,
+    pub len: usize,
 }
 
 impl<'a> Kernel<'a> {
@@ -72,6 +74,8 @@ impl<'a> Kernel<'a> {
         Kernel {
             elf: kernel_elf,
             config,
+            start_address: kernel_slice.as_ptr(),
+            len: kernel_slice.len(),
         }
     }
 }
@@ -151,6 +155,9 @@ where
     enable_write_protect_bit();
 
     let config = kernel.config;
+    let kernel_slice_start = kernel.start_address as u64;
+    let kernel_slice_len = u64::try_from(kernel.len).unwrap();
+
     let (entry_point, tls_template) = load_kernel::load_kernel(
         kernel,
         kernel_page_table,
@@ -313,6 +320,9 @@ where
         physical_memory_offset,
         recursive_index,
         tls_template,
+
+        kernel_slice_start,
+        kernel_slice_len,
     }
 }
 
@@ -333,6 +343,11 @@ pub struct Mappings {
     pub recursive_index: Option<PageTableIndex>,
     /// The thread local storage template of the kernel executable, if it contains one.
     pub tls_template: Option<TlsTemplate>,
+
+    /// Start address of the kernel slice allocation in memory.
+    pub kernel_slice_start: u64,
+    /// Size of the kernel slice allocation in memory.
+    pub kernel_slice_len: u64,
 }
 
 /// Allocates and initializes the boot info struct and the memory map.
@@ -357,7 +372,7 @@ where
     // allocate and map space for the boot info
     let (boot_info, memory_regions) = {
         let boot_info_layout = Layout::new::<BootInfo>();
-        let regions = frame_allocator.len() + 1; // one region might be split into used/unused
+        let regions = frame_allocator.len() + 4; // up to 4 regions might be split into used/unused
         let memory_regions_layout = Layout::array::<MemoryRegion>(regions).unwrap();
         let (combined, memory_regions_offset) =
             boot_info_layout.extend(memory_regions_layout).unwrap();
@@ -412,7 +427,11 @@ where
     log::info!("Create Memory Map");
 
     // build memory map
-    let memory_regions = frame_allocator.construct_memory_map(memory_regions);
+    let memory_regions = frame_allocator.construct_memory_map(
+        memory_regions,
+        mappings.kernel_slice_start,
+        mappings.kernel_slice_len,
+    );
 
     log::info!("Create bootinfo");
 

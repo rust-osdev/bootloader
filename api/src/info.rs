@@ -145,8 +145,6 @@ pub enum MemoryRegionKind {
     ///
     /// This memory should _not_ be used by the kernel.
     Bootloader,
-    /// Memory mapping of the kernel.
-    Kernel,
     /// An unknown memory region reported by the UEFI firmware.
     ///
     /// Contains the UEFI memory type tag.
