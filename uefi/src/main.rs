@@ -34,19 +34,19 @@ use x86_64::{
 
 mod memory_descriptor;
 
-static SYSTEM_TABLE: VeryUnsafeCell<Option<SystemTable<Boot>>> = VeryUnsafeCell::new(None);
+static SYSTEM_TABLE: RacyCell<Option<SystemTable<Boot>>> = RacyCell::new(None);
 
-struct VeryUnsafeCell<T>(UnsafeCell<T>);
+struct RacyCell<T>(UnsafeCell<T>);
 
-impl<T> VeryUnsafeCell<T> {
+impl<T> RacyCell<T> {
     const fn new(v: T) -> Self {
         Self(UnsafeCell::new(v))
     }
 }
 
-unsafe impl<T> Sync for VeryUnsafeCell<T> {}
+unsafe impl<T> Sync for RacyCell<T> {}
 
-impl<T> core::ops::Deref for VeryUnsafeCell<T> {
+impl<T> core::ops::Deref for RacyCell<T> {
     type Target = UnsafeCell<T>;
 
     fn deref(&self) -> &Self::Target {
