@@ -103,12 +103,10 @@ impl Logger {
                 if self.x_pos >= self.width() {
                     self.newline();
                 }
-                const BITMAP_LETTER_WIDTH: usize =
-                    get_bitmap_width(FontWeight::Regular, BitmapHeight::Size14);
-                if self.y_pos >= (self.height() - BITMAP_LETTER_WIDTH) {
+                let bitmap_char = get_bitmap(c, FontWeight::Regular, BitmapHeight::Size14).unwrap();
+                if self.y_pos >= (self.height() - bitmap_char.height()) {
                     self.clear();
                 }
-                let bitmap_char = get_bitmap(c, FontWeight::Regular, BitmapHeight::Size14).unwrap();
                 self.write_rendered_char(bitmap_char);
             }
         }
