@@ -123,8 +123,7 @@ where
                             end: next_free.as_u64(),
                             kind: MemoryRegionKind::Bootloader,
                         };
-                        Self::add_region(used_region, regions, &mut next_index)
-                            .expect("Failed to add memory region");
+                        Self::add_region(used_region, regions, &mut next_index);
 
                         // add unused part normally
                         start = next_free;
@@ -186,12 +185,12 @@ where
                 };
 
                 // add the three regions (empty regions are ignored in `add_region`)
-                Self::add_region(before_kernel, regions, &mut next_index).unwrap();
-                Self::add_region(kernel, regions, &mut next_index).unwrap();
-                Self::add_region(after_kernel, regions, &mut next_index).unwrap();
+                Self::add_region(before_kernel, regions, &mut next_index);
+                Self::add_region(kernel, regions, &mut next_index);
+                Self::add_region(after_kernel, regions, &mut next_index);
             } else {
                 // add the region normally
-                Self::add_region(region, regions, &mut next_index).unwrap();
+                Self::add_region(region, regions, &mut next_index);
             }
         }
 
@@ -207,20 +206,19 @@ where
         region: MemoryRegion,
         regions: &mut [MaybeUninit<MemoryRegion>],
         next_index: &mut usize,
-    ) -> Result<(), ()> {
+    ) {
         if region.start == region.end {
             // skip zero sized regions
-            return Ok(());
+            return;
         }
         unsafe {
             regions
                 .get_mut(*next_index)
-                .ok_or(())?
+                .expect("cannot add region: no more free entries in memory map")
                 .as_mut_ptr()
                 .write(region)
         };
         *next_index += 1;
-        Ok(())
     }
 }
 
