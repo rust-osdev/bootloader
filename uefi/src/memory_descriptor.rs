@@ -30,12 +30,15 @@ impl<'a> LegacyMemoryRegion for UefiMemoryDescriptor {
             MemoryType::LOADER_CODE
             | MemoryType::LOADER_DATA
             | MemoryType::BOOT_SERVICES_CODE
-            | MemoryType::BOOT_SERVICES_DATA
-            | MemoryType::RUNTIME_SERVICES_CODE
-            | MemoryType::RUNTIME_SERVICES_DATA => {
+            | MemoryType::BOOT_SERVICES_DATA => {
                 // we don't need this data anymore after the bootloader
                 // passes control to the kernel
                 true
+            }
+            MemoryType::RUNTIME_SERVICES_CODE | MemoryType::RUNTIME_SERVICES_DATA => {
+                // the UEFI standard specifies that these should be presevered
+                // by the bootloader and operating system
+                false
             }
             _ => false,
         }
