@@ -178,10 +178,14 @@ impl FrameBuffer {
 
     /// Returns the raw bytes of the framebuffer as mutable slice.
     pub fn buffer_mut(&mut self) -> &mut [u8] {
-        unsafe { self.create_buffer() }
+        unsafe { self.create_buffer_mut() }
     }
 
-    unsafe fn create_buffer<'a>(&self) -> &'a mut [u8] {
+    unsafe fn create_buffer<'a>(&self) -> &'a [u8] {
+        unsafe { slice::from_raw_parts(self.buffer_start as *const u8, self.buffer_byte_len) }
+    }
+
+    unsafe fn create_buffer_mut<'a>(&self) -> &'a mut [u8] {
         unsafe { slice::from_raw_parts_mut(self.buffer_start as *mut u8, self.buffer_byte_len) }
     }
 
