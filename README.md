@@ -12,60 +12,56 @@ You need a nightly [Rust](https://www.rust-lang.org) compiler with the `llvm-too
 
 ## Usage
 
-See our [documentation](https://docs.rs/bootloader). Note that the `bootimage` crate is no longer used since version 0.10.0.
+To make your kernel compatible with `bootloader`:
+
+- Add a dependency on the `bootloader_api` crate in your kernel's `Cargo.toml`.
+- Your kernel binary should be `#![no_std]` and `#![no_main]`.
+- Define an entry point function with the signature `fn kernel_main(boot_info: &'static mut bootloader_api::BootInfo) -> !`. The function name can be arbitrary.
+  - The `boot_info` argument provides information about available memory, the framebuffer, and more. See the API docs for `bootloader_api` crate for details.
+- Use the `entry_point` macro to register the entry point function: `bootloader_api::entry_point!(kernel_main);`
+  - The macro checks the signature of your entry point function and generates a `_start` entry point symbol for it. (If you use a linker script, make sure that you don't change the entry point name to something else.)
+  - To use non-standard configuration, you can pass a second argument of type `&'static bootloader_api::BootloaderConfig` to the `entry_point` macro. For example, you can require a specific stack size for your kernel:
+    ```rust
+    const CONFIG: bootloader_api::BootloaderConfig = {
+        let mut config = bootloader_api::BootloaderConfig::new_default();
+        config.kernel_stack_size = 100 * 1024; // 100 KiB
+        config
+    };
+    bootloader_api::entry_point!(kernel_main, config = &CONFIG);
+    ```
+- Compile your kernel as normal to an ELF executable. The executable will contain a special section with metadata and the serialized config, which will enable the `bootloader` crate to load it.
+
+To combine your kernel with a bootloader and create a bootable disk image, follow these steps:
+
+- Create a new runner crate, e.g. through `cargo new runner --bin`.
+- Add the `bootloader` crate as a `dependency` in the `runner/Cargo.toml`.
+- In the `main.rs`, invoke the build commands for your kernel.
+  - Alternatively, you can set up an [artifact dependency](https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#artifact-dependencies) on your kernel, provided that you use a `rustup`-supported target for your kernel:
+    ```toml
+    [dependencies]
+    my-kernel = { path = "..", artifact = "bin", target = "x86_64-unknown-none" }
+    ```
+- After building your kernel, obtain the path to the kernel executable.
+  - When using an artifact dependency, you can retrieve this path using `env!("CARGO_BIN_FILE_MY_KERNEL_my-kernel")`
+- Use the `bootloader::create_boot_partition` function to create a bootable FAT partition at some chosen path.
+- Use one or multiple `bootloader::create_*_disk_image` functions to transform the bootable FAT partition into a disk image.
+  - Use the `bootloader::create_uefi_disk_image` function to create an UEFI-compatible GPT-formatted disk image.
+  - Use the `bootloader::create_bios_disk_image` function to create a BIOS-compatible MBR-formatted disk image.
 
 ## Architecture
 
-This project consists of three separate entities:
+This project is split into three separate entities:
 
-- A library with the entry point and boot info definitions that kernels can include as a normal cargo dependency.
-- BIOS and UEFI binaries that contain the actual bootloader implementation.
-- A `builder` binary to simplify the build process of the BIOS and UEFI binaries.
-
-These three entities are currently all combined in a single crate using cargo feature flags. The reason for this is that the kernel and bootloader must use the exact same version of the `BootInfo` struct to prevent undefined behavior (we did not stabilize the boot info format yet, so it might change between versions).
-
-### Build and Boot
-
-The build and boot process works the following way:
-
-- The `builder` binary is a small command line tool that takes the path to the kernel manifest and binary as arguments. Optionally, it allows to override the cargo target and output dirs. It also accepts a `--quiet` switch and allows to only build the BIOS or UEFI binary instead of both.
-- After parsing the arguments, the `builder` binary invokes the actual build command for the BIOS/UEFI binaries, which includes the correct `--target` and `--features` arguments (and `-Zbuild-std`). The kernel manifest and binary paths are passed as `KERNEL_MANIFEST` and `KERNEL` environment variables.
-- The next step in the build process is the `build.rs` build script. It only does something when building the BIOS/UEFI binaries (indicated by the `binary` feature), otherwise it is a no-op.
-  - The script first runs some sanity checks, e.g. the kernel manifest and binary should be specified in env variables and should exist, the correct target triple should be used, and the `llvm-tools` rustup component should be installed. 
-  - Then it copies the kernel executable and strips the debug symbols from it to make it smaller. This does not affect the original kernel binary. The stripped binary is then converted to a byte array and provided to the BIOS/UEFI binaries, either as a Rust `static` or through a linker argument.
-  - Next, the bootloader configuration is parsed, which can be specified in a `package.metadata.bootloader` table in the kernel manifest file. This requires some custom string parsing since TOML does not support unsigned 64-bit integers. Parse errors are turned into `compile_error!` calls to give nicer error messages.
-  - After parsing the configuration, it is written as a Rust struct definition into a new `bootloader_config.rs` file in the cargo `OUT_DIR`. This file is then included by the UEFI/BIOS binaries.
-- After the build script, the compilation continues with either the `bin/uefi.rs` or the `bin/bios.rs`:
-  - The `bin/uefi.rs` specifies an UEFI entry point function called `efi_main`. It uses the [`uefi`](https://docs.rs/uefi/0.8.0/uefi/) crate to set up a pixel-based framebuffer using the UEFI GOP protocol. Then it exits the UEFI boot services and stores the physical memory map. The final step is to create some page table abstractions and call into `load_and_switch_to_kernel` function that is shared with the BIOS boot code.
-  - The `bin/bios.rs` function does not provide a direct entry point. Instead it includes several assembly files (`asm/stage-*.rs`) that implement the CPU initialization (from real mode to long mode), the framebuffer setup (via VESA), and the memory map creation (via a BIOS call). The assembly stages are explained in more detail below. After the assembly stages, the execution jumps to the `bootloader_main` function in `bios.rs`. There we set up some additional identity mapping, translate the memory map and framebuffer into Rust structs, detect the RSDP table, and create some page table abstractions. Then we call into the `load_and_switch_to_kernel` function like the `bin/uefi.rs`.
-- The common `load_and_switch_to_kernel` function is defined in `src/binary/mod.rs`. This is also the file that includes the `bootloader_config.rs` generated by the build script. The `load_and_switch_to_kernel` functions performs the following steps:
-  - Parse the kernel binary and map it in a new page table. This includes setting up the correct permissions for each page, initializing `.bss` sections, and allocating a stack with guard page. The relevant functions for these steps are `set_up_mappings` and `load_kernel`.
-  - Create the `BootInfo` struct, which abstracts over the differences between BIOS and UEFI booting. This step is implemented in the `create_boot_info` function.
-  - Do a context switch and jump to the kernel entry point function. This involves identity-mapping the context switch function itself in both the kernel and bootloader page tables to prevent a page fault after switching page tables. This switch step is implemented in the `switch_to_kernel` and `context_switch` functions.
-- As a last step after a successful build, the `builder` binary turns the compiled bootloader executable (includes the kernel) into a bootable disk image. For UEFI, this means that a FAT partition and a GPT disk image are created. For BIOS, the `llvm-objcopy` tool is used to convert the `bootloader` executable to a flat binary, as it already contains a basic MBR.
-
-### BIOS Assembly Stages
-
-When you press the power button the computer loads the BIOS from some flash memory stored on the motherboard. The BIOS initializes and self tests the hardware then loads the first 512 bytes into memory from the media device (i.e. the cdrom or floppy disk). If the last two bytes equal 0xAA55 then the BIOS will jump to location 0x7C00 effectively transferring control to the bootloader.
-
-At this point the CPU is running in 16 bit mode, meaning only the 16 bit registers are available. Also since the BIOS only loads the first 512 bytes this means our bootloader code has to stay below that limit, otherwise we’ll hit uninitialised memory! Using [Bios interrupt calls](https://en.wikipedia.org/wiki/BIOS_interrupt_call) the bootloader prints debug information to the screen.
-
-For more information on how to write a bootloader click [here](http://3zanders.co.uk/2017/10/13/writing-a-bootloader/). The assembler files get imported through the [global_asm feature](https://doc.rust-lang.org/unstable-book/library-features/global-asm.html). The assembler syntax definition used is the one llvm uses: [GNU Assembly](http://microelectronics.esa.int/erc32/doc/as.pdf).
-
-The purposes of the individual assembly stages in this project are the following:
-
-- stage_1.s: This stage initializes the stack, enables the A20 line, loads the rest of the bootloader from disk, and jumps to stage_2.
-- stage_2.s: This stage sets the target operating mode, loads the kernel from disk,creates an e820 memory map, enters protected mode, and jumps to the third stage.
-- stage_3.s: This stage performs some checks on the CPU (cpuid, long mode), sets up an initial page table mapping (identity map the bootloader, map the P4 recursively, map the kernel blob to 4MB), enables paging, switches to long mode, and jumps to stage_4.
-
-## Future Plans
-
-- [ ] Create a `multiboot2` compatible disk image in addition to the BIOS and UEFI disk images. This would make it possible to use it on top of the GRUB bootloader.
-- [ ] Rewrite most of the BIOS assembly stages in Rust. This has already started.
-- [ ] Instead of linking the kernel bytes directly with the bootloader, use a filesystem (e.g. FAT) and load the kernel as a separate file.
-- [ ] Stabilize the boot info format and make it possible to check the version at runtime.
-- [ ] Instead of searching the bootloader source in the cargo cache on building, use the upcoming ["artifact dependencies"](https://github.com/rust-lang/cargo/issues/9096) feature of cargo to download the builder binary separately. Requires doing a boot info version check on build time.
-- [ ] Transform this "Future Plans" list into issues and a roadmap.
+- A [`bootloader_api`](./api) library with the entry point, configuration, and boot info definitions.
+  - Kernels should include this library as a normal cargo dependency.
+  - The provided `entry_point` macro will encode the configuration settings into a separate ELF section of the compiled kernel executable.
+- [BIOS](./bios) and [UEFI](./uefi) binaries that contain the actual bootloader implementation.
+  - The implementations share a higher-level [common library](./common).
+  - Both implementations load the kernel at runtime from a FAT partition. This FAT partition is created
+  - The configuration is read from a special section of the kernel's ELF file, which is created by the `entry_point` macro of teh `bootloader_api` library.
+- A `bootloader` library to create bootable disk images that run a given kernel. This library is the top-level crate in this project.
+  - The library builds the BIOS and UEFI implementations in the [`build.rs`](./build.rs).
+  - It provides functions to create FAT-formatted bootable disk images, based on the compiled BIOS and UEFI bootloaders.
 
 ## License
 
