@@ -100,11 +100,11 @@ impl Logger {
             '\n' => self.newline(),
             '\r' => self.carriage_return(),
             c => {
-                if self.x_pos >= self.width() {
+                let bitmap_char = get_bitmap(c, FontWeight::Regular, BitmapHeight::Size14).unwrap();
+                if self.x_pos + bitmap_char.width() > self.width() {
                     self.newline();
                 }
-                let bitmap_char = get_bitmap(c, FontWeight::Regular, BitmapHeight::Size14).unwrap();
-                if self.y_pos >= (self.height() - bitmap_char.height()) {
+                if self.y_pos + bitmap_char.height() > self.height() {
                     self.clear();
                 }
                 self.write_rendered_char(bitmap_char);
