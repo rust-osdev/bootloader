@@ -58,7 +58,7 @@ This project is split into three separate entities:
 - [BIOS](./bios) and [UEFI](./uefi) binaries that contain the actual bootloader implementation.
   - The implementations share a higher-level [common library](./common).
   - Both implementations load the kernel at runtime from a FAT partition. This FAT partition is created
-  - The configuration is read from a special section of the kernel's ELF file, which is created by the `entry_point` macro of teh `bootloader_api` library.
+  - The configuration is read from a special section of the kernel's ELF file, which is created by the `entry_point` macro of the `bootloader_api` library.
 - A `bootloader` library to create bootable disk images that run a given kernel. This library is the top-level crate in this project.
   - The library builds the BIOS and UEFI implementations in the [`build.rs`](./build.rs).
   - It provides functions to create FAT-formatted bootable disk images, based on the compiled BIOS and UEFI bootloaders.
