@@ -1,0 +1,5 @@
+[toolchain]
+channel = "nightly"
+components = [
+    "llvm-tools-preview",
+]
