@@ -132,7 +132,7 @@ impl UsedLevel4Entries {
     }
 
     /// Returns the first index of a `num` contiguous unused level 4 entries and marks them as
-    /// used. If `CONFIG.aslr` is enabled, this will return random available entries.
+    /// used. If `CONFIG.aslr` is enabled, this will return random contiguous available entries.
     ///
     /// Since this method marks each returned index as used, it can be used multiple times
     /// to determine multiple unused virtual memory regions.
