@@ -131,19 +131,18 @@ impl UsedLevel4Entries {
         }
     }
 
-    /// Returns an unused level 4 entry and marks it as used. If `CONFIG.aslr` is
-    /// enabled, this will return a random available entry.
+    /// Returns the first index of a `num` contiguous unused level 4 entries and marks them as
+    /// used. If `CONFIG.aslr` is enabled, this will return random available entries.
     ///
     /// Since this method marks each returned index as used, it can be used multiple times
     /// to determine multiple unused virtual memory regions.
-    pub fn get_free_entry(&mut self) -> PageTableIndex {
-        // Create an iterator over all available p4 indices.
+    pub fn get_free_entries(&mut self, num: u64) -> PageTableIndex {
+        // Create an iterator over all available p4 indices with `num` contiguous free entries.
         let mut free_entries = self
             .entry_state
-            .iter()
-            .copied()
+            .windows(num.into_usize())
             .enumerate()
-            .filter(|(_, used)| !used)
+            .filter(|(_, entries)| entries.iter().all(|used| !used))
             .map(|(idx, _)| idx);
 
         // Choose the free entry index.
@@ -154,30 +153,36 @@ impl UsedLevel4Entries {
             // Choose the first index.
             free_entries.next()
         };
-        let idx = idx_opt.expect("no usable level 4 entry found");
+        let idx = idx_opt.expect("no usable level 4 entries found");
 
-        // Mark the entry as used.
-        self.entry_state[idx] = true;
+        // Mark the entries as used.
+        for i in 0..num.into_usize() {
+            self.entry_state[idx + i] = true;
+        }
 
         PageTableIndex::new(idx.try_into().unwrap())
     }
 
-    /// Returns a virtual address in an unused level 4 entry and marks it as used.
+    /// Returns a virtual address in one or more unused level 4 entries and marks them as used.
     ///
-    /// This function calls [`get_free_entry`] internally, so all of its docs applies here
+    /// This function calls [`get_free_entries`] internally, so all of its docs applies here
     /// too.
     pub fn get_free_address(&mut self, size: u64, alignment: u64) -> VirtAddr {
         assert!(alignment.is_power_of_two());
 
-        let base =
-            Page::from_page_table_indices_1gib(self.get_free_entry(), PageTableIndex::new(0))
-                .start_address();
+        const LEVEL_4_SIZE: u64 = 4096 * 512 * 512 * 512;
+
+        let level_4_entries = (size + (LEVEL_4_SIZE - 1)) / LEVEL_4_SIZE;
+        let base = Page::from_page_table_indices_1gib(
+            self.get_free_entries(level_4_entries),
+            PageTableIndex::new(0),
+        )
+        .start_address();
 
         let offset = if let Some(rng) = self.rng.as_mut() {
             // Choose a random offset.
-            const LEVEL_4_SIZE: u64 = 4096 * 512 * 512 * 512;
-            let end = LEVEL_4_SIZE - size;
-            let uniform_range = Uniform::from(0..end / alignment);
+            let max_offset = LEVEL_4_SIZE - (size % LEVEL_4_SIZE);
+            let uniform_range = Uniform::from(0..max_offset / alignment);
             uniform_range.sample(rng) * alignment
         } else {
             0
