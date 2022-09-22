@@ -31,15 +31,19 @@ impl UsedLevel4Entries {
         used
     }
 
-    pub fn get_free_entry(&mut self) -> PageTableIndex {
-        let (idx, entry) = self
+    pub fn get_free_entries(&mut self, num: u64) -> PageTableIndex {
+        let idx = self
             .entry_state
-            .iter_mut()
+            .windows(num as usize)
             .enumerate()
-            .find(|(_, &mut entry)| entry == false)
+            .find(|(_, entries)| entries.iter().all(|&entry| entry == false))
+            .map(|(idx, _)| idx)
             .expect("no usable level 4 entries found");
 
-        *entry = true;
+        for i in 0..num as usize {
+            self.entry_state[idx + i] = true;
+        }
+
         PageTableIndex::new(idx.try_into().unwrap())
     }
 }
