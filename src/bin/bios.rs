@@ -10,6 +10,7 @@ use bootloader::{
 };
 use core::{
     arch::{asm, global_asm},
+    cmp,
     panic::PanicInfo,
     slice,
 };
@@ -84,15 +85,17 @@ fn bootloader_main(
         let ptr = usize_from(memory_map_addr.as_u64()) as *const E820MemoryRegion;
         unsafe { slice::from_raw_parts(ptr, usize_from(memory_map_entry_count)) }
     };
-    let max_phys_addr = e820_memory_map
-        .iter()
-        .map(|r| r.start_addr + r.len)
-        // Don't consider addresses > 4GiB when determining the maximum
-        // physical address for the bootloader, as we are in  protected mode and
-        // cannot address more than 4 GiB of memory anyway.
-        .filter(|&addr| addr < GIGABYTE * 4)
-        .max()
-        .expect("no physical memory regions found");
+    let max_phys_addr = {
+        let max = e820_memory_map
+            .iter()
+            .map(|r| r.start_addr + r.len)
+            .max()
+            .expect("no physical memory regions found");
+        // Don't consider addresses > 4GiB when determining the maximum physical
+        // address for the bootloader, as we are in protected mode and cannot
+        // address more than 4 GiB of memory anyway.
+        cmp::min(max, 4 * GIGABYTE)
+    };
 
     let mut frame_allocator = {
         let kernel_end = PhysFrame::containing_address(kernel_start + kernel_size - 1u64);
