@@ -78,6 +78,7 @@ fn bootloader_main(
     use bootloader::binary::{
         bios::memory_descriptor::E820MemoryRegion, legacy_memory_region::LegacyFrameAllocator,
     };
+    const GIGABYTE: u64 = 4096 * 512 * 512;
 
     let e820_memory_map = {
         let ptr = usize_from(memory_map_addr.as_u64()) as *const E820MemoryRegion;
@@ -86,6 +87,10 @@ fn bootloader_main(
     let max_phys_addr = e820_memory_map
         .iter()
         .map(|r| r.start_addr + r.len)
+        // Don't consider addresses > 4GiB when determining the maximum
+        // physical address for the bootloader, as we are in  protected mode and
+        // cannot address more than 4 GiB of memory anyway.
+        .filter(|&addr| addr < GIGABYTE * 4)
         .max()
         .expect("no physical memory regions found");
 
@@ -106,7 +111,7 @@ fn bootloader_main(
     // identity-map remaining physical memory (first gigabyte is already identity-mapped)
     {
         let start_frame: PhysFrame<Size2MiB> =
-            PhysFrame::containing_address(PhysAddr::new(4096 * 512 * 512));
+            PhysFrame::containing_address(PhysAddr::new(GIGABYTE));
         let end_frame = PhysFrame::containing_address(PhysAddr::new(max_phys_addr - 1));
         for frame in PhysFrame::range_inclusive(start_frame, end_frame) {
             unsafe {
