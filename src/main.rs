@@ -169,7 +169,8 @@ fn bootloader_main(
     enable_nxe_bit();
 
     // Create a recursive page table entry
-    let recursive_index = PageTableIndex::new(level4_entries.get_free_entry().try_into().unwrap());
+    let recursive_index =
+        PageTableIndex::new(level4_entries.get_free_entries(1).try_into().unwrap());
     let mut entry = PageTableEntry::new();
     entry.set_addr(
         p4_physical,
@@ -243,7 +244,7 @@ fn bootloader_main(
         let page: Page = match BOOT_INFO_ADDRESS {
             Some(addr) => Page::containing_address(VirtAddr::new(addr)),
             None => Page::from_page_table_indices(
-                level4_entries.get_free_entry(),
+                level4_entries.get_free_entries(1),
                 PageTableIndex::new(0),
                 PageTableIndex::new(0),
                 PageTableIndex::new(0),
@@ -286,11 +287,10 @@ fn bootloader_main(
 
     let physical_memory_offset = if cfg!(feature = "map_physical_memory") {
         let physical_memory_offset = PHYSICAL_MEMORY_OFFSET.unwrap_or_else(|| {
-            // If offset not manually provided, find a free p4 entry and map memory here.
-            // One level 4 entry spans 2^48/512 bytes (over 500gib) so this should suffice.
-            assert!(max_phys_addr < (1 << 48) / 512);
+            const LEVEL_4_SIZE: u64 = 4096 * 512 * 512 * 512;
+            let level_4_entries = (max_phys_addr + (LEVEL_4_SIZE - 1)) / LEVEL_4_SIZE;
             Page::from_page_table_indices_1gib(
-                level4_entries.get_free_entry(),
+                level4_entries.get_free_entries(level_4_entries),
                 PageTableIndex::new(0),
             )
             .start_address()
