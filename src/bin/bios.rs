@@ -117,7 +117,7 @@ fn bootloader_main(
             PhysFrame::containing_address(PhysAddr::new(GIGABYTE));
         let end_frame = PhysFrame::containing_address(PhysAddr::new(max_phys_addr - 1));
         for frame in PhysFrame::range_inclusive(start_frame, end_frame) {
-            unsafe {
+            let flusher = unsafe {
                 bootloader_page_table
                     .identity_map(
                         frame,
@@ -125,10 +125,19 @@ fn bootloader_main(
                         &mut frame_allocator,
                     )
                     .unwrap()
-                    .flush()
             };
+            // skip flushing the entry from the TLB for now, as we will
+            // flush the entire TLB at the end of the loop.
+            flusher.ignore();
         }
     }
+
+    // once all the physical memory is mapped, flush the TLB by reloading the
+    // CR3 register.
+    //
+    // we perform a single flush here rather than flushing each individual entry as
+    // it's mapped using `invlpg`, for efficiency.
+    x86_64::instructions::tlb::flush_all();
 
     let framebuffer_addr = PhysAddr::new(unsafe { VBEModeInfo_physbaseptr }.into());
     let mut error = None;
