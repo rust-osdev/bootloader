@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.10.13 – 2022-09-25
+
 - Add dynamic range configuration ([#229](https://github.com/rust-osdev/bootloader/pull/229))
 - Fix boot for machines that report memory regions at high physical addresses (see [#259](https://github.com/rust-osdev/bootloader/issues/259))
   - Limit BIOS bootloader's `max_phys_addr` to 4 GiB ([#260](https://github.com/rust-osdev/bootloader/pull/260))
