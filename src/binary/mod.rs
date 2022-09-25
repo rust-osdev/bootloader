@@ -257,7 +257,7 @@ where
         let index = CONFIG
             .recursive_index
             .map(PageTableIndex::new)
-            .unwrap_or_else(|| used_entries.get_free_entry());
+            .unwrap_or_else(|| used_entries.get_free_entries(1));
 
         let entry = &mut kernel_page_table.level_4_table()[index];
         if !entry.is_unused() {
