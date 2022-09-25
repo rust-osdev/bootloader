@@ -1,5 +1,12 @@
 # Unreleased
 
+- Add dynamic range configuration ([#229](https://github.com/rust-osdev/bootloader/pull/229))
+- Fix boot for machines that report memory regions at high physical addresses (see [#259](https://github.com/rust-osdev/bootloader/issues/259))
+  - Limit BIOS bootloader's `max_phys_addr` to 4 GiB ([#260](https://github.com/rust-osdev/bootloader/pull/260))
+  - fix `get_free_address` for large sizes (0.10) ([#263](https://github.com/rust-osdev/bootloader/pull/263))
+  - Only perform a single TLB flush after identity mapping ([#265](https://github.com/rust-osdev/bootloader/pull/265))
+- Correct typos in `src/binary/level_4_entries.rs` ([#228](https://github.com/rust-osdev/bootloader/pull/228))
+
 # 0.10.12 – 2022-02-06
 
 - Add support for position independent executables ([#206](https://github.com/rust-osdev/bootloader/pull/206))
