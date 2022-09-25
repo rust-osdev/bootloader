@@ -281,7 +281,7 @@ where
     let recursive_index = if let Some(mapping) = config.mappings.page_table_recursive {
         log::info!("Map page table recursively");
         let index = match mapping {
-            Mapping::Dynamic => used_entries.get_free_entry(),
+            Mapping::Dynamic => used_entries.get_free_entries(1),
             Mapping::FixedAddress(offset) => {
                 let offset = VirtAddr::new(offset);
                 let table_level = PageTableLevel::Four;

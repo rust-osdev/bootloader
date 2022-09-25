@@ -8,13 +8,15 @@ use bootloader_x86_64_common::{
     legacy_memory_region::LegacyFrameAllocator, load_and_switch_to_kernel, Kernel, PageTables,
     SystemInfo,
 };
-use core::slice;
+use core::{cmp, slice};
 use usize_conversions::usize_from;
 use x86_64::structures::paging::{FrameAllocator, OffsetPageTable};
 use x86_64::structures::paging::{
     Mapper, PageTable, PageTableFlags, PhysFrame, Size2MiB, Size4KiB,
 };
 use x86_64::{PhysAddr, VirtAddr};
+
+const GIGABYTE: u64 = 4096 * 512 * 512;
 
 mod memory_descriptor;
 
@@ -34,14 +36,20 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
 
     memory_map.sort_unstable_by_key(|e| e.start_addr);
 
-    let max_phys_addr = memory_map
-        .iter()
-        .map(|r| {
-            log::info!("start: {:#x}, len: {:#x}", r.start_addr, r.len);
-            r.start_addr + r.len
-        })
-        .max()
-        .expect("no physical memory regions found");
+    let max_phys_addr = {
+        let max = memory_map
+            .iter()
+            .map(|r| {
+                log::info!("start: {:#x}, len: {:#x}", r.start_addr, r.len);
+                r.start_addr + r.len
+            })
+            .max()
+            .expect("no physical memory regions found");
+        // Don't consider addresses > 4GiB when determining the maximum physical
+        // address for the bootloader, as we are in protected mode and cannot
+        // address more than 4 GiB of memory anyway.
+        cmp::min(max, 4 * GIGABYTE)
+    };
 
     let kernel_start = {
         assert!(info.kernel.start != 0, "kernel start address must be set");
@@ -68,10 +76,10 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
     // identity-map remaining physical memory (first 10 gigabytes are already identity-mapped)
     {
         let start_frame: PhysFrame<Size2MiB> =
-            PhysFrame::containing_address(PhysAddr::new(4096 * 512 * 512 * 10));
+            PhysFrame::containing_address(PhysAddr::new(GIGABYTE * 10));
         let end_frame = PhysFrame::containing_address(PhysAddr::new(max_phys_addr - 1));
         for frame in PhysFrame::range_inclusive(start_frame, end_frame) {
-            unsafe {
+            let flusher = unsafe {
                 bootloader_page_table
                     .identity_map(
                         frame,
@@ -79,10 +87,19 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
                         &mut frame_allocator,
                     )
                     .unwrap()
-                    .flush()
             };
+            // skip flushing the entry from the TLB for now, as we will
+            // flush the entire TLB at the end of the loop.
+            flusher.ignore();
         }
     }
+
+    // once all the physical memory is mapped, flush the TLB by reloading the
+    // CR3 register.
+    //
+    // we perform a single flush here rather than flushing each individual entry as
+    // it's mapped using `invlpg`, for efficiency.
+    x86_64::instructions::tlb::flush_all();
 
     log::info!("BIOS boot");
 

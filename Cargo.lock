@@ -55,7 +55,7 @@ dependencies = [
 
 [[package]]
 name = "bootloader"
-version = "0.11.0-alpha.0"
+version = "0.10.13"
 dependencies = [
  "anyhow",
  "bootloader_test_runner",
