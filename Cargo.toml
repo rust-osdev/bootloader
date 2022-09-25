@@ -23,6 +23,7 @@ members = [
     "tests/test_kernels/map_phys_mem",
     "tests/test_kernels/higher_half",
     "tests/test_kernels/pie",
+    "tests/test_kernels/lto",
 ]
 exclude = ["examples/basic", "examples/test_framework"]
 
@@ -73,6 +74,10 @@ overflow-checks = true
 inherits = "release"
 debug = true
 overflow-checks = true
+
+[profile.lto]
+inherits = "release"
+lto = true
 
 [profile.test.package.test_kernel_higher_half]
 rustflags = [
