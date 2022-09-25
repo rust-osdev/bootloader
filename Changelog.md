@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.9.23 – 2022-09-25
+
 - Fix boot for machines that report memory regions at high physical addresses (see #259)
   - Allow allocating more than one level 4 entry ([#264](https://github.com/rust-osdev/bootloader/pull/264))
 
