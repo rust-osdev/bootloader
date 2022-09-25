@@ -1,5 +1,8 @@
 # Unreleased
 
+- Fix boot for machines that report memory regions at high physical addresses (see #259)
+  - Allow allocating more than one level 4 entry ([#264](https://github.com/rust-osdev/bootloader/pull/264))
+
 # 0.9.22 – 2022-03-01
 
 - Remove the `asm` and `global_asm` features, which are now stable ([#227](https://github.com/rust-osdev/bootloader/pull/227))
