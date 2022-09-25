@@ -10,6 +10,7 @@ use bootloader::{
 };
 use core::{
     arch::{asm, global_asm},
+    cmp,
     panic::PanicInfo,
     slice,
 };
@@ -78,16 +79,23 @@ fn bootloader_main(
     use bootloader::binary::{
         bios::memory_descriptor::E820MemoryRegion, legacy_memory_region::LegacyFrameAllocator,
     };
+    const GIGABYTE: u64 = 4096 * 512 * 512;
 
     let e820_memory_map = {
         let ptr = usize_from(memory_map_addr.as_u64()) as *const E820MemoryRegion;
         unsafe { slice::from_raw_parts(ptr, usize_from(memory_map_entry_count)) }
     };
-    let max_phys_addr = e820_memory_map
-        .iter()
-        .map(|r| r.start_addr + r.len)
-        .max()
-        .expect("no physical memory regions found");
+    let max_phys_addr = {
+        let max = e820_memory_map
+            .iter()
+            .map(|r| r.start_addr + r.len)
+            .max()
+            .expect("no physical memory regions found");
+        // Don't consider addresses > 4GiB when determining the maximum physical
+        // address for the bootloader, as we are in protected mode and cannot
+        // address more than 4 GiB of memory anyway.
+        cmp::min(max, 4 * GIGABYTE)
+    };
 
     let mut frame_allocator = {
         let kernel_end = PhysFrame::containing_address(kernel_start + kernel_size - 1u64);
@@ -106,7 +114,7 @@ fn bootloader_main(
     // identity-map remaining physical memory (first gigabyte is already identity-mapped)
     {
         let start_frame: PhysFrame<Size2MiB> =
-            PhysFrame::containing_address(PhysAddr::new(4096 * 512 * 512));
+            PhysFrame::containing_address(PhysAddr::new(GIGABYTE));
         let end_frame = PhysFrame::containing_address(PhysAddr::new(max_phys_addr - 1));
         for frame in PhysFrame::range_inclusive(start_frame, end_frame) {
             let flusher = unsafe {
