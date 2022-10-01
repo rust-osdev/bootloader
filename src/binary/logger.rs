@@ -1,10 +1,13 @@
+use crate::binary::logger::font_constants::BACKUP_CHAR;
 use crate::boot_info::{FrameBufferInfo, PixelFormat};
 use conquer_once::spin::OnceCell;
 use core::{
     fmt::{self, Write},
     ptr,
 };
-use noto_sans_mono_bitmap::{get_bitmap, get_bitmap_width, BitmapChar, BitmapHeight, FontWeight};
+use noto_sans_mono_bitmap::{
+    get_raster, get_raster_width, FontWeight, RasterHeight, RasterizedChar,
+};
 use spinning_top::Spinlock;
 
 /// The global logger instance used for the `log` crate.
@@ -14,9 +17,42 @@ pub static LOGGER: OnceCell<LockedLogger> = OnceCell::uninit();
 pub struct LockedLogger(Spinlock<Logger>);
 
 /// Additional vertical space between lines
-const LINE_SPACING: usize = 0;
-/// Additional vertical space between separate log messages
-const LOG_SPACING: usize = 2;
+const LINE_SPACING: usize = 2;
+/// Additional horizontal space between characters.
+const LETTER_SPACING: usize = 0;
+
+/// Padding from the border. Prevent that font is too close to border.
+const BORDER_PADDING: usize = 1;
+
+/// Constants for the usage of the [`noto_sans_mono_bitmap`] crate.
+mod font_constants {
+    use super::*;
+
+    /// Height of each char raster. The font size is ~0.84% of this. Thus, this is the line height that
+    /// enables multiple characters to be side-by-side and appear optically in one line in a natural way.
+    pub const CHAR_RASTER_HEIGHT: RasterHeight = RasterHeight::Size16;
+
+    /// The width of each single symbol of the mono space font.
+    pub const CHAR_RASTER_WIDTH: usize = get_raster_width(FontWeight::Regular, CHAR_RASTER_HEIGHT);
+
+    /// Backup character if a desired symbol is not available by the font.
+    /// The '�' character requires the feature "unicode-specials".
+    pub const BACKUP_CHAR: char = '�';
+
+    pub const FONT_WEIGHT: FontWeight = FontWeight::Regular;
+}
+
+/// Returns the raster of the given char or the raster of [`font_constants::BACKUP_CHAR`].
+fn get_char_raster(c: char) -> RasterizedChar {
+    fn get(c: char) -> Option<RasterizedChar> {
+        get_raster(
+            c,
+            font_constants::FONT_WEIGHT,
+            font_constants::CHAR_RASTER_HEIGHT,
+        )
+    }
+    get(c).unwrap_or(get(BACKUP_CHAR).expect("Should get raster of backup char."))
+}
 
 impl LockedLogger {
     /// Create a new instance that logs to the given framebuffer.
@@ -39,8 +75,7 @@ impl log::Log for LockedLogger {
 
     fn log(&self, record: &log::Record) {
         let mut logger = self.0.lock();
-        writeln!(logger, "{}:    {}", record.level(), record.args()).unwrap();
-        logger.add_vspace(LOG_SPACING);
+        writeln!(logger, "{:5}: {}", record.level(), record.args()).unwrap();
     }
 
     fn flush(&self) {}
@@ -68,22 +103,18 @@ impl Logger {
     }
 
     fn newline(&mut self) {
-        self.y_pos += 14 + LINE_SPACING;
+        self.y_pos += font_constants::CHAR_RASTER_HEIGHT.val() + LINE_SPACING;
         self.carriage_return()
     }
 
-    fn add_vspace(&mut self, space: usize) {
-        self.y_pos += space;
-    }
-
     fn carriage_return(&mut self) {
-        self.x_pos = 0;
+        self.x_pos = BORDER_PADDING;
     }
 
-    /// Erases all text on the screen.
+    /// Erases all text on the screen. Resets `self.x_pos` and `self.y_pos`.
     pub fn clear(&mut self) {
-        self.x_pos = 0;
-        self.y_pos = 0;
+        self.x_pos = BORDER_PADDING;
+        self.y_pos = BORDER_PADDING;
         self.framebuffer.fill(0);
     }
 
@@ -95,32 +126,36 @@ impl Logger {
         self.info.vertical_resolution
     }
 
+    /// Writes a single char to the framebuffer. Takes care of special control characters, such as
+    /// newlines and carriage returns.
     fn write_char(&mut self, c: char) {
         match c {
             '\n' => self.newline(),
             '\r' => self.carriage_return(),
             c => {
-                if self.x_pos >= self.width() {
+                let new_xpos = self.x_pos + font_constants::CHAR_RASTER_WIDTH;
+                if new_xpos >= self.width() {
                     self.newline();
                 }
-                const BITMAP_LETTER_WIDTH: usize =
-                    get_bitmap_width(FontWeight::Regular, BitmapHeight::Size14);
-                if self.y_pos >= (self.height() - BITMAP_LETTER_WIDTH) {
+                let new_ypos =
+                    self.y_pos + font_constants::CHAR_RASTER_HEIGHT.val() + BORDER_PADDING;
+                if new_ypos >= self.height() {
                     self.clear();
                 }
-                let bitmap_char = get_bitmap(c, FontWeight::Regular, BitmapHeight::Size14).unwrap();
-                self.write_rendered_char(bitmap_char);
+                self.write_rendered_char(get_char_raster(c));
             }
         }
     }
 
-    fn write_rendered_char(&mut self, rendered_char: BitmapChar) {
-        for (y, row) in rendered_char.bitmap().iter().enumerate() {
+    /// Prints a rendered char into the framebuffer.
+    /// Updates `self.x_pos`.
+    fn write_rendered_char(&mut self, rendered_char: RasterizedChar) {
+        for (y, row) in rendered_char.raster().iter().enumerate() {
             for (x, byte) in row.iter().enumerate() {
                 self.write_pixel(self.x_pos + x, self.y_pos + y, *byte);
             }
         }
-        self.x_pos += rendered_char.width();
+        self.x_pos += rendered_char.width() + LETTER_SPACING;
     }
 
     fn write_pixel(&mut self, x: usize, y: usize, intensity: u8) {
