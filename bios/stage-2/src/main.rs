@@ -101,14 +101,14 @@ fn start(disk_number: u16, partition_table_start: *const u8) -> ! {
     writeln!(screen::Writer, "{memory_map:x?}").unwrap();
 
     // TODO: load these from the kernel's config instead of hardcoding
-    let max_width = 1000;
-    let max_height = 1000;
+    let max_width = 1280;
+    let max_height = 720;
 
     let mut vesa_info = vesa::VesaInfo::query(disk_buffer).unwrap();
     let vesa_mode = vesa_info
         .get_best_mode(max_width, max_height)
         .unwrap()
-        .unwrap();
+        .expect("no suitable VESA mode found");
     writeln!(
         screen::Writer,
         "VESA MODE: {}x{}",
