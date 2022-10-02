@@ -83,11 +83,16 @@ impl<'a> VesaInfo<'a> {
                 continue;
             }
 
-            if best
-                .as_ref()
-                .map(|best| mode_info.width >= best.width || mode_info.height >= best.height)
-                .unwrap_or(true)
-            {
+            let replace = match &best {
+                None => true,
+                Some(best) => {
+                    best.pixel_format.is_unknown()
+                        || best.width < mode_info.width
+                        || (best.width == mode_info.width && best.height < mode_info.height)
+                }
+            };
+
+            if replace {
                 best = Some(mode_info);
             }
         }

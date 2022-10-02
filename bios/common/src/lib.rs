@@ -45,6 +45,15 @@ pub enum PixelFormat {
     },
 }
 
+impl PixelFormat {
+    pub fn is_unknown(&self) -> bool {
+        match self {
+            PixelFormat::Rgb | PixelFormat::Bgr => false,
+            PixelFormat::Unknown { .. } => true,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 pub struct E820MemoryRegion {
