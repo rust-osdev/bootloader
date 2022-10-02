@@ -33,6 +33,7 @@ anyhow = "1.0.32"
 fatfs = "0.3.4"
 gpt = "3.0.0"
 mbrman = "0.4.2"
+tempfile = "3.3.0"
 
 [dev-dependencies]
 bootloader_test_runner = { path = "tests/runner" }
