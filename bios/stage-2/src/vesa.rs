@@ -95,7 +95,12 @@ impl<'a> VesaInfo<'a> {
     }
 
     fn get_mode(&self, index: usize) -> Option<u16> {
-        let video_mode_ptr = self.info_block.video_mode_ptr;
+        let (segment, offset) = {
+            let raw = self.info_block.video_mode_ptr;
+            ((raw >> 16) as u16, raw as u16)
+        };
+        let video_mode_ptr = ((segment as u32) << 4) + offset as u32;
+
         let base_ptr = video_mode_ptr as *const u16;
         let ptr = unsafe { base_ptr.add(index) };
         let mode = unsafe { *ptr };
