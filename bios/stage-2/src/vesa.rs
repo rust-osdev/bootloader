@@ -38,7 +38,7 @@ impl<'a> VesaInfo<'a> {
         let block_ptr = slice.as_mut_ptr();
         let ret;
         unsafe {
-            asm!("mov es, {:x}", "int 0x10", in(reg)0, inout("ax") 0x4f00u16 => ret, in("di") block_ptr)
+            asm!("push es", "mov es, {:x}", "int 0x10", "pop es", in(reg)0, inout("ax") 0x4f00u16 => ret, in("di") block_ptr)
         };
         match ret {
             0x4f => {
@@ -172,7 +172,7 @@ impl VesaModeInfo {
         target_addr -= segment << 4;
         unsafe {
             asm!(
-                "mov es, {:x}", "int 0x10",
+                "push es", "mov es, {:x}", "int 0x10", "pop es",
                 in(reg) segment as u16,
                 inout("ax") 0x4f01u16 => ret,
                 in("cx") mode,
