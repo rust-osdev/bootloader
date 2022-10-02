@@ -32,7 +32,11 @@ impl Write for Writer {
 #[panic_handler]
 #[cfg(not(test))]
 pub fn panic(info: &core::panic::PanicInfo) -> ! {
-    let _ = writeln!(Writer, "\nPANIC: {info}");
+    let _ = write!(Writer, "\nPANIC: ");
+    if let Some(location) = info.location() {
+        let _ = writeln!(Writer, "{location} ");
+    }
+    let _ = writeln!(Writer, " {info}");
 
     loop {
         unsafe {
