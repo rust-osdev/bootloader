@@ -66,7 +66,7 @@ impl<'a> Kernel<'a> {
         let config = {
             let section = kernel_elf
                 .find_section_by_name(".bootloader-config")
-                .unwrap();
+                .expect("bootloader config section not found; kernel must be compiled against bootloader_api");
             let raw = section.raw_data(&kernel_elf);
             BootloaderConfig::deserialize(raw)
                 .expect("kernel was compiled with incompatible bootloader_api version")
