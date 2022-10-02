@@ -94,6 +94,8 @@ fn start(disk_number: u16, partition_table_start: *const u8) -> ! {
     };
     let stage_4_len = load_file("boot-stage-4", stage_4_dst, &mut fs, &mut disk, disk_buffer);
     writeln!(screen::Writer, "stage 4 loaded at {stage_4_dst:#p}").unwrap();
+
+    writeln!(screen::Writer, "loading kernel...").unwrap();
     let kernel_len = load_file("kernel-x86_64", KERNEL_DST, &mut fs, &mut disk, disk_buffer);
     writeln!(screen::Writer, "kernel loaded at {KERNEL_DST:#p}").unwrap();
 
