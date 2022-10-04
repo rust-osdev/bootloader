@@ -158,17 +158,12 @@ pub enum MemoryRegionKind {
 #[repr(C)]
 pub struct FrameBuffer {
     pub(crate) buffer_start: u64,
-    pub(crate) buffer_byte_len: usize,
     pub(crate) info: FrameBufferInfo,
 }
 
 impl FrameBuffer {
-    pub fn new(buffer_start: u64, buffer_byte_len: usize, info: FrameBufferInfo) -> Self {
-        Self {
-            buffer_start,
-            buffer_byte_len,
-            info,
-        }
+    pub fn new(buffer_start: u64, info: FrameBufferInfo) -> Self {
+        Self { buffer_start, info }
     }
 
     /// Returns the raw bytes of the framebuffer as slice.
@@ -182,11 +177,11 @@ impl FrameBuffer {
     }
 
     unsafe fn create_buffer<'a>(&self) -> &'a [u8] {
-        unsafe { slice::from_raw_parts(self.buffer_start as *const u8, self.buffer_byte_len) }
+        unsafe { slice::from_raw_parts(self.buffer_start as *const u8, self.info.byte_len) }
     }
 
     unsafe fn create_buffer_mut<'a>(&self) -> &'a mut [u8] {
-        unsafe { slice::from_raw_parts_mut(self.buffer_start as *mut u8, self.buffer_byte_len) }
+        unsafe { slice::from_raw_parts_mut(self.buffer_start as *mut u8, self.info.byte_len) }
     }
 
     /// Returns layout and pixel format information of the framebuffer.
