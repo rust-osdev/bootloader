@@ -4,6 +4,7 @@
 use crate::memory_descriptor::MemoryRegion;
 use bootloader_api::info::{FrameBufferInfo, PixelFormat};
 use bootloader_x86_64_bios_common::{BiosFramebufferInfo, BiosInfo, E820MemoryRegion};
+use bootloader_x86_64_common::RawFrameBufferInfo;
 use bootloader_x86_64_common::{
     legacy_memory_region::LegacyFrameAllocator, load_and_switch_to_kernel, Kernel, PageTables,
     SystemInfo,
@@ -112,8 +113,10 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
     let kernel = Kernel::parse(kernel_slice);
 
     let system_info = SystemInfo {
-        framebuffer_addr: PhysAddr::new(info.framebuffer.region.start),
-        framebuffer_info,
+        framebuffer: Some(RawFrameBufferInfo {
+            addr: PhysAddr::new(info.framebuffer.region.start),
+            info: framebuffer_info,
+        }),
         rsdp_addr: detect_rsdp(),
     };
 

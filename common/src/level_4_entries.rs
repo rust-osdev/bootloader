@@ -1,4 +1,4 @@
-use crate::{entropy, BootInfo};
+use crate::{entropy, BootInfo, RawFrameBufferInfo};
 use bootloader_api::{config, info::MemoryRegion, BootloaderConfig};
 use core::{alloc::Layout, iter::Step};
 use rand::{
@@ -31,7 +31,7 @@ impl UsedLevel4Entries {
     pub fn new(
         max_phys_addr: PhysAddr,
         regions_len: usize,
-        framebuffer_size: usize,
+        framebuffer: Option<&RawFrameBufferInfo>,
         config: &BootloaderConfig,
     ) -> Self {
         let mut used = UsedLevel4Entries {
@@ -70,7 +70,9 @@ impl UsedLevel4Entries {
         }
 
         if let config::Mapping::FixedAddress(framebuffer_address) = config.mappings.framebuffer {
-            used.mark_range_as_used(framebuffer_address, framebuffer_size);
+            if let Some(framebuffer) = framebuffer {
+                used.mark_range_as_used(framebuffer_address, framebuffer.info.byte_len);
+            }
         }
 
         // Mark everything before the dynamic range as unusable.

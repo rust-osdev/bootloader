@@ -5,7 +5,9 @@
 
 use crate::memory_descriptor::UefiMemoryDescriptor;
 use bootloader_api::{info::FrameBufferInfo, BootloaderConfig};
-use bootloader_x86_64_common::{legacy_memory_region::LegacyFrameAllocator, Kernel, SystemInfo};
+use bootloader_x86_64_common::{
+    legacy_memory_region::LegacyFrameAllocator, Kernel, RawFrameBufferInfo, SystemInfo,
+};
 use core::{arch::asm, cell::UnsafeCell, fmt::Write, mem, panic::PanicInfo, ptr, slice};
 use uefi::{
     prelude::{entry, Boot, Handle, Status, SystemTable},
@@ -105,8 +107,10 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
     let page_tables = create_page_tables(&mut frame_allocator);
 
     let system_info = SystemInfo {
-        framebuffer_addr,
-        framebuffer_info,
+        framebuffer: Some(RawFrameBufferInfo {
+            addr: framebuffer_addr,
+            info: framebuffer_info,
+        }),
         rsdp_addr: {
             use uefi::table::cfg;
             let mut config_entries = system_table.config_table().iter();
