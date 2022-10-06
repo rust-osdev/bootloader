@@ -45,12 +45,19 @@ pub fn init_logger(framebuffer: &'static mut [u8], info: FrameBufferInfo) {
 /// Required system information that should be queried from the BIOS or UEFI firmware.
 #[derive(Debug, Copy, Clone)]
 pub struct SystemInfo {
-    /// Start address of the pixel-based framebuffer.
-    pub framebuffer_addr: PhysAddr,
-    /// Information about the framebuffer, including layout and pixel format.
-    pub framebuffer_info: FrameBufferInfo,
+    /// Information about the (still unmapped) framebuffer.
+    pub framebuffer: Option<RawFrameBufferInfo>,
     /// Address of the _Root System Description Pointer_ structure of the ACPI standard.
     pub rsdp_addr: Option<PhysAddr>,
+}
+
+/// The physical address of the framebuffer and information about the framebuffer.
+#[derive(Debug, Copy, Clone)]
+pub struct RawFrameBufferInfo {
+    /// Start address of the pixel-based framebuffer.
+    pub addr: PhysAddr,
+    /// Information about the framebuffer, including layout and pixel format.
+    pub info: FrameBufferInfo,
 }
 
 pub struct Kernel<'a> {
@@ -100,8 +107,7 @@ where
         kernel,
         &mut frame_allocator,
         &mut page_tables,
-        system_info.framebuffer_addr,
-        system_info.framebuffer_info.byte_len,
+        system_info.framebuffer.as_ref(),
         &config,
     );
     let boot_info = create_boot_info(
@@ -132,8 +138,7 @@ pub fn set_up_mappings<I, D>(
     kernel: Kernel,
     frame_allocator: &mut LegacyFrameAllocator<I, D>,
     page_tables: &mut PageTables,
-    framebuffer_addr: PhysAddr,
-    framebuffer_size: usize,
+    framebuffer: Option<&RawFrameBufferInfo>,
     config: &BootloaderConfig,
 ) -> Mappings
 where
@@ -145,7 +150,7 @@ where
     let mut used_entries = UsedLevel4Entries::new(
         frame_allocator.max_phys_addr(),
         frame_allocator.len(),
-        framebuffer_size,
+        framebuffer,
         config,
     );
 
@@ -220,15 +225,15 @@ where
     }
 
     // map framebuffer
-    let framebuffer_virt_addr = {
+    let framebuffer_virt_addr = if let Some(framebuffer) = framebuffer {
         log::info!("Map framebuffer");
 
-        let framebuffer_start_frame: PhysFrame = PhysFrame::containing_address(framebuffer_addr);
+        let framebuffer_start_frame: PhysFrame = PhysFrame::containing_address(framebuffer.addr);
         let framebuffer_end_frame =
-            PhysFrame::containing_address(framebuffer_addr + framebuffer_size - 1u64);
+            PhysFrame::containing_address(framebuffer.addr + framebuffer.info.byte_len - 1u64);
         let start_page = Page::from_start_address(mapping_addr(
             config.mappings.framebuffer,
-            u64::from_usize(framebuffer_size),
+            u64::from_usize(framebuffer.info.byte_len),
             Size4KiB::SIZE,
             &mut used_entries,
         ))
@@ -248,6 +253,8 @@ where
         }
         let framebuffer_virt_addr = start_page.start_address();
         Some(framebuffer_virt_addr)
+    } else {
+        None
     };
 
     let physical_memory_offset = if let Some(mapping) = config.mappings.physical_memory {
@@ -440,13 +447,7 @@ where
         let mut info = BootInfo::new(memory_regions.into());
         info.framebuffer = mappings
             .framebuffer
-            .map(|addr| {
-                FrameBuffer::new(
-                    addr.as_u64(),
-                    system_info.framebuffer_info.byte_len,
-                    system_info.framebuffer_info,
-                )
-            })
+            .map(|addr| FrameBuffer::new(addr.as_u64(), system_info.framebuffer.expect("there shouldn't be a mapping for the framebuffer if there is not framebuffer").info))
             .into();
         info.physical_memory_offset = mappings.physical_memory_offset.map(VirtAddr::as_u64).into();
         info.recursive_index = mappings.recursive_index.map(Into::into).into();

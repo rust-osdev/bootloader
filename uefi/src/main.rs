@@ -5,7 +5,9 @@
 
 use crate::memory_descriptor::UefiMemoryDescriptor;
 use bootloader_api::{info::FrameBufferInfo, BootloaderConfig};
-use bootloader_x86_64_common::{legacy_memory_region::LegacyFrameAllocator, Kernel, SystemInfo};
+use bootloader_x86_64_common::{
+    legacy_memory_region::LegacyFrameAllocator, Kernel, RawFrameBufferInfo, SystemInfo,
+};
 use core::{arch::asm, cell::UnsafeCell, fmt::Write, mem, panic::PanicInfo, ptr, slice};
 use uefi::{
     prelude::{entry, Boot, Handle, Status, SystemTable},
@@ -74,7 +76,7 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
 
     let kernel = load_kernel(image, &mut st);
 
-    let (framebuffer_addr, framebuffer_info) = init_logger(&st, kernel.config);
+    let framebuffer = init_logger(&st, kernel.config);
 
     // we no longer need the system table for printing panics
     unsafe {
@@ -83,7 +85,9 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
 
     log::info!("UEFI bootloader started");
     log::info!("Reading kernel and configuration from disk was successful");
-    log::info!("Using framebuffer at {:#x}", framebuffer_addr);
+    if let Some(framebuffer) = framebuffer {
+        log::info!("Using framebuffer at {:#x}", framebuffer.addr);
+    }
 
     let mmap_storage = {
         let max_mmap_size =
@@ -105,8 +109,7 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
     let page_tables = create_page_tables(&mut frame_allocator);
 
     let system_info = SystemInfo {
-        framebuffer_addr,
-        framebuffer_info,
+        framebuffer,
         rsdp_addr: {
             use uefi::table::cfg;
             let mut config_entries = system_table.config_table().iter();
@@ -362,11 +365,11 @@ fn create_page_tables(
     }
 }
 
-fn init_logger(st: &SystemTable<Boot>, config: BootloaderConfig) -> (PhysAddr, FrameBufferInfo) {
+fn init_logger(st: &SystemTable<Boot>, config: BootloaderConfig) -> Option<RawFrameBufferInfo> {
     let gop = st
         .boot_services()
         .locate_protocol::<GraphicsOutput>()
-        .expect("failed to locate gop");
+        .ok()?;
     let gop = unsafe { &mut *gop.get() };
 
     let mode = {
@@ -419,7 +422,10 @@ fn init_logger(st: &SystemTable<Boot>, config: BootloaderConfig) -> (PhysAddr, F
 
     bootloader_x86_64_common::init_logger(slice, info);
 
-    (PhysAddr::new(framebuffer.as_mut_ptr() as u64), info)
+    Some(RawFrameBufferInfo {
+        addr: PhysAddr::new(framebuffer.as_mut_ptr() as u64),
+        info,
+    })
 }
 
 #[panic_handler]
