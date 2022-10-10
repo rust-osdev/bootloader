@@ -56,17 +56,23 @@ rand = { version = "0.8.4", optional = true, default-features = false }
 rand_chacha = { version = "0.3.1", optional = true, default-features = false }
 
 [dependencies.noto-sans-mono-bitmap]
-version = "0.1.2"
+version = "0.2.0"
 default-features = false
-features = ["regular", "size_14"]
+features = [
+    "regular",
+    "size_16",
+    "unicode-basic-latin",
+    # required for the fallback char '�'
+    "unicode-specials"
+]
 optional = true
 
 [build-dependencies]
 llvm-tools-build = { version = "0.1", optional = true, package = "llvm-tools" }
 toml = { version = "0.5.1", optional = true }
-serde = { version = "1.0", features = ["derive"], optional = true}
-quote = { version = "1.0", optional = true}
-proc-macro2 = { version = "1.0", optional = true}
+serde = { version = "1.0", features = ["derive"], optional = true }
+quote = { version = "1.0", optional = true }
+proc-macro2 = { version = "1.0", optional = true }
 
 [features]
 default = []
@@ -94,6 +100,6 @@ default-target = "x86_64-unknown-linux-gnu"
 [package.metadata.release]
 dev-version = false
 pre-release-replacements = [
-    { file="Changelog.md", search="# Unreleased", replace="# Unreleased\n\n# {{version}} – {{date}}", exactly=1 },
+    { file = "Changelog.md", search = "# Unreleased", replace = "# Unreleased\n\n# {{version}} – {{date}}", exactly = 1 },
 ]
 pre-release-commit-message = "Release version {{version}}"
