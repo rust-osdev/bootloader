@@ -127,6 +127,14 @@ where
             }
         }
 
+        // Mark some memory regions as read-only after relocations have been
+        // applied.
+        for program_header in self.elf_file.program_iter() {
+            if let Type::GnuRelro = program_header.get_type()? {
+                self.inner.handle_relro_segment(program_header);
+            }
+        }
+
         self.inner.remove_copied_flags(&self.elf_file).unwrap();
 
         Ok(tls_template)
@@ -495,6 +503,44 @@ where
         }
 
         Ok(())
+    }
+
+    /// Mark a region of memory indicated by a GNU_RELRO segment as read-only.
+    ///
+    /// This is a security mitigation used to protect memory regions that
+    /// need to be writable while applying relocations, but should never be
+    /// written to after relocations have been applied.
+    fn handle_relro_segment(&mut self, program_header: ProgramHeader) {
+        let start = self.virtual_address_offset + program_header.virtual_addr();
+        let end = start + program_header.mem_size();
+        let start = VirtAddr::new(start);
+        let end = VirtAddr::new(end);
+        let start_page = Page::containing_address(start);
+        let end_page = Page::containing_address(end - 1u64);
+        for page in Page::<Size4KiB>::range_inclusive(start_page, end_page) {
+            // Translate the page and get the flags.
+            let res = self.page_table.translate(page.start_address());
+            let flags = match res {
+                TranslateResult::Mapped {
+                    frame: _,
+                    offset: _,
+                    flags,
+                } => flags,
+                TranslateResult::NotMapped | TranslateResult::InvalidFrameAddress(_) => {
+                    unreachable!("has the elf file not been mapped correctly?")
+                }
+            };
+
+            if flags.contains(Flags::WRITABLE) {
+                // Remove the WRITABLE flag.
+                unsafe {
+                    self.page_table
+                        .update_flags(page, flags & !Flags::WRITABLE)
+                        .unwrap()
+                        .ignore();
+                }
+            }
+        }
     }
 }
 
