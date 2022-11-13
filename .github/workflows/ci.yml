@@ -15,6 +15,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      - run: cargo --version --verbose
+      - uses: Swatinem/rust-cache@v2
       - uses: r7kamura/rust-problem-matchers@v1.1.0
       - name: "Run `cargo check`"
         run: cargo check --all-targets --all
@@ -31,6 +33,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      - run: cargo --version --verbose
+      - uses: Swatinem/rust-cache@v2
 
       # install QEMU
       - name: Install QEMU (Linux)
@@ -71,5 +75,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - run: cargo --version --verbose
+      - uses: Swatinem/rust-cache@v2
       - uses: r7kamura/rust-problem-matchers@v1.1.0
       - run: cargo clippy
