@@ -12,6 +12,12 @@ You need a nightly [Rust](https://www.rust-lang.org) compiler with the `llvm-too
 
 ## Usage
 
+To use this crate, you need to adjust your kernel to be bootable first. Then you can create a bootable disk image from your compiled kernel. These steps are explained in detail below.
+
+If you're already using an older version of the `bootloader` crate, follow our [migration guides](doc/migration).
+
+### Kernel
+
 To make your kernel compatible with `bootloader`:
 
 - Add a dependency on the `bootloader_api` crate in your kernel's `Cargo.toml`.
@@ -29,24 +35,37 @@ To make your kernel compatible with `bootloader`:
     };
     bootloader_api::entry_point!(kernel_main, config = &CONFIG);
     ```
-- Compile your kernel as normal to an ELF executable. The executable will contain a special section with metadata and the serialized config, which will enable the `bootloader` crate to load it.
+- Compile your kernel to an ELF executable by running **`cargo build --target x86_64-unknown-none`**. You might need to run `rustup target add x86_64-unknown-none` before to download precompiled versions of the `core` and `alloc` crates.
+- Thanks to the `entry_point` macro, the compiled executable contains a special section with metadata and the serialized config, which will enable the `bootloader` crate to load it.
+
+### Booting
 
 To combine your kernel with a bootloader and create a bootable disk image, follow these steps:
 
-- Create a new runner crate, e.g. through `cargo new runner --bin`.
-- Add the `bootloader` crate as a `dependency` in the `runner/Cargo.toml`.
-- In the `main.rs`, invoke the build commands for your kernel.
-  - Alternatively, you can set up an [artifact dependency](https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#artifact-dependencies) on your kernel, provided that you use a `rustup`-supported target for your kernel:
-    ```toml
-    [dependencies]
-    my-kernel = { path = "..", artifact = "bin", target = "x86_64-unknown-none" }
-    ```
-- After building your kernel, obtain the path to the kernel executable.
-  - When using an artifact dependency, you can retrieve this path using `env!("CARGO_BIN_FILE_MY_KERNEL_my-kernel")`
-- Use the `bootloader::create_boot_partition` function to create a bootable FAT partition at some chosen path.
-- Use one or multiple `bootloader::create_*_disk_image` functions to transform the bootable FAT partition into a disk image.
-  - Use the `bootloader::create_uefi_disk_image` function to create an UEFI-compatible GPT-formatted disk image.
-  - Use the `bootloader::create_bios_disk_image` function to create a BIOS-compatible MBR-formatted disk image.
+- Move your full kernel code into a `kernel` subdirectory.
+- Create a new `os` crate at the top level that defines a [workspace](https://doc.rust-lang.org/cargo/reference/workspaces.html).
+- Add a `build-dependencies` on the `bootloader` crate.
+- Create a [`build.rs`](https://doc.rust-lang.org/cargo/reference/build-scripts.html) build script.
+- Set up an [artifact dependency](https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#artifact-dependencies) to add your `kernel` crate as a `build-dependency`:
+  ```toml
+  # in Cargo.toml
+  [build-dependencies]
+  kernel = { path = "kernel", artifact = "bin", target = "x86_64-unknown-none" }
+  ```
+  ```toml
+  # .cargo/config.toml
+
+  [unstable]
+  # enable the unstable artifact-dependencies feature, see
+  # https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#artifact-dependencies
+  bindeps = true
+  ```
+  Alternatively, you can use [`std::process::Command`](https://doc.rust-lang.org/stable/std/process/struct.Command.html) to invoke the build command of your kernel in the `build.rs` script. 
+- Obtain the path to the kernel executable. When using an artifact dependency, you can retrieve this path using `env!("CARGO_BIN_FILE_MY_KERNEL_my-kernel")`
+- Use `bootloader::UefiBoot` and/or `bootloader::BiosBoot` to create a bootable disk image with your kernel.
+- Do something with the bootable disk images in your `main.rs` function. For example, run them with QEMU.
+
+See our [disk image creation template](doc/create-disk-image.md) for a more detailed example.
 
 ## Architecture
 

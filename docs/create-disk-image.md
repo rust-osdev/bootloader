@@ -1,42 +1,6 @@
-# Migration from bootloader `v0.10`
+# Template: Create a Disk Image
 
-This guide summarizes the steps for migrating from `bootloader v0.10.X` to `bootloader v0.11`.
-
-## Kernel
-
-- Replace the `bootloader` dependency of your kernel with a dependency on the `bootloader_api` crate and adjust the import path in your `main.rs`:
-  ```diff
-   # in Cargo.toml
-
-  -bootloader = { version = "0.10.13" }
-  +bootloader_api = "0.11"
-  ```
-  ```diff
-   // in main.rs
-
-  -use bootloader::{entry_point, BootInfo};
-  +use bootloader_api::{entry_point, BootInfo};
-  ```
-- If you used optional features, such as `map-physical-memory`, you can enable them again through the `entry_point` macro:
-  ```rust
-  use bootloader_api::config::{BootloaderConfig, Mapping};
-
-  pub static BOOTLOADER_CONFIG: BootloaderConfig = {
-      let mut config = BootloaderConfig::new_default();
-      config.mappings.physical_memory = Some(Mapping::Dynamic);
-      config
-  };
-
-  // add a `config` argument to the `entry_point` macro call
-  entry_point!(kernel_main, config = &BOOTLOADER_CONFIG);
-  ```
-  See the [`BootloaderConfig`](https://docs.rs/bootloader_api/0.11/bootloader_api/config/struct.BootloaderConfig.html) struct for all configuration options.
-
-To build your kernel, run **`cargo build --target x86_64-unknown-none`**. Since the `x86_64-unknown-none` target is a Tier-2 target, there is no need for `bootimage`, `cargo-xbuild`, or `xargo` anymore. Instead, you can run `rustup target add x86_64-unknown-none` to download precompiled versions of the `core` and `alloc` crates. There is no need for custom JSON-based target files anymore.
-
-## Booting
-
-The `bootloader v0.11` release simplifies the disk image creation. The [`bootloader`](https://docs.rs/bootloader/0.11) crate now provides simple functions to create bootable disk images from a kernel. The basic idea is to build your kernel first and then invoke a builder function that calls the disk image creation functions of the `bootloader` crate.
+The [`bootloader`](https://docs.rs/bootloader/0.11) crate provides simple functions to create bootable disk images from a kernel. The basic idea is to build your kernel first and then invoke a builder function that calls the disk image creation functions of the `bootloader` crate.
 
 A good way to implement this is to move your kernel into a `kernel` subdirectory. Then you can create 
 a new `os` crate at the top level that defines a [workspace](https://doc.rust-lang.org/cargo/reference/workspaces.html). The root package has build-dependencies on the `kernel` [artifact](https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#artifact-dependencies) and on the bootloader crate. This allows you to create the bootable disk image in a [cargo build script](https://doc.rust-lang.org/cargo/reference/build-scripts.html) and launch the created image in QEMU in the `main` function.
@@ -79,7 +43,7 @@ fn main() {
     let out_dir = env::var_os("OUT_DIR").unwrap();
     // set by cargo's artifact dependency feature, see
     // https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#artifact-dependencies
-    let kernel = env!("CARGO_BIN_FILE_KERNEL");
+    let kernel = env!("CARGO_BIN_FILE_KERNEL_kernel");
 
     // create an UEFI disk image (optional)
     let uefi_path = out_dir.join("uefi.img");
