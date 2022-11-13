@@ -24,7 +24,7 @@ pub fn create_fat_filesystem(
         .write(true)
         .create(true)
         .truncate(true)
-        .open(&out_fat_path)
+        .open(out_fat_path)
         .unwrap();
     let fat_size_padded_and_rounded = ((needed_size + 1024 * 64 - 1) / MB + 1) * MB;
     fat_file.set_len(fat_size_padded_and_rounded).unwrap();

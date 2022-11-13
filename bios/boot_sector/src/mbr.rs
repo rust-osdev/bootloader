@@ -11,7 +11,7 @@ pub(crate) fn get_partition(partitions_raw: &[u8], index: usize) -> PartitionTab
     let offset = index * ENTRY_SIZE;
     let buffer = partitions_raw.get(offset..).unwrap_or_fail(b'c');
 
-    let bootable_raw = *buffer.get(0).unwrap_or_fail(b'd');
+    let bootable_raw = *buffer.first().unwrap_or_fail(b'd');
     let bootable = bootable_raw == 0x80;
 
     let partition_type = *buffer.get(4).unwrap_or_fail(b'e');

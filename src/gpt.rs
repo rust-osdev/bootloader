@@ -12,11 +12,11 @@ pub fn create_gpt_disk(fat_image: &Path, out_gpt_path: &Path) -> anyhow::Result<
         .truncate(true)
         .read(true)
         .write(true)
-        .open(&out_gpt_path)
+        .open(out_gpt_path)
         .with_context(|| format!("failed to create GPT file at `{}`", out_gpt_path.display()))?;
 
     // set file size
-    let partition_size: u64 = fs::metadata(&fat_image)
+    let partition_size: u64 = fs::metadata(fat_image)
         .context("failed to read metadata of fat image")?
         .len();
     let disk_size = partition_size + 1024 * 64; // for GPT headers
@@ -61,7 +61,7 @@ pub fn create_gpt_disk(fat_image: &Path, out_gpt_path: &Path) -> anyhow::Result<
     disk.seek(io::SeekFrom::Start(start_offset))
         .context("failed to seek to start offset")?;
     io::copy(
-        &mut File::open(&fat_image).context("failed to open FAT image")?,
+        &mut File::open(fat_image).context("failed to open FAT image")?,
         &mut disk,
     )
     .context("failed to copy FAT image to GPT disk")?;

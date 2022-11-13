@@ -391,7 +391,7 @@ impl<'a> RawDirectoryEntry<'a> {
         } else {
             fn slice_to_string(slice: &[u8]) -> Result<&str, ()> {
                 const SKIP_SPACE: u8 = 0x20;
-                let mut iter = slice.into_iter().copied();
+                let mut iter = slice.iter().copied();
                 match iter.position(|c| c != SKIP_SPACE) {
                     Some(start_idx) => {
                         let end_idx =

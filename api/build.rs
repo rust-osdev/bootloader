@@ -43,7 +43,7 @@ fn main() {
         );
     }
 
-    fs::write(&dest_path, code).unwrap();
+    fs::write(dest_path, code).unwrap();
     println!("cargo:rerun-if-changed=build.rs");
 
     let version_major: u16 = env!("CARGO_PKG_VERSION_MAJOR").parse().unwrap();

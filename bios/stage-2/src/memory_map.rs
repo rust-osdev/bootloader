@@ -47,7 +47,7 @@ pub unsafe fn query_memory_map() -> Result<&'static mut [E820MemoryRegion], ()> 
         if buf_written_len != 0 {
             let buf = &buf[..buf_written_len];
 
-            let (&base_raw, rest) = split_array_ref(&buf);
+            let (&base_raw, rest) = split_array_ref(buf);
             let (&len_raw, rest) = split_array_ref(rest);
             let (&kind_raw, rest) = split_array_ref(rest);
             let acpi_extended_raw: [u8; 4] = rest.try_into().unwrap_or_default();

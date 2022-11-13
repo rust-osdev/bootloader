@@ -143,7 +143,7 @@ fn load_kernel_file(image: Handle, st: &SystemTable<Boot>) -> Option<&'static mu
 
 fn load_kernel_file_from_disk(image: Handle, st: &SystemTable<Boot>) -> Option<&'static mut [u8]> {
     let file_system_raw = {
-        let ref this = st.boot_services();
+        let this = st.boot_services();
         let loaded_image = this
             .open_protocol::<LoadedImage>(
                 OpenProtocolParams {

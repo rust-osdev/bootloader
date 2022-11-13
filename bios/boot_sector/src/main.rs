@@ -54,7 +54,7 @@ pub extern "C" fn first_stage(disk_number: u16) {
 
         start_lba += u64::from(sectors);
         number_of_sectors -= u32::from(sectors);
-        target_addr = target_addr + u32::from(sectors) * 512;
+        target_addr += u32::from(sectors) * 512;
 
         if number_of_sectors == 0 {
             break;
