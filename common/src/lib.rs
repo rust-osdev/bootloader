@@ -8,13 +8,22 @@ use bootloader_api::{
     info::{FrameBuffer, FrameBufferInfo, MemoryRegion, TlsTemplate},
     BootInfo, BootloaderConfig,
 };
-use core::{alloc::Layout, arch::asm, mem::MaybeUninit, slice};
+use core::{
+    alloc::Layout,
+    arch::asm,
+    mem::{size_of, MaybeUninit},
+    slice,
+};
 use level_4_entries::UsedLevel4Entries;
-use usize_conversions::FromUsize;
+use usize_conversions::{FromUsize, IntoUsize};
 use x86_64::{
-    structures::paging::{
-        page_table::PageTableLevel, FrameAllocator, Mapper, OffsetPageTable, Page, PageSize,
-        PageTableFlags, PageTableIndex, PhysFrame, Size2MiB, Size4KiB,
+    instructions::tables::{lgdt, sgdt},
+    structures::{
+        gdt::GlobalDescriptorTable,
+        paging::{
+            page_table::PageTableLevel, FrameAllocator, Mapper, OffsetPageTable, Page, PageSize,
+            PageTable, PageTableFlags, PageTableIndex, PhysFrame, Size2MiB, Size4KiB,
+        },
     },
     PhysAddr, VirtAddr,
 };
@@ -145,6 +154,7 @@ where
     I: ExactSizeIterator<Item = D> + Clone,
     D: LegacyMemoryRegion,
 {
+    let bootloader_page_table = &mut page_tables.bootloader;
     let kernel_page_table = &mut page_tables.kernel;
 
     let mut used_entries = UsedLevel4Entries::new(
@@ -195,30 +205,25 @@ where
         }
     }
 
-    // identity-map context switch function, so that we don't get an immediate pagefault
-    // after switching the active page table
-    let context_switch_function = PhysAddr::new(context_switch as *const () as u64);
-    let context_switch_function_start_frame: PhysFrame =
-        PhysFrame::containing_address(context_switch_function);
-    for frame in PhysFrame::range_inclusive(
-        context_switch_function_start_frame,
-        context_switch_function_start_frame + 1,
-    ) {
-        match unsafe {
-            kernel_page_table.identity_map(frame, PageTableFlags::PRESENT, frame_allocator)
-        } {
-            Ok(tlb) => tlb.flush(),
-            Err(err) => panic!("failed to identity map frame {:?}: {:?}", frame, err),
-        }
-    }
-
     // create, load, and identity-map GDT (required for working `iretq`)
     let gdt_frame = frame_allocator
         .allocate_frame()
         .expect("failed to allocate GDT frame");
     gdt::create_and_load(gdt_frame);
+    let gdt = mapping_addr(
+        config.mappings.gdt,
+        u64::from_usize(size_of::<GlobalDescriptorTable>()),
+        4096,
+        &mut used_entries,
+    );
+    let gdt_page = Page::from_start_address(gdt).unwrap();
     match unsafe {
-        kernel_page_table.identity_map(gdt_frame, PageTableFlags::PRESENT, frame_allocator)
+        kernel_page_table.map_to(
+            gdt_page,
+            gdt_frame,
+            PageTableFlags::PRESENT,
+            frame_allocator,
+        )
     } {
         Ok(tlb) => tlb.flush(),
         Err(err) => panic!("failed to identity map frame {:?}: {:?}", gdt_frame, err),
@@ -319,6 +324,151 @@ where
         None
     };
 
+    // Setup memory for the context switch.
+    // We set up two regions of memory:
+    // 1. "context switch page" - This page contains only a single instruction
+    //    to switch to the kernel's page table. It's placed right before the
+    //    kernel's entrypoint, so that the last instruction the bootloader
+    //    executes is the page table switch and we don't need to jump to the
+    //    entrypoint.
+    // 2. "trampoline" - The "context switch page" might overlap with the
+    //    bootloader's memory, so we can't map it into the bootloader's address
+    //    space. Instead we map a trampoline at an address of our choosing and
+    //    jump to it instead. The trampoline will then switch to a new page
+    //    table (context switch page table) that contains the "context switch
+    //    page" and jump to it.
+
+    let phys_offset = kernel_page_table.phys_offset();
+    let translate_frame_to_virt = |frame: PhysFrame| phys_offset + frame.start_address().as_u64();
+
+    // The switching the page table is a 3 byte instruction.
+    // Check that subtraction 3 from the entrypoint won't jump the gap in the address space.
+    if (0xffff_8000_0000_0000..=0xffff_8000_0000_0002).contains(&entry_point.as_u64()) {
+        panic!("The kernel's entrypoint must not be located between 0xffff_8000_0000_0000 and 0xffff_8000_0000_0002");
+    }
+    // Determine the address where we should place the page table switch instruction.
+    let entrypoint_page: Page = Page::containing_address(entry_point);
+    let addr_just_before_entrypoint = entry_point.as_u64().wrapping_sub(3);
+    let context_switch_addr = VirtAddr::new(addr_just_before_entrypoint);
+    let context_switch_page: Page = Page::containing_address(context_switch_addr);
+
+    // Choose the address for the trampoline. The address shouldn't overlap
+    // with the bootloader's memory or the context switch page.
+    let trampoline_page_candidate1: Page =
+        Page::from_start_address(VirtAddr::new(0xffff_ffff_ffff_f000)).unwrap();
+    let trampoline_page_candidate2: Page =
+        Page::from_start_address(VirtAddr::new(0xffff_ffff_ffff_c000)).unwrap();
+    let trampoline_page = if context_switch_page != trampoline_page_candidate1
+        && entrypoint_page != trampoline_page_candidate1
+    {
+        trampoline_page_candidate1
+    } else {
+        trampoline_page_candidate2
+    };
+
+    // Prepare the trampoline.
+    let trampoline_frame = frame_allocator
+        .allocate_frame()
+        .expect("Failed to allocate memory for trampoline");
+    // Write two instructions to the trampoline:
+    // 1. Load the context switch page table
+    // 2. Jump to the context switch
+    unsafe {
+        let trampoline: *mut u8 = translate_frame_to_virt(trampoline_frame).as_mut_ptr();
+        // mov cr3, rdx
+        trampoline.add(0).write(0x0f);
+        trampoline.add(1).write(0x22);
+        trampoline.add(2).write(0xda);
+        // jmp r13
+        trampoline.add(3).write(0x41);
+        trampoline.add(4).write(0xff);
+        trampoline.add(5).write(0xe5);
+    }
+
+    // Write the instruction to switch to the final kernel page table to the context switch page.
+    let context_switch_frame = frame_allocator
+        .allocate_frame()
+        .expect("Failed to allocate memory for context switch page");
+    // mov cr3, rax
+    let instruction_bytes = [0x0f, 0x22, 0xd8];
+    let context_switch_ptr: *mut u8 = translate_frame_to_virt(context_switch_frame).as_mut_ptr();
+    for (i, b) in instruction_bytes.into_iter().enumerate() {
+        // We can let the offset wrap around because we map the frame twice
+        // if the context switch is near a page boundary.
+        let offset = (context_switch_addr.as_u64().into_usize()).wrapping_add(i) % 4096;
+
+        unsafe {
+            // Write the instruction byte.
+            context_switch_ptr.add(offset).write(b);
+        }
+    }
+
+    // Create a new page table for use during the context switch.
+    let context_switch_page_table_frame = frame_allocator
+        .allocate_frame()
+        .expect("Failed to allocate frame for context switch page table");
+    let context_switch_page_table: &mut PageTable = {
+        let ptr: *mut PageTable =
+            translate_frame_to_virt(context_switch_page_table_frame).as_mut_ptr();
+        // create a new, empty page table
+        unsafe {
+            ptr.write(PageTable::new());
+            &mut *ptr
+        }
+    };
+    let mut context_switch_page_table =
+        unsafe { OffsetPageTable::new(context_switch_page_table, phys_offset) };
+
+    // Map the trampoline and the context switch.
+    unsafe {
+        // Map the trampoline page into both the bootloader's page table and
+        // the context switch page table.
+        bootloader_page_table
+            .map_to(
+                trampoline_page,
+                trampoline_frame,
+                PageTableFlags::PRESENT,
+                frame_allocator,
+            )
+            .expect("Failed to map trampoline into main page table")
+            .ignore();
+        context_switch_page_table
+            .map_to(
+                trampoline_page,
+                trampoline_frame,
+                PageTableFlags::PRESENT,
+                frame_allocator,
+            )
+            .expect("Failed to map trampoline into context switch page table")
+            .ignore();
+
+        // Map the context switch only into the context switch page table.
+        context_switch_page_table
+            .map_to(
+                context_switch_page,
+                context_switch_frame,
+                PageTableFlags::PRESENT,
+                frame_allocator,
+            )
+            .expect("Failed to map context switch into context switch page table")
+            .ignore();
+
+        // If the context switch is near a page boundary, map the entrypoint
+        // page to the same frame in case the page table switch instruction
+        // crosses a page boundary.
+        if context_switch_page != entrypoint_page {
+            context_switch_page_table
+                .map_to(
+                    entrypoint_page,
+                    context_switch_frame,
+                    PageTableFlags::PRESENT,
+                    frame_allocator,
+                )
+                .expect("Failed to map context switch into context switch page table")
+                .ignore();
+        }
+    }
+
     Mappings {
         framebuffer: framebuffer_virt_addr,
         entry_point,
@@ -330,6 +480,11 @@ where
 
         kernel_slice_start,
         kernel_slice_len,
+        gdt,
+        context_switch_trampoline: trampoline_page.start_address(),
+        context_switch_page_table,
+        context_switch_page_table_frame,
+        context_switch_addr,
     }
 }
 
@@ -355,6 +510,16 @@ pub struct Mappings {
     pub kernel_slice_start: u64,
     /// Size of the kernel slice allocation in memory.
     pub kernel_slice_len: u64,
+    /// The address of the GDT in the kernel's address space.
+    pub gdt: VirtAddr,
+    /// The address of the context switch trampoline in the bootloader's address space.
+    pub context_switch_trampoline: VirtAddr,
+    /// The page table used for context switch from the bootloader to the kernel.
+    pub context_switch_page_table: OffsetPageTable<'static>,
+    /// The physical frame where the level 4 page table of the context switch address space is stored.
+    pub context_switch_page_table_frame: PhysFrame,
+    /// Address just before the kernel's entrypoint.
+    pub context_switch_addr: VirtAddr,
 }
 
 /// Allocates and initializes the boot info struct and the memory map.
@@ -481,15 +646,18 @@ pub fn switch_to_kernel(
         ..
     } = page_tables;
     let addresses = Addresses {
+        gdt: mappings.gdt,
+        context_switch_trampoline: mappings.context_switch_trampoline,
+        context_switch_page_table: mappings.context_switch_page_table_frame,
+        context_switch_addr: mappings.context_switch_addr,
         page_table: kernel_level_4_frame,
         stack_top: mappings.stack_end.start_address(),
-        entry_point: mappings.entry_point,
         boot_info,
     };
 
     log::info!(
-        "Jumping to kernel entry point at {:?}",
-        addresses.entry_point
+        "Switching to kernel entry point at {:?}",
+        mappings.entry_point
     );
 
     unsafe {
@@ -513,23 +681,40 @@ pub struct PageTables {
 
 /// Performs the actual context switch.
 unsafe fn context_switch(addresses: Addresses) -> ! {
+    // Update the GDT base address.
+    let mut gdt_pointer = sgdt();
+    gdt_pointer.base = addresses.gdt;
+    unsafe {
+        // SAFETY: Note that the base address points to memory that is only
+        //         mapped in the kernel's page table. We can do this because
+        //         just loading the GDT doesn't cause any immediate loads and
+        //         by the time the base address is dereferenced the context
+        //         switch will be done.
+        lgdt(&gdt_pointer);
+    }
+
     unsafe {
         asm!(
-            "mov cr3, {}; mov rsp, {}; push 0; jmp {}",
-            in(reg) addresses.page_table.start_address().as_u64(),
+            "mov rsp, {}; sub rsp, 8; jmp {}",
             in(reg) addresses.stack_top.as_u64(),
-            in(reg) addresses.entry_point.as_u64(),
+            in(reg) addresses.context_switch_trampoline.as_u64(),
+            in("rdx") addresses.context_switch_page_table.start_address().as_u64(),
+            in("r13") addresses.context_switch_addr.as_u64(),
+            in("rax") addresses.page_table.start_address().as_u64(),
             in("rdi") addresses.boot_info as *const _ as usize,
+            options(noreturn),
         );
     }
-    unreachable!();
 }
 
 /// Memory addresses required for the context switch.
 struct Addresses {
+    gdt: VirtAddr,
+    context_switch_trampoline: VirtAddr,
+    context_switch_page_table: PhysFrame,
+    context_switch_addr: VirtAddr,
     page_table: PhysFrame,
     stack_top: VirtAddr,
-    entry_point: VirtAddr,
     boot_info: &'static mut BootInfo,
 }
 
