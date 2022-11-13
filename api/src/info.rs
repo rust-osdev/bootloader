@@ -20,6 +20,7 @@ use crate::config::ApiVersion;
 #[repr(C)]
 #[non_exhaustive]
 pub struct BootInfo {
+    /// The version of the `bootloader_api` crate. Must match the `bootloader` version.
     pub api_version: ApiVersion,
     /// A map of the physical memory regions of the underlying machine.
     ///
@@ -54,6 +55,9 @@ pub struct BootInfo {
 }
 
 impl BootInfo {
+    /// Create a new boot info structure with the given memory map.
+    ///
+    /// The other fields are initialized with default values.
     pub fn new(memory_regions: MemoryRegions) -> Self {
         Self {
             api_version: ApiVersion::new_default(),
@@ -162,7 +166,13 @@ pub struct FrameBuffer {
 }
 
 impl FrameBuffer {
-    pub fn new(buffer_start: u64, info: FrameBufferInfo) -> Self {
+    /// Creates a new framebuffer instance.
+    ///
+    /// ## Safety
+    ///
+    /// The given start address and info must describe a valid, accessible, and unaliased
+    /// framebuffer.
+    pub unsafe fn new(buffer_start: u64, info: FrameBufferInfo) -> Self {
         Self { buffer_start, info }
     }
 
@@ -232,9 +242,13 @@ pub enum PixelFormat {
     /// Length might be larger than 1, check [`bytes_per_pixel`][FrameBufferInfo::bytes_per_pixel]
     /// for this.
     U8,
+    /// Unknown pixel format.
     Unknown {
+        /// Bit offset of the red value.
         red_position: u8,
+        /// Bit offset of the green value.
         green_position: u8,
+        /// Bit offset of the blue value.
         blue_position: u8,
     },
 }

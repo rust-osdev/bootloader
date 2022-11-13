@@ -2,7 +2,6 @@
 #![no_main] // disable all Rust-level entry points
 
 use bootloader_api::{entry_point, info::PixelFormat, BootInfo};
-use core::panic::PanicInfo;
 use test_kernel_pie::{exit_qemu, QemuExitCode};
 
 entry_point!(kernel_main);
@@ -41,8 +40,9 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
 }
 
 /// This function is called on panic.
+#[cfg(not(test))]
 #[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
+fn panic(info: &core::panic::PanicInfo) -> ! {
     use core::fmt::Write;
 
     let _ = writeln!(test_kernel_pie::serial(), "PANIC: {}", info);

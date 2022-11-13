@@ -282,6 +282,7 @@ impl Default for BootloaderConfig {
     }
 }
 
+/// A semver-compatible version.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[repr(C)]
 pub struct ApiVersion {
@@ -318,18 +319,22 @@ impl ApiVersion {
         }
     }
 
+    /// Returns the major version number.
     pub fn version_major(&self) -> u16 {
         self.version_major
     }
 
+    /// Returns the minor version number.
     pub fn version_minor(&self) -> u16 {
         self.version_minor
     }
 
+    /// Returns the patch version number.
     pub fn version_patch(&self) -> u16 {
         self.version_patch
     }
 
+    /// Returns whether this version is a pre-release, e.g., an alpha version.
     pub fn pre_release(&self) -> bool {
         self.pre_release
     }

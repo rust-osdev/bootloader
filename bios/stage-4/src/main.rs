@@ -227,8 +227,8 @@ fn detect_rsdp() -> Option<PhysAddr> {
     }
 }
 
+#[cfg(all(not(test), target_os = "none"))]
 #[panic_handler]
-#[cfg(not(test))]
 fn panic(info: &core::panic::PanicInfo) -> ! {
     unsafe {
         bootloader_x86_64_common::logger::LOGGER

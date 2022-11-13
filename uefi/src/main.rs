@@ -8,7 +8,7 @@ use bootloader_api::{info::FrameBufferInfo, BootloaderConfig};
 use bootloader_x86_64_common::{
     legacy_memory_region::LegacyFrameAllocator, Kernel, RawFrameBufferInfo, SystemInfo,
 };
-use core::{arch::asm, cell::UnsafeCell, fmt::Write, mem, panic::PanicInfo, ptr, slice};
+use core::{cell::UnsafeCell, fmt::Write, mem, ptr, slice};
 use uefi::{
     prelude::{entry, Boot, Handle, Status, SystemTable},
     proto::{
@@ -428,8 +428,11 @@ fn init_logger(st: &SystemTable<Boot>, config: BootloaderConfig) -> Option<RawFr
     })
 }
 
+#[cfg(all(not(test), target_os = "uefi"))]
 #[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
+fn panic(info: &core::panic::PanicInfo) -> ! {
+    use core::arch::asm;
+
     if let Some(st) = unsafe { &mut *SYSTEM_TABLE.get() } {
         let _ = writeln!(st.stdout(), "{}", info);
     }

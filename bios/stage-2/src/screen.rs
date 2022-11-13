@@ -29,8 +29,8 @@ impl Write for Writer {
     }
 }
 
+#[cfg(all(not(test), target_os = "none"))]
 #[panic_handler]
-#[cfg(not(test))]
 pub fn panic(info: &core::panic::PanicInfo) -> ! {
     let _ = write!(Writer, "\nPANIC: ");
     if let Some(location) = info.location() {

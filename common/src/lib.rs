@@ -447,7 +447,18 @@ where
         let mut info = BootInfo::new(memory_regions.into());
         info.framebuffer = mappings
             .framebuffer
-            .map(|addr| FrameBuffer::new(addr.as_u64(), system_info.framebuffer.expect("there shouldn't be a mapping for the framebuffer if there is not framebuffer").info))
+            .map(|addr| unsafe {
+                FrameBuffer::new(
+                    addr.as_u64(),
+                    system_info
+                        .framebuffer
+                        .expect(
+                            "there shouldn't be a mapping for the framebuffer if there is \
+                            no framebuffer",
+                        )
+                        .info,
+                )
+            })
             .into();
         info.physical_memory_offset = mappings.physical_memory_offset.map(VirtAddr::as_u64).into();
         info.recursive_index = mappings.recursive_index.map(Into::into).into();

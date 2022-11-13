@@ -4,7 +4,7 @@ cargo-features = ["profile-rustflags"]
 name = "test_kernel_higher_half"
 version = "0.1.0"
 authors = ["Philipp Oppermann <dev@phil-opp.com>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 bootloader_api = { path = "../../../api" }
