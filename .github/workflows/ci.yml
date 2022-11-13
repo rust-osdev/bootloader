@@ -14,7 +14,7 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - run: cargo --version --verbose
       - uses: Swatinem/rust-cache@v2
       - uses: r7kamura/rust-problem-matchers@v1.1.0
@@ -32,7 +32,7 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - run: cargo --version --verbose
       - uses: Swatinem/rust-cache@v2
 
@@ -66,7 +66,7 @@ jobs:
     name: Check Formatting
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: r7kamura/rust-problem-matchers@v1.1.0
       - run: cargo fmt --all -- --check
 
@@ -74,7 +74,7 @@ jobs:
     name: Clippy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - run: cargo --version --verbose
       - uses: Swatinem/rust-cache@v2
       - uses: r7kamura/rust-problem-matchers@v1.1.0
