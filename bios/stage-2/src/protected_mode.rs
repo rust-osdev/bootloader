@@ -1,9 +1,5 @@
 use bootloader_x86_64_bios_common::BiosInfo;
-use core::{
-    arch::{asm, global_asm},
-    fmt::Write as _,
-    mem::size_of,
-};
+use core::{arch::asm, mem::size_of};
 
 static GDT: GdtProtectedMode = GdtProtectedMode::new();
 

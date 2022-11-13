@@ -1,6 +1,6 @@
 use bootloader_x86_64_bios_common::{racy_cell::RacyCell, BiosFramebufferInfo, PixelFormat};
 use core::{fmt, ptr};
-use noto_sans_mono_bitmap::{get_bitmap, get_bitmap_width, BitmapChar, BitmapHeight, FontWeight};
+use noto_sans_mono_bitmap::{get_bitmap, BitmapChar, BitmapHeight, FontWeight};
 
 static WRITER: RacyCell<Option<ScreenWriter>> = RacyCell::new(None);
 pub struct Writer;
