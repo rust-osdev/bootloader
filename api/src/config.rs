@@ -149,16 +149,16 @@ impl BootloaderConfig {
     /// ELF file.
     ///
     /// TODO: return error enum
-    pub fn deserialize(serialized: &[u8]) -> Result<Self, ()> {
+    pub fn deserialize(serialized: &[u8]) -> Result<Self, &'static str> {
         if serialized.len() != Self::SERIALIZED_LEN {
-            return Err(());
+            return Err("invalid len");
         }
 
         let s = serialized;
 
         let (uuid, s) = split_array_ref(s);
         if uuid != &Self::UUID {
-            return Err(());
+            return Err("invalid UUID");
         }
 
         let (version, s) = {
@@ -169,7 +169,7 @@ impl BootloaderConfig {
             let pre = match pre {
                 [0] => false,
                 [1] => true,
-                _ => return Err(()),
+                _ => return Err("invalid pre version"),
             };
 
             let version = ApiVersion {
@@ -206,27 +206,27 @@ impl BootloaderConfig {
                 physical_memory: match physical_memory_some {
                     [0] if physical_memory == [0; 9] => Option::None,
                     [1] => Option::Some(Mapping::deserialize(&physical_memory)?),
-                    _ => return Err(()),
+                    _ => return Err("invalid phys memory value"),
                 },
                 page_table_recursive: match page_table_recursive_some {
                     [0] if page_table_recursive == [0; 9] => Option::None,
                     [1] => Option::Some(Mapping::deserialize(&page_table_recursive)?),
-                    _ => return Err(()),
+                    _ => return Err("invalid page table recursive value"),
                 },
                 aslr: match alsr {
                     1 => true,
                     0 => false,
-                    _ => return Err(()),
+                    _ => return Err("invalid aslr value"),
                 },
                 dynamic_range_start: match dynamic_range_start_some {
                     [0] if dynamic_range_start == [0; 8] => Option::None,
                     [1] => Option::Some(u64::from_le_bytes(dynamic_range_start)),
-                    _ => return Err(()),
+                    _ => return Err("invalid dynamic range start value"),
                 },
                 dynamic_range_end: match dynamic_range_end_some {
                     [0] if dynamic_range_end == [0; 8] => Option::None,
                     [1] => Option::Some(u64::from_le_bytes(dynamic_range_end)),
-                    _ => return Err(()),
+                    _ => return Err("invalid dynamic range end value"),
                 },
             };
             (mappings, s)
@@ -242,19 +242,19 @@ impl BootloaderConfig {
                 minimum_framebuffer_height: match min_framebuffer_height_some {
                     [0] if min_framebuffer_height == [0; 8] => Option::None,
                     [1] => Option::Some(u64::from_le_bytes(min_framebuffer_height)),
-                    _ => return Err(()),
+                    _ => return Err("minimum_framebuffer_height invalid"),
                 },
                 minimum_framebuffer_width: match min_framebuffer_width_some {
                     [0] if min_framebuffer_width == [0; 8] => Option::None,
                     [1] => Option::Some(u64::from_le_bytes(min_framebuffer_width)),
-                    _ => return Err(()),
+                    _ => return Err("minimum_framebuffer_width invalid"),
                 },
             };
             (frame_buffer, s)
         };
 
         if !s.is_empty() {
-            return Err(());
+            return Err("unexpected rest");
         }
 
         Ok(Self {
@@ -509,17 +509,17 @@ impl Mapping {
         }
     }
 
-    fn deserialize(serialized: &[u8; 9]) -> Result<Self, ()> {
+    fn deserialize(serialized: &[u8; 9]) -> Result<Self, &'static str> {
         let (&variant, s) = split_array_ref(serialized);
         let (&addr, s) = split_array_ref(s);
         if !s.is_empty() {
-            return Err(());
+            return Err("invalid mapping format");
         }
 
         match variant {
             [0] if addr == [0; 8] => Ok(Mapping::Dynamic),
             [1] => Ok(Mapping::FixedAddress(u64::from_le_bytes(addr))),
-            _ => Err(()),
+            _ => Err("invalid mapping value"),
         }
     }
 }
