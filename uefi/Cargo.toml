@@ -3,7 +3,8 @@ name = "bootloader-x86_64-uefi"
 version.workspace = true
 edition = "2021"
 description = "UEFI bootloader for x86_64"
-license = "MIT/Apache-2.0"
+license.workspace = true
+repository.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
