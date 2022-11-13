@@ -8,7 +8,7 @@ pub struct UefiMemoryDescriptor(pub MemoryDescriptor);
 
 const PAGE_SIZE: u64 = 4096;
 
-impl<'a> LegacyMemoryRegion for UefiMemoryDescriptor {
+impl LegacyMemoryRegion for UefiMemoryDescriptor {
     fn start(&self) -> PhysAddr {
         PhysAddr::new(self.0.phys_start)
     }

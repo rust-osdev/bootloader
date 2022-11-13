@@ -74,7 +74,7 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
     )
     .unwrap();
 
-    let kernel = load_kernel(image, &mut st);
+    let kernel = load_kernel(image, &st);
 
     let framebuffer = init_logger(&st, kernel.config);
 
@@ -428,7 +428,7 @@ fn init_logger(st: &SystemTable<Boot>, config: BootloaderConfig) -> Option<RawFr
     })
 }
 
-#[cfg(all(not(test), target_os = "uefi"))]
+#[cfg(target_os = "uefi")]
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
     use core::arch::asm;

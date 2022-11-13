@@ -51,7 +51,7 @@ fn get_char_raster(c: char) -> RasterizedChar {
             font_constants::CHAR_RASTER_HEIGHT,
         )
     }
-    get(c).unwrap_or(get(BACKUP_CHAR).expect("Should get raster of backup char."))
+    get(c).unwrap_or_else(|| get(BACKUP_CHAR).expect("Should get raster of backup char."))
 }
 
 impl LockedLogger {
@@ -62,6 +62,7 @@ impl LockedLogger {
 
     /// Force-unlocks the logger to prevent a deadlock.
     ///
+    /// ## Safety
     /// This method is not memory safe and should be only used when absolutely necessary.
     pub unsafe fn force_unlock(&self) {
         unsafe { self.0.force_unlock() };

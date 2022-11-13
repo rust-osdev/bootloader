@@ -7,7 +7,7 @@ use crate::{
         copy_to_protected_mode, enter_protected_mode_and_jump_to_stage_3, enter_unreal_mode,
     },
 };
-use bootloader_x86_64_bios_common::{BiosFramebufferInfo, BiosInfo, Region};
+use bootloader_x86_64_bios_common::{hlt, BiosFramebufferInfo, BiosInfo, Region};
 use byteorder::{ByteOrder, LittleEndian};
 use core::{fmt::Write as _, slice};
 use disk::AlignedArrayBuffer;
@@ -50,12 +50,12 @@ fn start(disk_number: u16, partition_table_start: *const u8) -> ! {
 
         let mut entries = [PartitionTableEntry::empty(); MAX_ENTRIES];
         let raw = unsafe { slice::from_raw_parts(partition_table_start, ENTRY_SIZE * MAX_ENTRIES) };
-        for idx in 0..MAX_ENTRIES {
+        for (idx, entry) in entries.iter_mut().enumerate() {
             let offset = idx * ENTRY_SIZE;
             let partition_type = PartitionType::from_mbr_tag_byte(raw[offset + 4]);
             let lba = LittleEndian::read_u32(&raw[offset + 8..]);
             let len = LittleEndian::read_u32(&raw[offset + 12..]);
-            entries[idx] = PartitionTableEntry::new(partition_type, lba, len);
+            *entry = PartitionTableEntry::new(partition_type, lba, len);
         }
         entries
     };
@@ -146,7 +146,9 @@ fn start(disk_number: u16, partition_table_start: *const u8) -> ! {
 
     enter_protected_mode_and_jump_to_stage_3(STAGE_3_DST, &mut info);
 
-    loop {}
+    loop {
+        hlt();
+    }
 }
 
 fn load_file(

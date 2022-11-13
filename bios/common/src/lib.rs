@@ -62,3 +62,7 @@ pub struct E820MemoryRegion {
     pub region_type: u32,
     pub acpi_extended_attributes: u32,
 }
+
+pub fn hlt() {
+    unsafe { core::arch::asm!("hlt") };
+}
