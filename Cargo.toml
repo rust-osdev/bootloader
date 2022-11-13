@@ -58,6 +58,7 @@ lto = false
 debug = true
 overflow-checks = true
 
+# duplicated from `bios/boot_sector/Cargo.toml`
 [profile.stage-1]
 inherits = "release"
 opt-level = "s"
