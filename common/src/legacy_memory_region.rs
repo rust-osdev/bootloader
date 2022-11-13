@@ -11,6 +11,10 @@ pub trait LegacyMemoryRegion: Copy + core::fmt::Debug {
     fn start(&self) -> PhysAddr;
     /// Returns the size of the region in bytes.
     fn len(&self) -> u64;
+    /// Returns whether this region is empty.
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
     /// Returns the type of the region, e.g. whether it is usable or reserved.
     fn kind(&self) -> MemoryRegionKind;
 
@@ -79,6 +83,11 @@ where
     /// change after calls to `allocate_frame`.
     pub fn len(&self) -> usize {
         self.original.len()
+    }
+
+    /// Returns whether this memory map is empty.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     /// Returns the largest detected physical memory address.

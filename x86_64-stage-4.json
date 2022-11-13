@@ -17,5 +17,6 @@
     },
     "static-position-independent-executables": true,
     "target-pointer-width": "64",
-    "relocation-model": "static"
+    "relocation-model": "static",
+    "os": "none"
 }

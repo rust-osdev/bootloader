@@ -132,15 +132,14 @@ impl BootloaderConfig {
                 Option::Some(addr) => concat_1_8([1], addr.to_le_bytes()),
             },
         );
-        let buf = concat_106_9(
+
+        concat_106_9(
             buf,
             match minimum_framebuffer_width {
                 Option::None => [0; 9],
                 Option::Some(addr) => concat_1_8([1], addr.to_le_bytes()),
             },
-        );
-
-        buf
+        )
     }
 
     /// Tries to deserialize a config byte array that was created using [`Self::serialize`].

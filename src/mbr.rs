@@ -68,7 +68,7 @@ pub fn create_mbr_disk(
         .truncate(true)
         .read(true)
         .write(true)
-        .open(&out_mbr_path)
+        .open(out_mbr_path)
         .with_context(|| {
             format!(
                 "failed to create MBR disk image at `{}`",

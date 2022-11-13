@@ -3,7 +3,7 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 
 use crate::screen::Writer;
-use bootloader_x86_64_bios_common::BiosInfo;
+use bootloader_x86_64_bios_common::{hlt, BiosInfo};
 use core::{arch::asm, fmt::Write as _};
 
 mod gdt;
@@ -24,7 +24,9 @@ pub extern "C" fn _start(info: &mut BiosInfo) {
     gdt::LONG_MODE_GDT.load();
     enter_long_mode_and_jump_to_stage_4(info);
 
-    loop {}
+    loop {
+        hlt();
+    }
 }
 
 #[no_mangle]

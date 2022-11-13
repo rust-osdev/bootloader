@@ -7,6 +7,11 @@ impl<T> RacyCell<T> {
         Self(UnsafeCell::new(v))
     }
 
+    /// Gets a mutable pointer to the wrapped value.
+    ///
+    /// ## Safety
+    /// Ensure that the access is unique (no active references, mutable or not).
+    #[allow(clippy::mut_from_ref)]
     pub unsafe fn get_mut(&self) -> &mut T {
         unsafe { &mut *self.0.get() }
     }

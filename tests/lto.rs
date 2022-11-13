@@ -5,7 +5,7 @@ use bootloader_test_runner::run_test_kernel;
 #[test]
 fn basic_boot() {
     // build test kernel manually to force-enable link-time optimization
-    let mut cmd = Command::new(std::env::var("CARGO").unwrap_or("cargo".into()));
+    let mut cmd = Command::new(std::env::var("CARGO").unwrap_or_else(|_| "cargo".into()));
     cmd.arg("build");
     cmd.arg("-p").arg("test_kernel_lto");
     cmd.arg("--target").arg("x86_64-unknown-none");

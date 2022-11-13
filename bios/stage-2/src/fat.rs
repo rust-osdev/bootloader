@@ -28,7 +28,7 @@ struct Bpb {
     fat_size_16: u16,
     total_sectors_32: u32,
     fat_size_32: u32,
-    root_cluster: u32,
+    _root_cluster: u32,
 }
 
 impl Bpb {
@@ -71,7 +71,7 @@ impl Bpb {
             fat_size_16,
             total_sectors_32,
             fat_size_32,
-            root_cluster,
+            _root_cluster: root_cluster,
         }
     }
 
@@ -209,7 +209,7 @@ impl<D: Read + Seek> FileSystem<D> {
     ) -> impl Iterator<Item = Result<RawDirectoryEntry, ()>> + 'a {
         match self.bpb.fat_type() {
             FatType::Fat32 => {
-                self.bpb.root_cluster;
+                // self.bpb.root_cluster;
                 unimplemented!();
             }
             FatType::Fat12 | FatType::Fat16 => {
@@ -391,7 +391,7 @@ impl<'a> RawDirectoryEntry<'a> {
         } else {
             fn slice_to_string(slice: &[u8]) -> Result<&str, ()> {
                 const SKIP_SPACE: u8 = 0x20;
-                let mut iter = slice.into_iter().copied();
+                let mut iter = slice.iter().copied();
                 match iter.position(|c| c != SKIP_SPACE) {
                     Some(start_idx) => {
                         let end_idx =

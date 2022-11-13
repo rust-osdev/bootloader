@@ -2,7 +2,10 @@
 #![no_main]
 #![warn(unsafe_op_in_unsafe_fn)]
 
-use core::{arch::global_asm, slice};
+use core::{
+    arch::{asm, global_asm},
+    slice,
+};
 use fail::{print_char, UnwrapOrFail};
 
 global_asm!(include_str!("boot.s"));
@@ -54,7 +57,7 @@ pub extern "C" fn first_stage(disk_number: u16) {
 
         start_lba += u64::from(sectors);
         number_of_sectors -= u32::from(sectors);
-        target_addr = target_addr + u32::from(sectors) * 512;
+        target_addr += u32::from(sectors) * 512;
 
         if number_of_sectors == 0 {
             break;
@@ -73,5 +76,7 @@ pub extern "C" fn first_stage(disk_number: u16) {
         print_char(b'R');
     }
 
-    loop {}
+    loop {
+        unsafe { asm!("hlt") }
+    }
 }

@@ -127,7 +127,7 @@ impl UefiBoot {
         files.insert(KERNEL_FILE_NAME, self.kernel.as_path());
 
         let out_file = NamedTempFile::new().context("failed to create temp file")?;
-        fat::create_fat_filesystem(files, &out_file.path())
+        fat::create_fat_filesystem(files, out_file.path())
             .context("failed to create UEFI FAT filesystem")?;
 
         Ok(out_file)
