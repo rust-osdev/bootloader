@@ -15,10 +15,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      - uses: r7kamura/rust-problem-matchers@v1.1.0
       - name: "Run `cargo check`"
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
+        run: cargo check --all-targets --all
 
   test:
     name: Test
@@ -53,34 +52,24 @@ jobs:
       - name: "Print QEMU Version"
         run: qemu-system-x86_64 --version
 
+      - uses: r7kamura/rust-problem-matchers@v1.1.0
       - name: Run api tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: -p bootloader_api
-
+        run: cargo test -p bootloader_api
       - name: Run integration tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
+        run: cargo test
 
   fmt:
     name: Check Formatting
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Run `cargo fmt --all -- --check`
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+      - uses: r7kamura/rust-problem-matchers@v1.1.0
+      - run: cargo fmt --all -- --check
 
   clippy:
     name: Clippy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Run `cargo clippy`
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
+      - uses: r7kamura/rust-problem-matchers@v1.1.0
+      - run: cargo clippy
