@@ -2,7 +2,7 @@ cargo-features = ["profile-rustflags"]
 
 [package]
 name = "bootloader"
-version = "0.11.0-alpha"
+version.workspace = true
 authors = ["Philipp Oppermann <dev@phil-opp.com>"]
 license = "MIT/Apache-2.0"
 description = "An experimental x86_64 bootloader that works on both BIOS and UEFI systems."
@@ -26,6 +26,12 @@ members = [
 ]
 exclude = ["examples/basic", "examples/test_framework"]
 
+[workspace.package]
+version = "0.11.0-beta"
+
+[workspace.dependencies]
+bootloader_api = { version = "0.11.0-beta", path = "api" }
+bootloader-x86_64-common = { version = "0.11.0-beta", path = "common" }
 
 [dependencies]
 anyhow = "1.0.32"
