@@ -67,6 +67,7 @@ codegen-units = 1
 debug = false
 overflow-checks = false
 
+# duplicated from `bios/stage-2/Cargo.toml`
 [profile.stage-2]
 inherits = "release"
 opt-level = "s"
@@ -74,11 +75,13 @@ codegen-units = 1
 debug = false
 overflow-checks = true
 
+# duplicated from `bios/stage-3/Cargo.toml`
 [profile.stage-3]
 inherits = "release"
 debug = true
 overflow-checks = true
 
+# duplicated from `bios/stage-4/Cargo.toml`
 [profile.stage-4]
 inherits = "release"
 debug = true

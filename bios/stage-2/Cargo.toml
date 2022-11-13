@@ -13,3 +13,12 @@ description = "Second BIOS stage of the `bootloader` crate"
 mbr-nostd = "0.1.0"
 byteorder = { version = "1.4.3", default-features = false }
 bootloader-x86_64-bios-common = { version = "0.1.0-beta", path = "../common" }
+
+# This currently causes a cargo warning, but it is required for publishing to crates.io.
+# See https://github.com/rust-lang/cargo/issues/8264 for details.
+[profile.stage-2]
+inherits = "release"
+opt-level = "s"
+codegen-units = 1
+debug = false
+overflow-checks = true

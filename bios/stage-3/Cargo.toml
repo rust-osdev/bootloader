@@ -12,3 +12,10 @@ description = "Third BIOS stage of the `bootloader` crate"
 [dependencies]
 bootloader-x86_64-bios-common = { version = "0.1.0-beta", path = "../common" }
 noto-sans-mono-bitmap = "0.1.5"
+
+# This currently causes a cargo warning, but it is required for publishing to crates.io.
+# See https://github.com/rust-lang/cargo/issues/8264 for details.
+[profile.stage-3]
+inherits = "release"
+debug = true
+overflow-checks = true
