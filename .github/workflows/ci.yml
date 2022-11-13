@@ -78,4 +78,4 @@ jobs:
       - run: cargo --version --verbose
       - uses: Swatinem/rust-cache@v2
       - uses: r7kamura/rust-problem-matchers@v1.1.0
-      - run: cargo clippy
+      - run: cargo clippy --all --all-targets
