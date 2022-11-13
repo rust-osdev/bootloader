@@ -4,7 +4,7 @@ on:
   push:
   pull_request:
   schedule:
-    - cron: '40 5 * * *'   # every day at 5:40
+    - cron: "40 5 * * *" # every day at 5:40
 
 jobs:
   check:
@@ -15,10 +15,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          override: true
       - name: "Run `cargo check`"
         uses: actions-rs/cargo@v1
         with:
@@ -36,11 +32,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          override: true
-          components: rust-src, llvm-tools-preview
 
       # install QEMU
       - name: Install QEMU (Linux)
@@ -62,30 +53,22 @@ jobs:
       - name: "Print QEMU Version"
         run: qemu-system-x86_64 --version
 
-      - name: Run `cargo test`
+      - name: Run api tests
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: "-- --test-threads 1"
+          args: -p bootloader_api
 
-      - name: "Example: `basic`"
-        working-directory: examples/basic
-        run: cargo kimage
-
-      - name: "Example: `test_framework` example"
-        working-directory: examples/test_framework
-        run: cargo ktest
+      - name: Run integration tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
 
   fmt:
     name: Check Formatting
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          override: true
-          components: rustfmt
       - name: Run `cargo fmt --all -- --check`
         uses: actions-rs/cargo@v1
         with:
@@ -97,11 +80,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          override: true
-          components: clippy
       - name: Run `cargo clippy`
         uses: actions-rs/cargo@v1
         with:

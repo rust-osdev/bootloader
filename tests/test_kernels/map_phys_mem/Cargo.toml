@@ -2,13 +2,12 @@
 name = "test_kernel_map_phys_mem"
 version = "0.1.0"
 authors = ["Philipp Oppermann <dev@phil-opp.com>"]
-edition = "2018"
+edition = "2021"
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
-bootloader = { path = "../../.." }
-x86_64 = { version = "0.14.7", default-features = false, features = ["instructions", "inline_asm"] }
+bootloader_api = { path = "../../../api" }
+x86_64 = { version = "0.14.7", default-features = false, features = [
+    "instructions",
+    "inline_asm",
+] }
 uart_16550 = "0.2.10"
-
-[package.metadata.bootloader]
-map-physical-memory = true
-physical-memory-offset = 0x0000_4000_0000_0000

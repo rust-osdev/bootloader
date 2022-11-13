@@ -1,6 +1,0 @@
-{
-    "rust-analyzer.checkOnSave.allTargets": false,
-    "rust-analyzer.checkOnSave.extraArgs": [
-        "-Zbuild-std=core,alloc"
-    ]
-}
