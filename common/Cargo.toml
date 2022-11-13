@@ -20,6 +20,12 @@ rand = { version = "0.8.4", default-features = false }
 rand_hc = "0.3.1"
 
 [dependencies.noto-sans-mono-bitmap]
-version = "0.1.2"
+version = "0.2.0"
 default-features = false
-features = ["regular", "size_14"]
+features = [
+    "regular",
+    "size_16",
+    "unicode-basic-latin",
+    # required for the fallback char '�'
+    "unicode-specials",
+]

@@ -92,7 +92,7 @@ name = "bootloader-x86_64-bios-stage-3"
 version = "0.1.0"
 dependencies = [
  "bootloader-x86_64-bios-common",
- "noto-sans-mono-bitmap",
+ "noto-sans-mono-bitmap 0.1.6",
 ]
 
 [[package]]
@@ -115,7 +115,7 @@ dependencies = [
  "bootloader_api",
  "conquer-once",
  "log",
- "noto-sans-mono-bitmap",
+ "noto-sans-mono-bitmap 0.2.0",
  "rand",
  "rand_hc",
  "raw-cpuid",
@@ -320,9 +320,15 @@ dependencies = [
 
 [[package]]
 name = "noto-sans-mono-bitmap"
-version = "0.1.5"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "643bee6617a18c64f5a72ef358a9426d3682dc768db7c320825d3d936e2232d4"
+checksum = "f45ec3ff6dc7bea48d52dd14a5565be0d596ac4758c9a55e42539177001a983b"
+
+[[package]]
+name = "noto-sans-mono-bitmap"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a27daf9557165efe1d09b52f97393bf6283cadb0a76fbe64a1061e15553a994a"
 
 [[package]]
 name = "num-integer"
