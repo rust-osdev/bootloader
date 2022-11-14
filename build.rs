@@ -46,6 +46,7 @@ fn main() {
     );
 }
 
+#[cfg(not(docsrs_dummy_build))]
 fn build_uefi_bootloader(out_dir: &Path) -> PathBuf {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
     let mut cmd = Command::new(cargo);
@@ -79,6 +80,7 @@ fn build_uefi_bootloader(out_dir: &Path) -> PathBuf {
     }
 }
 
+#[cfg(not(docsrs_dummy_build))]
 fn build_bios_boot_sector(out_dir: &Path) -> PathBuf {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
     let mut cmd = Command::new(cargo);
@@ -121,6 +123,7 @@ fn build_bios_boot_sector(out_dir: &Path) -> PathBuf {
     convert_elf_to_bin(elf_path)
 }
 
+#[cfg(not(docsrs_dummy_build))]
 fn build_bios_stage_2(out_dir: &Path) -> PathBuf {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
     let mut cmd = Command::new(cargo);
@@ -161,6 +164,7 @@ fn build_bios_stage_2(out_dir: &Path) -> PathBuf {
     convert_elf_to_bin(elf_path)
 }
 
+#[cfg(not(docsrs_dummy_build))]
 fn build_bios_stage_3(out_dir: &Path) -> PathBuf {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
     let mut cmd = Command::new(cargo);
@@ -201,6 +205,7 @@ fn build_bios_stage_3(out_dir: &Path) -> PathBuf {
     convert_elf_to_bin(elf_path)
 }
 
+#[cfg(not(docsrs_dummy_build))]
 fn build_bios_stage_4(out_dir: &Path) -> PathBuf {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
     let mut cmd = Command::new(cargo);
@@ -267,4 +272,27 @@ fn convert_elf_to_bin(elf_path: PathBuf) -> PathBuf {
         );
     }
     flat_binary_path
+}
+
+// dummy implementations because docsrs builds have no network access
+
+#[cfg(docsrs_dummy_build)]
+fn build_uefi_bootloader(_out_dir: &Path) -> PathBuf {
+    PathBuf::new()
+}
+#[cfg(docsrs_dummy_build)]
+fn build_bios_boot_sector(_out_dir: &Path) -> PathBuf {
+    PathBuf::new()
+}
+#[cfg(docsrs_dummy_build)]
+fn build_bios_stage_2(_out_dir: &Path) -> PathBuf {
+    PathBuf::new()
+}
+#[cfg(docsrs_dummy_build)]
+fn build_bios_stage_3(_out_dir: &Path) -> PathBuf {
+    PathBuf::new()
+}
+#[cfg(docsrs_dummy_build)]
+fn build_bios_stage_4(_out_dir: &Path) -> PathBuf {
+    PathBuf::new()
 }

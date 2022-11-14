@@ -105,7 +105,7 @@ rustflags = [
 llvm-tools = "0.1.1"
 
 [package.metadata.docs.rs]
-default-target = "x86_64-unknown-linux-gnu"
+rustc-args = ["--cfg", "docsrs_dummy_build"]
 
 [package.metadata.release]
 dev-version = false
