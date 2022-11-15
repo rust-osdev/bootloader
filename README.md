@@ -14,7 +14,7 @@ You need a nightly [Rust](https://www.rust-lang.org) compiler with the `llvm-too
 
 To use this crate, you need to adjust your kernel to be bootable first. Then you can create a bootable disk image from your compiled kernel. These steps are explained in detail below.
 
-If you're already using an older version of the `bootloader` crate, follow our [migration guides](doc/migration).
+If you're already using an older version of the `bootloader` crate, follow our [migration guides](docs/migration).
 
 ### Kernel
 
@@ -65,7 +65,7 @@ To combine your kernel with a bootloader and create a bootable disk image, follo
 - Use `bootloader::UefiBoot` and/or `bootloader::BiosBoot` to create a bootable disk image with your kernel.
 - Do something with the bootable disk images in your `main.rs` function. For example, run them with QEMU.
 
-See our [disk image creation template](doc/create-disk-image.md) for a more detailed example.
+See our [disk image creation template](docs/create-disk-image.md) for a more detailed example.
 
 ## Architecture
 
