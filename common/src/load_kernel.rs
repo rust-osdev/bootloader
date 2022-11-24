@@ -29,7 +29,7 @@ struct Loader<'a, M, F> {
 
 struct Inner<'a, M, F> {
     kernel_offset: PhysAddr,
-    virtual_address_offset: u64,
+    virtual_address_offset: i128,
     page_table: &'a mut M,
     frame_allocator: &'a mut F,
 }
@@ -65,18 +65,26 @@ where
                 let load_program_headers = elf_file
                     .program_iter()
                     .filter(|h| matches!(h.get_type(), Ok(Type::Load)));
-                let size = load_program_headers
+                let max_addr = load_program_headers
                     .clone()
                     .map(|h| h.virtual_addr() + h.mem_size())
                     .max()
                     .unwrap_or(0);
+                let min_addr = load_program_headers
+                    .clone()
+                    .map(|h| h.virtual_addr())
+                    .min()
+                    .unwrap_or(0);
+                let size = max_addr - min_addr;
                 let align = load_program_headers.map(|h| h.align()).max().unwrap_or(1);
 
-                used_entries.get_free_address(size, align).as_u64()
+                let offset = used_entries.get_free_address(size, align).as_u64();
+                offset as i128 - min_addr as i128
             }
             header::Type::Core => unimplemented!(),
             header::Type::ProcessorSpecific(_) => unimplemented!(),
         };
+        log::info!("virtual_address_offset: {virtual_address_offset:#x}");
 
         used_entries.mark_segments(elf_file.program_iter(), virtual_address_offset);
 
@@ -141,7 +149,13 @@ where
     }
 
     fn entry_point(&self) -> VirtAddr {
-        VirtAddr::new(self.elf_file.header.pt2.entry_point() + self.inner.virtual_address_offset)
+        VirtAddr::new(
+            u64::try_from(
+                i128::from(self.elf_file.header.pt2.entry_point())
+                    + self.inner.virtual_address_offset,
+            )
+            .unwrap(),
+        )
     }
 }
 
@@ -158,7 +172,10 @@ where
         let end_frame: PhysFrame =
             PhysFrame::containing_address(phys_start_addr + segment.file_size() - 1u64);
 
-        let virt_start_addr = VirtAddr::new(segment.virtual_addr()) + self.virtual_address_offset;
+        let virt_start_addr = VirtAddr::new(
+            u64::try_from(i128::from(segment.virtual_addr()) + self.virtual_address_offset)
+                .unwrap(),
+        );
         let start_page: Page = Page::containing_address(virt_start_addr);
 
         let mut segment_flags = Flags::PRESENT;
@@ -198,7 +215,10 @@ where
     ) -> Result<(), &'static str> {
         log::info!("Mapping bss section");
 
-        let virt_start_addr = VirtAddr::new(segment.virtual_addr()) + self.virtual_address_offset;
+        let virt_start_addr = VirtAddr::new(
+            u64::try_from(i128::from(segment.virtual_addr()) + self.virtual_address_offset)
+                .unwrap(),
+        );
         let mem_size = segment.mem_size();
         let file_size = segment.file_size();
 
@@ -343,7 +363,10 @@ where
     fn remove_copied_flags(&mut self, elf_file: &ElfFile) -> Result<(), &'static str> {
         for program_header in elf_file.program_iter() {
             if let Type::Load = program_header.get_type()? {
-                let start = self.virtual_address_offset + program_header.virtual_addr();
+                let start = u64::try_from(
+                    self.virtual_address_offset + i128::from(program_header.virtual_addr()),
+                )
+                .unwrap();
                 let end = start + program_header.mem_size();
                 let start = VirtAddr::new(start);
                 let end = VirtAddr::new(end);
@@ -380,7 +403,10 @@ where
 
     fn handle_tls_segment(&mut self, segment: ProgramHeader) -> Result<TlsTemplate, &'static str> {
         Ok(TlsTemplate {
-            start_addr: segment.virtual_addr() + self.virtual_address_offset,
+            start_addr: u64::try_from(
+                i128::from(segment.virtual_addr()) + self.virtual_address_offset,
+            )
+            .unwrap(),
             mem_size: segment.mem_size(),
             file_size: segment.file_size(),
         })
@@ -476,11 +502,15 @@ where
                 // R_AMD64_RELATIVE
                 8 => {
                     check_is_in_load(elf_file, rela.get_offset())?;
-                    let addr = self.virtual_address_offset + rela.get_offset();
-                    let value = self
-                        .virtual_address_offset
-                        .checked_add(rela.get_addend())
-                        .unwrap();
+                    let addr =
+                        u64::try_from(self.virtual_address_offset + i128::from(rela.get_offset()))
+                            .unwrap();
+                    let value = u64::try_from(
+                        self.virtual_address_offset
+                            .checked_add(i128::from(rela.get_addend()))
+                            .unwrap(),
+                    )
+                    .unwrap();
 
                     let ptr = addr as *mut u64;
                     if ptr as usize % align_of::<u64>() != 0 {
@@ -511,7 +541,9 @@ where
     /// need to be writable while applying relocations, but should never be
     /// written to after relocations have been applied.
     fn handle_relro_segment(&mut self, program_header: ProgramHeader) {
-        let start = self.virtual_address_offset + program_header.virtual_addr();
+        let start =
+            u64::try_from(self.virtual_address_offset + i128::from(program_header.virtual_addr()))
+                .unwrap();
         let end = start + program_header.mem_size();
         let start = VirtAddr::new(start);
         let end = VirtAddr::new(end);

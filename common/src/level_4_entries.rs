@@ -126,11 +126,11 @@ impl UsedLevel4Entries {
     pub fn mark_segments<'a>(
         &mut self,
         segments: impl Iterator<Item = ProgramHeader<'a>>,
-        virtual_address_offset: u64,
+        virtual_address_offset: i128,
     ) {
         for segment in segments.filter(|s| s.mem_size() > 0) {
             self.mark_range_as_used(
-                segment.virtual_addr() + virtual_address_offset,
+                u64::try_from(i128::from(segment.virtual_addr()) + virtual_address_offset).unwrap(),
                 segment.mem_size(),
             );
         }
@@ -158,7 +158,8 @@ impl UsedLevel4Entries {
             // Choose the first index.
             free_entries.next()
         };
-        let idx = idx_opt.expect("no usable level 4 entries found");
+        let idx = idx_opt
+            .unwrap_or_else(|| panic!("no usable level 4 entries found ({num} entries requested)"));
 
         // Mark the entries as used.
         for i in 0..num.into_usize() {
