@@ -1,12 +1,7 @@
-use super::fail::{fail, UnwrapOrFail};
+use super::fail::UnwrapOrFail;
 
 pub(crate) fn get_partition(partitions_raw: &[u8], index: usize) -> PartitionTableEntry {
-    const PARTITIONS_AREA_SIZE: usize = 16 * 4;
     const ENTRY_SIZE: usize = 16;
-
-    if partitions_raw.len() < PARTITIONS_AREA_SIZE {
-        fail(b'a');
-    }
 
     let offset = index * ENTRY_SIZE;
     let buffer = partitions_raw.get(offset..).unwrap_or_fail(b'c');
