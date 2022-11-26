@@ -12,9 +12,6 @@ const BOOTLOADER_X86_64_BIOS_STAGE_4_VERSION: &str = "0.11.0-beta";
 
 fn main() {
     let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
-    println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-changed=Cargo.toml");
-    println!("cargo:rerun-if-changed=Cargo.lock");
 
     let uefi_path = build_uefi_bootloader(&out_dir);
     println!(
