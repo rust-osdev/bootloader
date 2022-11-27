@@ -11,7 +11,7 @@ description = "Fourth BIOS stage of the `bootloader` crate"
 [dependencies]
 bootloader_api = { workspace = true }
 bootloader-x86_64-common = { workspace = true }
-bootloader-x86_64-bios-common = { version = "0.1.0-beta", path = "../common" }
+bootloader-x86_64-bios-common = { workspace = true }
 log = "0.4.14"
 x86_64 = "0.14.8"
 rsdp = "2.0.0"

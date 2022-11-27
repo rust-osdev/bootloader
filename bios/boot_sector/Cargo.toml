@@ -1,6 +1,6 @@
 [package]
 name = "bootloader-x86_64-bios-boot-sector"
-version = "0.1.0-beta.1"
+version.workspace = true
 authors = ["Philipp Oppermann <dev@phil-opp.com>"]
 edition = "2021"
 license.workspace = true

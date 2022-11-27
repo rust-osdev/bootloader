@@ -4,7 +4,7 @@ cargo-features = ["profile-rustflags"]
 name = "bootloader"
 description = "An experimental x86_64 bootloader that works on both BIOS and UEFI systems."
 license.workspace = true
-version = "0.11.0-beta.1"
+version.workspace = true
 repository.workspace = true
 authors = ["Philipp Oppermann <dev@phil-opp.com>"]
 edition = "2021"
@@ -27,13 +27,14 @@ members = [
 exclude = ["examples/basic", "examples/test_framework"]
 
 [workspace.package]
-version = "0.11.0-beta"
+version = "0.11.0-beta.1"
 license = "MIT/Apache-2.0"
 repository = "https://github.com/rust-osdev/bootloader"
 
 [workspace.dependencies]
-bootloader_api = { version = "0.11.0-beta", path = "api" }
-bootloader-x86_64-common = { version = "0.11.0-beta", path = "common" }
+bootloader_api = { version = "0.11.0-beta.1", path = "api" }
+bootloader-x86_64-common = { version = "0.11.0-beta.1", path = "common" }
+bootloader-x86_64-bios-common = { version = "0.11.0-beta.1", path = "bios/common" }
 
 [dependencies]
 anyhow = "1.0.32"
