@@ -40,7 +40,10 @@ bootloader-x86_64-bios-common = { version = "0.11.0-beta.2", path = "bios/common
 anyhow = "1.0.32"
 fatfs = "0.3.4"
 gpt = "3.0.0"
-mbrman = "0.4.2"
+# replace with `mbrman` crate once
+# https://github.com/rust-disk-partition-management/mbrman/pull/25
+# is merged
+mbrman = { version = "0.0.1", package = "mbrman---bitvec-1-0" }
 tempfile = "3.3.0"
 
 [dev-dependencies]

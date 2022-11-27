@@ -1,4 +1,5 @@
 use anyhow::Context;
+use mbrman::BOOT_ACTIVE;
 use std::{
     fs::{self, File},
     io::{self, Seek, SeekFrom},
@@ -33,7 +34,7 @@ pub fn create_mbr_disk(
         .try_into()
         .context("size of second stage is larger than u32::MAX")?;
     mbr[1] = mbrman::MBRPartitionEntry {
-        boot: true,
+        boot: BOOT_ACTIVE,
         starting_lba: second_stage_start_sector,
         sectors: second_stage_sectors,
         // see BOOTLOADER_SECOND_STAGE_PARTITION_TYPE in `boot_sector` crate
@@ -51,7 +52,7 @@ pub fn create_mbr_disk(
         .context("failed to read file metadata of FAT boot partition")?
         .len();
     mbr[2] = mbrman::MBRPartitionEntry {
-        boot: false,
+        boot: BOOT_ACTIVE,
         starting_lba: boot_partition_start_sector,
         sectors: ((boot_partition_size - 1) / u64::from(SECTOR_SIZE) + 1)
             .try_into()
