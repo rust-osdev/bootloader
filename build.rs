@@ -3,12 +3,12 @@ use std::{
     process::Command,
 };
 
-const BOOTLOADER_X86_64_UEFI_VERSION: &str = "0.11.0-beta";
+const BOOTLOADER_X86_64_UEFI_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-const BOOTLOADER_X86_64_BIOS_BOOT_SECTOR_VERSION: &str = "0.1.0-beta.1";
-const BOOTLOADER_X86_64_BIOS_STAGE_2_VERSION: &str = "0.1.0-beta";
-const BOOTLOADER_X86_64_BIOS_STAGE_3_VERSION: &str = "0.1.0-beta";
-const BOOTLOADER_X86_64_BIOS_STAGE_4_VERSION: &str = "0.11.0-beta";
+const BOOTLOADER_X86_64_BIOS_BOOT_SECTOR_VERSION: &str = env!("CARGO_PKG_VERSION");
+const BOOTLOADER_X86_64_BIOS_STAGE_2_VERSION: &str = env!("CARGO_PKG_VERSION");
+const BOOTLOADER_X86_64_BIOS_STAGE_3_VERSION: &str = env!("CARGO_PKG_VERSION");
+const BOOTLOADER_X86_64_BIOS_STAGE_4_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() {
     let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
