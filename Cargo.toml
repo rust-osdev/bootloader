@@ -27,14 +27,14 @@ members = [
 exclude = ["examples/basic", "examples/test_framework"]
 
 [workspace.package]
-version = "0.11.0-beta.2"
+version = "0.11.0-beta.4"
 license = "MIT/Apache-2.0"
 repository = "https://github.com/rust-osdev/bootloader"
 
 [workspace.dependencies]
-bootloader_api = { version = "0.11.0-beta.2", path = "api" }
-bootloader-x86_64-common = { version = "0.11.0-beta.2", path = "common" }
-bootloader-x86_64-bios-common = { version = "0.11.0-beta.2", path = "bios/common" }
+bootloader_api = { version = "0.11.0-beta.4", path = "api" }
+bootloader-x86_64-common = { version = "0.11.0-beta.4", path = "common" }
+bootloader-x86_64-bios-common = { version = "0.11.0-beta.4", path = "bios/common" }
 
 [dependencies]
 anyhow = "1.0.32"
