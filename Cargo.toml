@@ -100,7 +100,7 @@ rustflags = [
     "-C",
     "link-args=--image-base 0xFFFF800000000000",
     "-C",
-    "relocation-model=static",                   # pic in higher half not supported yet
+    "relocation-model=pic",
     "-C",
     "code-model=large",
 ]
