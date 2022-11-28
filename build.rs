@@ -52,6 +52,7 @@ fn build_uefi_bootloader(out_dir: &Path) -> PathBuf {
         // local build
         cmd.arg("--path").arg("uefi");
         println!("cargo:rerun-if-changed=uefi");
+        println!("cargo:rerun-if-changed=common");
     } else {
         cmd.arg("--version").arg(BOOTLOADER_X86_64_UEFI_VERSION);
     }
@@ -132,6 +133,10 @@ fn build_bios_stage_2(out_dir: &Path) -> PathBuf {
         // local build
         cmd.arg("--path").arg(&local_path);
         println!("cargo:rerun-if-changed={}", local_path.display());
+        println!(
+            "cargo:rerun-if-changed={}",
+            local_path.with_file_name("common").display()
+        );
     } else {
         cmd.arg("--version")
             .arg(BOOTLOADER_X86_64_BIOS_STAGE_2_VERSION);
