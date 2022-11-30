@@ -41,6 +41,9 @@ test_kernel_higher_half = { path = "tests/test_kernels/higher_half", artifact = 
 test_kernel_map_phys_mem = { path = "tests/test_kernels/map_phys_mem", artifact = "bin", target = "x86_64-unknown-none" }
 test_kernel_pie = { path = "tests/test_kernels/pie", artifact = "bin", target = "x86_64-unknown-none" }
 
+[features]
+quiet = []
+
 [profile.dev]
 panic = "abort"
 
