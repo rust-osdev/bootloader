@@ -29,7 +29,7 @@ else:
         "/repos/rust-osdev/bootloader/releases",
         "-f", f"tag_name={tag_name}", "-f", f"target_commitish={sha}",
         "-f", f"name={tag_name}",
-        "-f", "body=\"[Changelog](https://github.com/rust-osdev/bootloader/blob/main/Changelog.md)\"",
+        "-f", "body=[Changelog](https://github.com/rust-osdev/bootloader/blob/main/Changelog.md)",
         "-F", "draft=false", "-F", "prerelease=false", "-F", "generate_release_notes=false",
     ]
     print("  Running `" + ' '.join(command) + '`')
