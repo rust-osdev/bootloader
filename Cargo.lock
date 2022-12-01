@@ -55,7 +55,7 @@ dependencies = [
 
 [[package]]
 name = "bootloader"
-version = "0.11.0-beta.5"
+version = "0.11.0-beta.6"
 dependencies = [
  "anyhow",
  "bootloader_test_runner",
@@ -72,15 +72,15 @@ dependencies = [
 
 [[package]]
 name = "bootloader-x86_64-bios-boot-sector"
-version = "0.11.0-beta.5"
+version = "0.11.0-beta.6"
 
 [[package]]
 name = "bootloader-x86_64-bios-common"
-version = "0.11.0-beta.5"
+version = "0.11.0-beta.6"
 
 [[package]]
 name = "bootloader-x86_64-bios-stage-2"
-version = "0.11.0-beta.5"
+version = "0.11.0-beta.6"
 dependencies = [
  "bootloader-x86_64-bios-common",
  "byteorder",
@@ -89,7 +89,7 @@ dependencies = [
 
 [[package]]
 name = "bootloader-x86_64-bios-stage-3"
-version = "0.11.0-beta.5"
+version = "0.11.0-beta.6"
 dependencies = [
  "bootloader-x86_64-bios-common",
  "noto-sans-mono-bitmap 0.1.6",
@@ -97,7 +97,7 @@ dependencies = [
 
 [[package]]
 name = "bootloader-x86_64-bios-stage-4"
-version = "0.11.0-beta.5"
+version = "0.11.0-beta.6"
 dependencies = [
  "bootloader-x86_64-bios-common",
  "bootloader-x86_64-common",
@@ -110,7 +110,7 @@ dependencies = [
 
 [[package]]
 name = "bootloader-x86_64-common"
-version = "0.11.0-beta.5"
+version = "0.11.0-beta.6"
 dependencies = [
  "bootloader_api",
  "conquer-once",
@@ -127,7 +127,7 @@ dependencies = [
 
 [[package]]
 name = "bootloader-x86_64-uefi"
-version = "0.11.0-beta.5"
+version = "0.11.0-beta.6"
 dependencies = [
  "bootloader-x86_64-common",
  "bootloader_api",
@@ -138,7 +138,7 @@ dependencies = [
 
 [[package]]
 name = "bootloader_api"
-version = "0.11.0-beta.5"
+version = "0.11.0-beta.6"
 dependencies = [
  "rand",
 ]
