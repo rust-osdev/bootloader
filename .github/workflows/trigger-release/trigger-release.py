@@ -20,17 +20,19 @@ else:
           " on crates.io; creating a new release")
 
     tag_name = "v" + crate_version
-    print("  Tagging commit as " + tag_name)
     sha = subprocess.run(["git", "rev-parse", "HEAD"], check=True,
                          stdout=subprocess.PIPE).stdout.decode("utf-8").strip()
+    print(f"  Tagging commit {sha} as {tag_name}")
 
-    subprocess.run([
+    command = [
         "gh", "api", "--method", "POST", "-H", "Accept: application/vnd.github+json",
         "/repos/rust-osdev/bootloader/releases",
-        "-f", f"tag_name='{tag_name}'", "-f", f"target_commitish='{sha}'",
-        "-f", f"name='{tag_name}'",
-        "-f", "body='[Changelog](https://github.com/rust-osdev/bootloader/blob/main/Changelog.md)'",
+        "-f", f"tag_name={tag_name}", "-f", f"target_commitish={sha}",
+        "-f", f"name={tag_name}",
+        "-f", "body=\"[Changelog](https://github.com/rust-osdev/bootloader/blob/main/Changelog.md)\"",
         "-F", "draft=false", "-F", "prerelease=false", "-F", "generate_release_notes=false",
-    ])
+    ]
+    print("  Running `" + ' '.join(command) + '`')
+    subprocess.run(command, check=True)
 
     print("  Done")
