@@ -1,9 +1,22 @@
 [package]
 name = "bootloader-x86_64-bios-boot-sector"
-version = "0.1.0"
+version.workspace = true
 authors = ["Philipp Oppermann <dev@phil-opp.com>"]
 edition = "2021"
+license.workspace = true
+repository.workspace = true
+description = "BIOS boot sector for the `bootloader` crate"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+
+# This currently causes a cargo warning, but it is required for publishing to crates.io.
+# See https://github.com/rust-lang/cargo/issues/8264 for details.
+[profile.stage-1]
+inherits = "release"
+opt-level = "s"
+lto = true
+codegen-units = 1
+debug = false
+overflow-checks = false

@@ -1,5 +1,17 @@
 # Unreleased
 
+# 0.11.0 – 2022-12-01
+
+Major rewrite of the `bootloader` crate with various breaking changes:
+
+- **Separate API crate:** The bootloader is now split into two parts: An API crate to make kernels loadable by the bootloader and the actual bootloader implementation. This makes the build process for kernels much easier and faster.
+- **New config system:** Instead of configuring the bootloader via a special table in the `Cargo.toml`, the configuration now happens through a normal Rust struct, which is part of the `entry_point!` macro. The macro then serializes the config struct at compile time and places it in a special ELF output section. The compile time serialization happens through a manually implemented `const fn` of the config struct.
+- **Load the kernel at runtime:** The bootloader is now able to load files from FAT partitions at runtime. Thus, we don't need to link the kernel into the bootloader executable anymore. As a result, we don't need to recompile the bootloader on kernel changes anymore. We also load the config at runtime from the kernel's ELF section, which eliminates the second reason for recompiling the bootloader as well.
+- **Split into sub-crates:** Since the bootloader build process does not need access to the kernel executable or its `Cargo.toml` anymore, we can build the different parts of the bootloader independently. For example, the BIOS boot sector is now a separate crate, and the UEFI bootloader is too.
+- **Library to create disk images:** To create an abstraction the complex build steps of the different bootloader executables, we compile them inside cargo build scripts. At the top level, we provide a `bootloader` _library_ crate, which compiles everything as part of its build script. This library includes functions for creating BIOS and UEFI disk images for a given kernel. These functions can be used e.g. from a builder crate or a build script of the downstream operating system.
+
+See our [migration guides](docs/migration/README.md) for details.
+
 # 0.10.13 – 2022-09-25
 
 - Add dynamic range configuration ([#229](https://github.com/rust-osdev/bootloader/pull/229))

@@ -2,11 +2,11 @@ cargo-features = ["profile-rustflags"]
 
 [package]
 name = "bootloader"
-version = "0.11.0-alpha"
-authors = ["Philipp Oppermann <dev@phil-opp.com>"]
-license = "MIT/Apache-2.0"
 description = "An experimental x86_64 bootloader that works on both BIOS and UEFI systems."
-repository = "https://github.com/rust-osdev/bootloader"
+license.workspace = true
+version.workspace = true
+repository.workspace = true
+authors = ["Philipp Oppermann <dev@phil-opp.com>"]
 edition = "2021"
 
 [workspace]
@@ -26,12 +26,22 @@ members = [
 ]
 exclude = ["examples/basic", "examples/test_framework"]
 
+[workspace.package]
+# don't forget to update `workspace.dependencies` below
+version = "0.11.0"
+license = "MIT/Apache-2.0"
+repository = "https://github.com/rust-osdev/bootloader"
+
+[workspace.dependencies]
+bootloader_api = { version = "0.11.0", path = "api" }
+bootloader-x86_64-common = { version = "0.11.0", path = "common" }
+bootloader-x86_64-bios-common = { version = "0.11.0", path = "bios/common" }
 
 [dependencies]
 anyhow = "1.0.32"
 fatfs = "0.3.4"
 gpt = "3.0.0"
-mbrman = "0.4.2"
+mbrman = "0.5.1"
 tempfile = "3.3.0"
 
 [dev-dependencies]
@@ -53,6 +63,7 @@ lto = false
 debug = true
 overflow-checks = true
 
+# duplicated from `bios/boot_sector/Cargo.toml`
 [profile.stage-1]
 inherits = "release"
 opt-level = "s"
@@ -61,6 +72,7 @@ codegen-units = 1
 debug = false
 overflow-checks = false
 
+# duplicated from `bios/stage-2/Cargo.toml`
 [profile.stage-2]
 inherits = "release"
 opt-level = "s"
@@ -68,11 +80,13 @@ codegen-units = 1
 debug = false
 overflow-checks = true
 
+# duplicated from `bios/stage-3/Cargo.toml`
 [profile.stage-3]
 inherits = "release"
 debug = true
 overflow-checks = true
 
+# duplicated from `bios/stage-4/Cargo.toml`
 [profile.stage-4]
 inherits = "release"
 debug = true
@@ -96,11 +110,4 @@ rustflags = [
 llvm-tools = "0.1.1"
 
 [package.metadata.docs.rs]
-default-target = "x86_64-unknown-linux-gnu"
-
-[package.metadata.release]
-dev-version = false
-pre-release-replacements = [
-    { file = "Changelog.md", search = "# Unreleased", replace = "# Unreleased\n\n# {{version}} – {{date}}", exactly = 1 },
-]
-pre-release-commit-message = "Release version {{version}}"
+rustc-args = ["--cfg", "docsrs_dummy_build"]

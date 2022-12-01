@@ -1,7 +1,10 @@
 [package]
 name = "bootloader-x86_64-bios-common"
-version = "0.1.0"
+version.workspace = true
 edition = "2021"
+license.workspace = true
+repository.workspace = true
+description = "Common code for BIOS stages of the `bootloader` crate"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

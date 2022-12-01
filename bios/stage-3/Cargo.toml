@@ -1,11 +1,21 @@
 [package]
 name = "bootloader-x86_64-bios-stage-3"
-version = "0.1.0"
+version.workspace = true
 authors = ["Philipp Oppermann <dev@phil-opp.com>"]
 edition = "2021"
+license.workspace = true
+repository.workspace = true
+description = "Third BIOS stage of the `bootloader` crate"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bootloader-x86_64-bios-common = { version = "0.1.0", path = "../common" }
+bootloader-x86_64-bios-common = { workspace = true }
 noto-sans-mono-bitmap = "0.1.5"
+
+# This currently causes a cargo warning, but it is required for publishing to crates.io.
+# See https://github.com/rust-lang/cargo/issues/8264 for details.
+[profile.stage-3]
+inherits = "release"
+debug = true
+overflow-checks = true
