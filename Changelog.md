@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.11.0 – 2022-12-01
+
 Major rewrite of the `bootloader` crate with various breaking changes:
 
 - **Separate API crate:** The bootloader is now split into two parts: An API crate to make kernels loadable by the bootloader and the actual bootloader implementation. This makes the build process for kernels much easier and faster.
