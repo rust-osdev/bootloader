@@ -23,12 +23,6 @@ else:
     print("  Tagging commit as " + tag_name)
     sha = subprocess.run(["git", "rev-parse", "HEAD"], check=True,
                          stdout=subprocess.PIPE).stdout.decode("utf-8").strip()
-    subprocess.run([
-        "gh", "api", "/repos/rust-osdev/x86_64/git/refs",
-        "-X", "POST", "-H", "Accept: application/vnd.github.v3+json",
-        "-F", "ref=refs/tags/" + tag_name,
-        "-F", "sha="+sha
-    ])
 
     subprocess.run([
         "gh", "api", "--method", "POST", "-H", "Accept: application/vnd.github+json",
