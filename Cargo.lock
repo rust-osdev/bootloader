@@ -62,7 +62,7 @@ dependencies = [
  "fatfs",
  "gpt",
  "llvm-tools",
- "mbrman---bitvec-1-0",
+ "mbrman",
  "tempfile",
  "test_kernel_default_settings",
  "test_kernel_higher_half",
@@ -307,10 +307,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "mbrman---bitvec-1-0"
-version = "0.0.1"
+name = "mbrman"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ad793076d220aa65f16eeedb2000b9d94f771a9e98aa74e07c870cdeb94f9c2"
+checksum = "a4b239f4755d00466e3ac1d55ddeaf77a66c7580352fc6cbc40d56c218fc94a9"
 dependencies = [
  "bincode",
  "bitvec",
