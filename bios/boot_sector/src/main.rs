@@ -2,11 +2,8 @@
 #![no_main]
 #![warn(unsafe_op_in_unsafe_fn)]
 
-use core::{
-    arch::{asm, global_asm},
-    slice,
-};
-use fail::{print_char, UnwrapOrFail};
+use core::{arch::global_asm, slice};
+use fail::UnwrapOrFail;
 
 global_asm!(include_str!("boot.s"));
 
@@ -31,12 +28,10 @@ fn second_stage_start() -> *const () {
 #[no_mangle]
 pub extern "C" fn first_stage(disk_number: u16) {
     // read partition table and look for second stage partition
-    print_char(b'1');
     let partition_table = unsafe { slice::from_raw_parts(partition_table_raw(), 16 * 4) };
     let second_stage_partition = mbr::get_partition(partition_table, 0);
 
     // load second stage partition into memory
-    print_char(b'2');
     let entry_point_address = second_stage_start() as u32;
 
     let mut start_lba = second_stage_partition.logical_block_address.into();
@@ -65,18 +60,12 @@ pub extern "C" fn first_stage(disk_number: u16) {
     }
 
     // jump to second stage
-    print_char(b'3');
     let second_stage_entry_point: extern "C" fn(
         disk_number: u16,
         partition_table_start: *const u8,
     ) = unsafe { core::mem::transmute(entry_point_address as *const ()) };
     let partition_table_start = unsafe { partition_table_raw() };
     second_stage_entry_point(disk_number, partition_table_start);
-    for _ in 0..10 {
-        print_char(b'R');
-    }
 
-    loop {
-        unsafe { asm!("hlt") }
-    }
+    fail::fail(b'R');
 }
