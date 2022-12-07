@@ -61,7 +61,7 @@ To combine your kernel with a bootloader and create a bootable disk image, follo
   bindeps = true
   ```
   Alternatively, you can use [`std::process::Command`](https://doc.rust-lang.org/stable/std/process/struct.Command.html) to invoke the build command of your kernel in the `build.rs` script. 
-- Obtain the path to the kernel executable. When using an artifact dependency, you can retrieve this path using `env!("CARGO_BIN_FILE_MY_KERNEL_my-kernel")`
+- Obtain the path to the kernel executable. When using an artifact dependency, you can retrieve this path using `std::env::var_os("CARGO_BIN_FILE_MY_KERNEL_my-kernel")`
 - Use `bootloader::UefiBoot` and/or `bootloader::BiosBoot` to create a bootable disk image with your kernel.
 - Do something with the bootable disk images in your `main.rs` function. For example, run them with QEMU.
 
