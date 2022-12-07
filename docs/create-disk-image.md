@@ -40,10 +40,10 @@ members = ["kernel"]
 
 fn main() {
     // set by cargo, build scripts should use this directory for output files
-    let out_dir = env::var_os("OUT_DIR").unwrap();
+    let out_dir = std::env::var_os("OUT_DIR").unwrap();
     // set by cargo's artifact dependency feature, see
     // https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#artifact-dependencies
-    let kernel = env!("CARGO_BIN_FILE_KERNEL_kernel");
+    let kernel = std::env::var_os("CARGO_BIN_FILE_KERNEL_kernel");
 
     // create an UEFI disk image (optional)
     let uefi_path = out_dir.join("uefi.img");
