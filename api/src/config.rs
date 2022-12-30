@@ -39,7 +39,7 @@ impl BootloaderConfig {
         0x3D,
     ];
     #[doc(hidden)]
-    pub const SERIALIZED_LEN: usize = 116;
+    pub const SERIALIZED_LEN: usize = 125;
 
     /// Creates a new default configuration with the following values:
     ///
@@ -83,6 +83,7 @@ impl BootloaderConfig {
             aslr,
             dynamic_range_start,
             dynamic_range_end,
+            ramdisk_memory,
         } = mappings;
         let FrameBuffer {
             minimum_framebuffer_height,
@@ -131,7 +132,9 @@ impl BootloaderConfig {
             },
         );
 
-        let buf = concat_97_9(
+        let buf = concat_97_9(buf, ramdisk_memory.serialize());
+
+        let buf = concat_106_9(
             buf,
             match minimum_framebuffer_height {
                 Option::None => [0; 9],
@@ -139,15 +142,16 @@ impl BootloaderConfig {
             },
         );
 
-        let buf = concat_106_9(
+        let buf = concat_115_9(
             buf,
             match minimum_framebuffer_width {
                 Option::None => [0; 9],
                 Option::Some(addr) => concat_1_8([1], addr.to_le_bytes()),
             },
         );
+        let buf = concat_124_1(buf, (*log_level as u8).to_le_bytes());
 
-        concat_115_1(buf, (*log_level as u8).to_le_bytes())
+        buf
     }
 
     /// Tries to deserialize a config byte array that was created using [`Self::serialize`].
@@ -205,6 +209,7 @@ impl BootloaderConfig {
             let (&dynamic_range_start, s) = split_array_ref(s);
             let (&dynamic_range_end_some, s) = split_array_ref(s);
             let (&dynamic_range_end, s) = split_array_ref(s);
+            let (&ramdisk_memory, s) = split_array_ref(s);
 
             let mappings = Mappings {
                 kernel_stack: Mapping::deserialize(&kernel_stack)?,
@@ -235,6 +240,7 @@ impl BootloaderConfig {
                     [1] => Option::Some(u64::from_le_bytes(dynamic_range_end)),
                     _ => return Err("invalid dynamic range end value"),
                 },
+                ramdisk_memory: Mapping::deserialize(&ramdisk_memory)?,
             };
             (mappings, s)
         };
@@ -398,6 +404,9 @@ pub struct Mappings {
     ///
     /// Defaults to `0xffff_ffff_ffff_f000`.
     pub dynamic_range_end: Option<u64>,
+    /// Virtual address to map ramdisk image, if present on disk
+    /// Defaults to dynamic
+    pub ramdisk_memory: Mapping,
 }
 
 impl Mappings {
@@ -414,6 +423,7 @@ impl Mappings {
             aslr: false,
             dynamic_range_start: None,
             dynamic_range_end: None,
+            ramdisk_memory: Mapping::new_default(),
         }
     }
 
@@ -446,6 +456,7 @@ impl Mappings {
             } else {
                 Option::None
             },
+            ramdisk_memory: Mapping::random(),
         }
     }
 }

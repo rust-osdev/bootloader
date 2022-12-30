@@ -7,6 +7,7 @@ pub mod racy_cell;
 pub struct BiosInfo {
     pub stage_4: Region,
     pub kernel: Region,
+    pub ramdisk: Region,
     pub framebuffer: BiosFramebufferInfo,
     pub memory_map_addr: u32,
     pub memory_map_len: u16,

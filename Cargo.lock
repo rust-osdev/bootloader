@@ -68,6 +68,7 @@ dependencies = [
  "test_kernel_higher_half",
  "test_kernel_map_phys_mem",
  "test_kernel_pie",
+ "test_kernel_ramdisk",
 ]
 
 [[package]]
@@ -597,6 +598,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "test_kernel_ramdisk"
+version = "0.1.0"
+dependencies = [
+ "bootloader_api",
+ "uart_16550",
+ "x86_64",
+]
+
+[[package]]
 name = "thiserror"
 version = "1.0.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -647,9 +657,9 @@ dependencies = [
 
 [[package]]
 name = "uefi"
-version = "0.16.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "705535cf386e4b033cc7acdea55ec8710f3dde2f07457218791aac35c83be21f"
+checksum = "07b87700863d65dd4841556be3374d8d4f9f8dbb577ad93a39859e70b3b91f35"
 dependencies = [
  "bitflags",
  "log",
@@ -659,9 +669,9 @@ dependencies = [
 
 [[package]]
 name = "uefi-macros"
-version = "0.7.0"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b9917831bc5abb78c2e6a0f4fba2be165105ed53d288718c999e0efbd433bb7"
+checksum = "275f054a1d9fd7e43a2ce91cc24298a87b281117dea8afc120ae95faa0e96b94"
 dependencies = [
  "proc-macro2",
  "quote",
