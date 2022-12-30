@@ -52,6 +52,10 @@ pub struct BootInfo {
     pub rsdp_addr: Optional<u64>,
     /// The thread local storage (TLS) template of the kernel executable, if present.
     pub tls_template: Optional<TlsTemplate>,
+    /// Ramdisk address, if loaded
+    pub ramdisk_addr: Optional<u64>,
+    /// Ramdisk image size, set to 0 if addr is None
+    pub ramdisk_len: u64,
 }
 
 impl BootInfo {
@@ -67,6 +71,8 @@ impl BootInfo {
             recursive_index: Optional::None,
             rsdp_addr: Optional::None,
             tls_template: Optional::None,
+            ramdisk_addr: Optional::None,
+            ramdisk_len: 0,
         }
     }
 }
