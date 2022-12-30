@@ -35,7 +35,11 @@ pub mod logger;
 const PAGE_SIZE: u64 = 4096;
 
 /// Initialize a text-based logger using the given pixel-based framebuffer as output.  
-pub fn init_logger(framebuffer: &'static mut [u8], info: FrameBufferInfo, log_level: log::LevelFilter) {
+pub fn init_logger(
+    framebuffer: &'static mut [u8],
+    info: FrameBufferInfo,
+    log_level: log::LevelFilter,
+) {
     let logger = logger::LOGGER.get_or_init(move || logger::LockedLogger::new(framebuffer, info));
     log::set_logger(logger).expect("logger already set");
     log::set_max_level(log_level);
