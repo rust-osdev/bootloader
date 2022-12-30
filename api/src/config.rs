@@ -147,7 +147,7 @@ impl BootloaderConfig {
             },
         );
 
-        let log_level: u8 = match quiet {
+        let log_level: u8 = match log_level {
             log::LevelFilter::Trace => 0,
             log::LevelFilter::Info => 1,
             log::LevelFilter::Warn => 2,
@@ -155,7 +155,7 @@ impl BootloaderConfig {
             log::LevelFilter::Off => 4,
         };
 
-        concat_115_1(buf, log_level.to_le_bytes());
+        concat_115_1(buf, log_level.to_le_bytes())
     }
 
     /// Tries to deserialize a config byte array that was created using [`Self::serialize`].
