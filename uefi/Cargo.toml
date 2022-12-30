@@ -12,5 +12,5 @@ repository.workspace = true
 bootloader_api = { workspace = true }
 bootloader-x86_64-common = { workspace = true }
 log = "0.4.14"
-uefi = "0.16.0"
+uefi = "0.18.0"
 x86_64 = "0.14.8"

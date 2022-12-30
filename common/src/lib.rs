@@ -60,6 +60,8 @@ pub struct SystemInfo {
     pub framebuffer: Option<RawFrameBufferInfo>,
     /// Address of the _Root System Description Pointer_ structure of the ACPI standard.
     pub rsdp_addr: Option<PhysAddr>,
+    pub ramdisk_addr: Option<u64>,
+    pub ramdisk_len: u64,
 }
 
 /// The physical address of the framebuffer and information about the framebuffer.
@@ -475,6 +477,8 @@ where
         info.recursive_index = mappings.recursive_index.map(Into::into).into();
         info.rsdp_addr = system_info.rsdp_addr.map(|addr| addr.as_u64()).into();
         info.tls_template = mappings.tls_template.into();
+        info.ramdisk_addr = system_info.ramdisk_addr.into();
+        info.ramdisk_len = system_info.ramdisk_len;
         info
     });
 

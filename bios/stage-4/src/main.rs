@@ -121,6 +121,11 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
             info: framebuffer_info,
         }),
         rsdp_addr: detect_rsdp(),
+        ramdisk_addr: match info.ramdisk.len {
+            0 => None,
+            _ => Some(info.ramdisk.start),
+        },
+        ramdisk_len: info.ramdisk.len,
     };
 
     load_and_switch_to_kernel(kernel, frame_allocator, page_tables, system_info);
