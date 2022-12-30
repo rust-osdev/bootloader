@@ -27,6 +27,10 @@ pub struct BootloaderConfig {
     /// Configuration for the frame buffer that can be used by the kernel to display pixels
     /// on the screen.
     pub frame_buffer: FrameBuffer,
+
+    /// Configuration for changing the level of the filter of the messages that are shown in the
+    /// screen when booting. The default is 'Trace'.
+    pub log_level: log::LevelFilter,
 }
 
 impl BootloaderConfig {
@@ -35,7 +39,7 @@ impl BootloaderConfig {
         0x3D,
     ];
     #[doc(hidden)]
-    pub const SERIALIZED_LEN: usize = 115;
+    pub const SERIALIZED_LEN: usize = 116;
 
     /// Creates a new default configuration with the following values:
     ///
@@ -48,6 +52,7 @@ impl BootloaderConfig {
             version: ApiVersion::new_default(),
             mappings: Mappings::new_default(),
             frame_buffer: FrameBuffer::new_default(),
+            log_level: log::LevelFilter::Trace,
         }
     }
 
@@ -61,6 +66,7 @@ impl BootloaderConfig {
             mappings,
             kernel_stack_size,
             frame_buffer,
+            log_level,
         } = self;
         let ApiVersion {
             version_major,
@@ -133,13 +139,23 @@ impl BootloaderConfig {
             },
         );
 
-        concat_106_9(
+        let buf = concat_106_9(
             buf,
             match minimum_framebuffer_width {
                 Option::None => [0; 9],
                 Option::Some(addr) => concat_1_8([1], addr.to_le_bytes()),
             },
-        )
+        );
+
+        let log_level: u8 = match quiet {
+            log::LevelFilter::Trace => 0,
+            log::LevelFilter::Info => 1,
+            log::LevelFilter::Warn => 2,
+            log::LevelFilter::Error => 3,
+            log::LevelFilter::Off => 4,
+        };
+
+        concat_115_1(buf, log_level.to_le_bytes());
     }
 
     /// Tries to deserialize a config byte array that was created using [`Self::serialize`].
@@ -252,6 +268,16 @@ impl BootloaderConfig {
             (frame_buffer, s)
         };
 
+        let (&log_level, s) = split_array_ref(s);
+        let log_level = match u8::from_le_bytes(log_level) {
+            0 => log::LevelFilter::Trace,
+            1 => log::LevelFilter::Info,
+            2 => log::LevelFilter::Warn,
+            3 => log::LevelFilter::Error,
+            4 => log::LevelFilter::Off,
+            _ => return Err("log_level invalid"),
+        };
+
         if !s.is_empty() {
             return Err("unexpected rest");
         }
@@ -261,6 +287,7 @@ impl BootloaderConfig {
             kernel_stack_size: u64::from_le_bytes(kernel_stack_size),
             mappings,
             frame_buffer,
+            log_level,
         })
     }
 
