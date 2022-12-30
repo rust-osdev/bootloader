@@ -5,6 +5,7 @@ use anyhow::Context;
 pub fn create_uefi_tftp_folder(
     bootloader_path: &Path,
     kernel_binary: &Path,
+    ramdisk_path: Option<&Path>,
     out_path: &Path,
 ) -> anyhow::Result<()> {
     std::fs::create_dir_all(out_path)
@@ -27,6 +28,16 @@ pub fn create_uefi_tftp_folder(
             to.display()
         )
     })?;
+    let to = out_path.join("ramdisk");
+    if let Some(rp) = ramdisk_path {
+        std::fs::copy(rp, &to).with_context(|| {
+            format!(
+                "failed to copy ramdisk from {} to {}",
+                rp.display(),
+                to.display()
+            )
+        })?;
+    }
 
     Ok(())
 }
