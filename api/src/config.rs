@@ -149,10 +149,11 @@ impl BootloaderConfig {
 
         let log_level: u8 = match log_level {
             log::LevelFilter::Trace => 0,
-            log::LevelFilter::Info => 1,
-            log::LevelFilter::Warn => 2,
-            log::LevelFilter::Error => 3,
-            log::LevelFilter::Off => 4,
+            log::LevelFilter::Debug => 1,
+            log::LevelFilter::Info => 2,
+            log::LevelFilter::Warn => 3,
+            log::LevelFilter::Error => 4,
+            log::LevelFilter::Off => 5,
         };
 
         concat_115_1(buf, log_level.to_le_bytes())
@@ -271,10 +272,11 @@ impl BootloaderConfig {
         let (&log_level, s) = split_array_ref(s);
         let log_level = match u8::from_le_bytes(log_level) {
             0 => log::LevelFilter::Trace,
-            1 => log::LevelFilter::Info,
-            2 => log::LevelFilter::Warn,
-            3 => log::LevelFilter::Error,
-            4 => log::LevelFilter::Off,
+            1 => log::LevelFilter::Debug,
+            2 => log::LevelFilter::Info,
+            3 => log::LevelFilter::Warn,
+            4 => log::LevelFilter::Error,
+            5 => log::LevelFilter::Off,
             _ => return Err("log_level invalid"),
         };
 
