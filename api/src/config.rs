@@ -300,7 +300,7 @@ impl BootloaderConfig {
             mappings: Mappings::random(),
             kernel_stack_size: rand::random(),
             frame_buffer: FrameBuffer::random(),
-            log_level: rand::random(),
+            log_level: log::LevelFilter::Trace,
         }
     }
 }
