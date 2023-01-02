@@ -2,7 +2,10 @@
 #![no_main]
 
 use crate::memory_descriptor::MemoryRegion;
-use bootloader_api::info::{FrameBufferInfo, PixelFormat};
+use bootloader_api::{
+    config::LevelFilter,
+    info::{FrameBufferInfo, PixelFormat},
+};
 use bootloader_x86_64_bios_common::{BiosFramebufferInfo, BiosInfo, E820MemoryRegion};
 use bootloader_x86_64_common::RawFrameBufferInfo;
 use bootloader_x86_64_common::{
@@ -123,7 +126,7 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
     load_and_switch_to_kernel(kernel, frame_allocator, page_tables, system_info);
 }
 
-fn init_logger(info: BiosFramebufferInfo, log_level: log::LevelFilter) -> FrameBufferInfo {
+fn init_logger(info: BiosFramebufferInfo, log_level: LevelFilter) -> FrameBufferInfo {
     let framebuffer_info = FrameBufferInfo {
         byte_len: info.region.len.try_into().unwrap(),
         width: info.width.into(),

@@ -4,7 +4,7 @@
 
 use crate::legacy_memory_region::{LegacyFrameAllocator, LegacyMemoryRegion};
 use bootloader_api::{
-    config::Mapping,
+    config::{LevelFilter, Mapping},
     info::{FrameBuffer, FrameBufferInfo, MemoryRegion, TlsTemplate},
     BootInfo, BootloaderConfig,
 };
@@ -35,15 +35,22 @@ pub mod logger;
 const PAGE_SIZE: u64 = 4096;
 
 /// Initialize a text-based logger using the given pixel-based framebuffer as output.  
-pub fn init_logger(
-    framebuffer: &'static mut [u8],
-    info: FrameBufferInfo,
-    log_level: log::LevelFilter,
-) {
+pub fn init_logger(framebuffer: &'static mut [u8], info: FrameBufferInfo, log_level: LevelFilter) {
     let logger = logger::LOGGER.get_or_init(move || logger::LockedLogger::new(framebuffer, info));
     log::set_logger(logger).expect("logger already set");
-    log::set_max_level(log_level);
+    log::set_max_level(convert_level(log_level));
     log::info!("Framebuffer info: {:?}", info);
+}
+
+fn convert_level(level: LevelFilter) -> log::LevelFilter {
+    match level {
+        LevelFilter::Off => log::LevelFilter::Off,
+        LevelFilter::Error => log::LevelFilter::Error,
+        LevelFilter::Warn => log::LevelFilter::Warn,
+        LevelFilter::Info => log::LevelFilter::Info,
+        LevelFilter::Debug => log::LevelFilter::Debug,
+        LevelFilter::Trace => log::LevelFilter::Trace,
+    }
 }
 
 /// Required system information that should be queried from the BIOS or UEFI firmware.
