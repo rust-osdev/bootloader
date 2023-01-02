@@ -29,7 +29,7 @@ test-kernel = { path = "kernel", artifact = "bin", target = "x86_64-unknown-none
 
 [dependencies]
 # used for UEFI booting in QEMU
-ovmf_prebuilt = "0.1.0-alpha.1"
+ovmf-prebuilt = "0.1.0-alpha.1"
 
 [workspace]
 members = ["kernel"]
