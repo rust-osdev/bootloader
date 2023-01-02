@@ -79,7 +79,7 @@ impl BiosBoot {
         files.insert(KERNEL_FILE_NAME, kernel_path);
         files.insert(BIOS_STAGE_3, stage_3_path);
         files.insert(BIOS_STAGE_4, stage_4_path);
-        if has_rd_path {
+        if let Some(ramdisk_path) = &self.ramdisk {
             files.insert(RAMDISK_FILE_NAME, ramdisk_path);
         }
         let out_file = NamedTempFile::new().context("failed to create temp file")?;
