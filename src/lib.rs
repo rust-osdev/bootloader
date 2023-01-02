@@ -37,11 +37,9 @@ impl BiosBoot {
     }
 
     /// Add a ramdisk file to the image
-    pub fn with_ramdisk(&self, ramdisk_path: &Path) -> Self {
-        Self {
-            kernel: self.kernel.to_owned(),
-            ramdisk: Some(ramdisk_path.to_owned()),
-        }
+    pub fn set_ramdisk(&mut self, ramdisk_path: &Path) -> &mut Self {
+        self.ramdisk = Some(ramdisk_path.to_owned());
+        self
     }
 
     /// Create a bootable UEFI disk image at the given path.
