@@ -3,12 +3,7 @@ use std::{
     process::Command,
 };
 
-const BOOTLOADER_X86_64_UEFI_VERSION: &str = env!("CARGO_PKG_VERSION");
-
-const BOOTLOADER_X86_64_BIOS_BOOT_SECTOR_VERSION: &str = env!("CARGO_PKG_VERSION");
-const BOOTLOADER_X86_64_BIOS_STAGE_2_VERSION: &str = env!("CARGO_PKG_VERSION");
-const BOOTLOADER_X86_64_BIOS_STAGE_3_VERSION: &str = env!("CARGO_PKG_VERSION");
-const BOOTLOADER_X86_64_BIOS_STAGE_4_VERSION: &str = env!("CARGO_PKG_VERSION");
+const BOOTLOADER_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() {
     let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
@@ -54,7 +49,7 @@ fn build_uefi_bootloader(out_dir: &Path) -> PathBuf {
         cmd.arg("--path").arg("uefi");
         println!("cargo:rerun-if-changed=uefi");
     } else {
-        cmd.arg("--version").arg(BOOTLOADER_X86_64_UEFI_VERSION);
+        cmd.arg("--version").arg(BOOTLOADER_VERSION);
     }
     cmd.arg("--locked");
     cmd.arg("--target").arg("x86_64-unknown-uefi");
@@ -92,8 +87,7 @@ fn build_bios_boot_sector(out_dir: &Path) -> PathBuf {
         cmd.arg("--path").arg(&local_path);
         println!("cargo:rerun-if-changed={}", local_path.display());
     } else {
-        cmd.arg("--version")
-            .arg(BOOTLOADER_X86_64_BIOS_BOOT_SECTOR_VERSION);
+        cmd.arg("--version").arg(BOOTLOADER_VERSION);
     }
     cmd.arg("--locked");
     cmd.arg("--target").arg("i386-code16-boot-sector.json");
@@ -136,8 +130,7 @@ fn build_bios_stage_2(out_dir: &Path) -> PathBuf {
         cmd.arg("--path").arg(&local_path);
         println!("cargo:rerun-if-changed={}", local_path.display());
     } else {
-        cmd.arg("--version")
-            .arg(BOOTLOADER_X86_64_BIOS_STAGE_2_VERSION);
+        cmd.arg("--version").arg(BOOTLOADER_VERSION);
     }
     cmd.arg("--locked");
     cmd.arg("--target").arg("i386-code16-stage-2.json");
@@ -178,8 +171,7 @@ fn build_bios_stage_3(out_dir: &Path) -> PathBuf {
         cmd.arg("--path").arg(&local_path);
         println!("cargo:rerun-if-changed={}", local_path.display());
     } else {
-        cmd.arg("--version")
-            .arg(BOOTLOADER_X86_64_BIOS_STAGE_3_VERSION);
+        cmd.arg("--version").arg(BOOTLOADER_VERSION);
     }
     cmd.arg("--locked");
     cmd.arg("--target").arg("i686-stage-3.json");
@@ -220,8 +212,7 @@ fn build_bios_stage_4(out_dir: &Path) -> PathBuf {
         cmd.arg("--path").arg(&local_path);
         println!("cargo:rerun-if-changed={}", local_path.display());
     } else {
-        cmd.arg("--version")
-            .arg(BOOTLOADER_X86_64_BIOS_STAGE_4_VERSION);
+        cmd.arg("--version").arg(BOOTLOADER_VERSION);
     }
     cmd.arg("--locked");
     cmd.arg("--target").arg("x86_64-stage-4.json");
