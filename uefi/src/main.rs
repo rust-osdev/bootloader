@@ -31,8 +31,7 @@ use uefi::{
         ProtocolPointer,
     },
     table::boot::{
-        AllocateType, MemoryType, OpenProtocolAttributes, OpenProtocolParams,
-        ScopedProtocol,
+        AllocateType, MemoryType, OpenProtocolAttributes, OpenProtocolParams, ScopedProtocol,
     },
     CStr16, CStr8,
 };
@@ -133,7 +132,9 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
                 // We may hit this code twice, if the map allocation ends up spanning more pages.
                 let next_target_size = memory_map_size.map_size + (8 * memory_map_size.entry_size);
                 target_size = next_target_size;
-                st.boot_services().free_pool(ptr).expect("Failed to free temporary memory for memory map!");
+                st.boot_services()
+                    .free_pool(ptr)
+                    .expect("Failed to free temporary memory for memory map!");
                 continue;
             }
             break;
@@ -358,8 +359,7 @@ fn load_file_from_tftp_boot_server(
     let filename = CStr8::from_bytes_with_nul(name.as_bytes()).unwrap();
 
     // Determine the kernel file size.
-    let file_size = base_code
-        .tftp_get_file_size(&server_ip, &filename).ok()?;
+    let file_size = base_code.tftp_get_file_size(&server_ip, &filename).ok()?;
     let kernel_size = usize::try_from(file_size).expect("The file size should fit into usize");
 
     // Allocate some memory for the kernel file.
@@ -453,9 +453,15 @@ fn init_logger(st: &SystemTable<Boot>, config: BootloaderConfig) -> Option<RawFr
         .get_handle_for_protocol::<GraphicsOutput>()
         .ok()?;
     let mut gop = unsafe {
-
         st.boot_services()
-            .open_protocol::<GraphicsOutput>(OpenProtocolParams { handle: gop_handle, agent: st.boot_services().image_handle(), controller: None }, OpenProtocolAttributes::Exclusive)
+            .open_protocol::<GraphicsOutput>(
+                OpenProtocolParams {
+                    handle: gop_handle,
+                    agent: st.boot_services().image_handle(),
+                    controller: None,
+                },
+                OpenProtocolAttributes::Exclusive,
+            )
             .ok()?
     };
 

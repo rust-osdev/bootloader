@@ -100,13 +100,7 @@ fn start(disk_number: u16, partition_table_start: *const u8) -> ! {
     let kernel_len = load_file("kernel-x86_64", KERNEL_DST, &mut fs, &mut disk, disk_buffer);
     writeln!(screen::Writer, "kernel loaded at {KERNEL_DST:#p}").unwrap();
     writeln!(screen::Writer, "Loading ramdisk...").unwrap();
-    let ramdisk_len = match try_load_file(
-        "ramdisk",
-        RAMDISK_DST,
-        &mut fs,
-        &mut disk,
-        disk_buffer,
-    ) {
+    let ramdisk_len = match try_load_file("ramdisk", RAMDISK_DST, &mut fs, &mut disk, disk_buffer) {
         Some(s) => s,
         None => 0u64,
     };

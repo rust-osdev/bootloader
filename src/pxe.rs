@@ -37,7 +37,7 @@ pub fn create_uefi_tftp_folder(
                 to.display()
             )
         })?;
-    } 
+    }
 
     Ok(())
 }

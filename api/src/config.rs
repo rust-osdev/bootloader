@@ -142,7 +142,6 @@ impl BootloaderConfig {
             },
         );
 
-        
         let buf = concat_115_9(
             buf,
             match minimum_framebuffer_width {

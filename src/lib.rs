@@ -135,8 +135,13 @@ impl UefiBoot {
             Some(rd) => Some(rd.as_path()),
             None => None,
         };
-        pxe::create_uefi_tftp_folder(bootloader_path, self.kernel.as_path(), ramdisk_path, out_path)
-            .context("failed to create UEFI PXE tftp folder")?;
+        pxe::create_uefi_tftp_folder(
+            bootloader_path,
+            self.kernel.as_path(),
+            ramdisk_path,
+            out_path,
+        )
+        .context("failed to create UEFI PXE tftp folder")?;
 
         Ok(())
     }

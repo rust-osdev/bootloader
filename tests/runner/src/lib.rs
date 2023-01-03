@@ -16,13 +16,12 @@ pub fn run_test_kernel(kernel_binary_path: &str, ramdisk_path: Option<&str>) {
     let kernel_path = Path::new(kernel_binary_path);
     let ramdisk_path = match ramdisk_path {
         Some(rdp) => Some(Path::new(rdp)),
-        None => None
+        None => None,
     };
 
     // create an MBR disk image for legacy BIOS booting
     let mbr_path = kernel_path.with_extension("mbr");
     let mut bios_builder = bootloader::BiosBoot::new(kernel_path);
-
 
     // create a GPT disk image for UEFI booting
     let gpt_path = kernel_path.with_extension("gpt");

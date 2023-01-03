@@ -3,7 +3,7 @@
 
 use bootloader_api::{entry_point, BootInfo};
 use core::fmt::Write;
-use test_kernel_default_settings::{exit_qemu, QemuExitCode, serial};
+use test_kernel_default_settings::{exit_qemu, serial, QemuExitCode};
 
 entry_point!(kernel_main);
 
