@@ -122,6 +122,7 @@ where
         &mut page_tables,
         system_info.framebuffer.as_ref(),
         &config,
+        &system_info
     );
     let boot_info = create_boot_info(
         &config,
@@ -153,6 +154,7 @@ pub fn set_up_mappings<I, D>(
     page_tables: &mut PageTables,
     framebuffer: Option<&RawFrameBufferInfo>,
     config: &BootloaderConfig,
+    system_info: &SystemInfo
 ) -> Mappings
 where
     I: ExactSizeIterator<Item = D> + Clone,
@@ -184,7 +186,6 @@ where
     )
     .expect("no entry point");
     log::info!("Entry point at: {:#x}", entry_point.as_u64());
-
     // create a stack
     let stack_start_addr = mapping_addr(
         config.mappings.kernel_stack,
@@ -269,6 +270,36 @@ where
     } else {
         None
     };
+    let ramdisk_slice_len = system_info.ramdisk_len;
+    let ramdisk_slice_start = if let Some(ramdisk_address) = system_info.ramdisk_addr {
+        
+        let ramdisk_address_start = mapping_addr(
+            config.mappings.ramdisk_memory, 
+            system_info.ramdisk_len, 
+            8, 
+            &mut used_entries
+        );
+        let physical_address = PhysAddr::new(ramdisk_address);
+        let ramdisk_physical_start_page: PhysFrame<Size4KiB> = PhysFrame::containing_address(physical_address);
+        let ramdisk_page_count = (system_info.ramdisk_len - 1 / Size4KiB::SIZE) + 1;
+        let ramdisk_physical_end_page = ramdisk_physical_start_page + ramdisk_page_count;
+        let start_page = Page::containing_address(ramdisk_address_start);
+
+        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+        for (i, frame) in PhysFrame::range_inclusive(ramdisk_physical_start_page, ramdisk_physical_end_page).enumerate() {
+            let page = start_page + i as u64;
+            match unsafe { kernel_page_table.map_to(page, frame, flags, frame_allocator) } {
+                Ok(tlb) => tlb.ignore(),
+                Err(err) => panic!(
+                    "Failed to map page {:?} to frame {:?}: {:?}",
+                    page, frame, err
+                ),
+            };
+        }
+        Some(ramdisk_address_start)
+    } else {
+        None
+    };
 
     let physical_memory_offset = if let Some(mapping) = config.mappings.physical_memory {
         log::info!("Map physical memory");
@@ -343,6 +374,8 @@ where
 
         kernel_slice_start,
         kernel_slice_len,
+        ramdisk_slice_start,
+        ramdisk_slice_len
     }
 }
 
@@ -368,6 +401,8 @@ pub struct Mappings {
     pub kernel_slice_start: u64,
     /// Size of the kernel slice allocation in memory.
     pub kernel_slice_len: u64,
+    pub ramdisk_slice_start: Option<VirtAddr>,
+    pub ramdisk_slice_len: u64
 }
 
 /// Allocates and initializes the boot info struct and the memory map.
@@ -477,8 +512,8 @@ where
         info.recursive_index = mappings.recursive_index.map(Into::into).into();
         info.rsdp_addr = system_info.rsdp_addr.map(|addr| addr.as_u64()).into();
         info.tls_template = mappings.tls_template.into();
-        info.ramdisk_addr = system_info.ramdisk_addr.into();
-        info.ramdisk_len = system_info.ramdisk_len;
+        info.ramdisk_addr = mappings.ramdisk_slice_start.map(|addr| addr.as_u64()).into();
+        info.ramdisk_len = mappings.ramdisk_slice_len;
         info
     });
 

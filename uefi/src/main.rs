@@ -150,12 +150,13 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
         LegacyFrameAllocator::new(memory_map.copied().map(UefiMemoryDescriptor));
 
     let page_tables = create_page_tables(&mut frame_allocator);
-    let mut ramdisk_addr = 0u64;
     let mut ramdisk_len = 0u64;
-    if let Some(rd) = ramdisk {
+    let ramdisk_addr = if let Some(rd) = ramdisk {
         ramdisk_len = rd.len() as u64;
-        ramdisk_addr = rd.as_ptr() as usize as u64;
-    }
+        Some(rd.as_ptr() as usize as u64)
+    } else {
+        None
+    };
     let system_info = SystemInfo {
         framebuffer,
         rsdp_addr: {
@@ -168,10 +169,7 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
                 .or_else(|| config_entries.find(|entry| matches!(entry.guid, cfg::ACPI_GUID)));
             rsdp.map(|entry| PhysAddr::new(entry.address as u64))
         },
-        ramdisk_addr: match ramdisk_addr {
-            0 => None,
-            v => Some(v),
-        },
+        ramdisk_addr: ramdisk_addr,
         ramdisk_len: ramdisk_len,
     };
 
@@ -194,7 +192,7 @@ fn load_ramdisk(
     st: &mut SystemTable<Boot>,
     boot_mode: BootMode,
 ) -> Option<&'static mut [u8]> {
-    load_file_from_boot_method(image, st, "ramdisk-x86_64\0", boot_mode)
+    load_file_from_boot_method(image, st, "ramdisk\0", boot_mode)
 }
 
 fn load_kernel(

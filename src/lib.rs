@@ -17,7 +17,7 @@ mod mbr;
 mod pxe;
 
 const KERNEL_FILE_NAME: &str = "kernel-x86_64";
-const RAMDISK_FILE_NAME: &str = "ramdisk-x86_64";
+const RAMDISK_FILE_NAME: &str = "ramdisk";
 const BIOS_STAGE_3: &str = "boot-stage-3";
 const BIOS_STAGE_4: &str = "boot-stage-4";
 
@@ -131,8 +131,11 @@ impl UefiBoot {
     /// bootloader won't be found.
     pub fn create_pxe_tftp_folder(&self, out_path: &Path) -> anyhow::Result<()> {
         let bootloader_path = Path::new(env!("UEFI_BOOTLOADER_PATH"));
-
-        pxe::create_uefi_tftp_folder(bootloader_path, self.kernel.as_path(), out_path)
+        let ramdisk_path = match self.ramdisk.as_ref() {
+            Some(rd) => Some(rd.as_path()),
+            None => None,
+        };
+        pxe::create_uefi_tftp_folder(bootloader_path, self.kernel.as_path(), ramdisk_path, out_path)
             .context("failed to create UEFI PXE tftp folder")?;
 
         Ok(())

@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use bootloader_test_runner::run_test_kernel;
 static RAMDISK_PATH: &str = "tests/ramdisk.txt";
 
