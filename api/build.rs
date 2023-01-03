@@ -22,6 +22,7 @@ fn main() {
         (88, 9),
         (97, 9),
         (106, 9),
+        (115, 1),
     ];
 
     let mut code = String::new();
