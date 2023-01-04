@@ -71,6 +71,20 @@ pub fn run_test_kernel_internal(
 
         run_test_kernel_on_bios(&mbr_path);
     }
+
+    #[cfg(feature = "uefi")]
+    {
+        let gpt_path = kernel_path_buf.with_extension("gpt");
+        let tftp_path = kernel_path_buf.with_extension("tftp");
+        image_builder.create_uefi_image(&gpt_path).unwrap();
+        image_builder.create_uefi_tftp_folder(&tftp_path).unwrap();
+        run_test_kernel_on_uefi(&gpt_path);
+        run_test_kernel_on_uefi_pxe(&tftp_path);
+    }
+}
+
+pub fn run_test_kernel(kernel_binary_path: &str) {
+    run_test_kernel_with_ramdisk(kernel_binary_path, None);
 }
 
 #[cfg(feature = "uefi")]

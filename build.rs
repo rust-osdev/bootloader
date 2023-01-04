@@ -266,6 +266,7 @@ async fn build_bios_stage_4(out_dir: &Path) -> PathBuf {
     convert_elf_to_bin(elf_path).await
 }
 
+#[cfg(not(docsrs_dummy_build))]
 #[cfg(feature = "bios")]
 async fn convert_elf_to_bin(elf_path: PathBuf) -> PathBuf {
     let flat_binary_path = elf_path.with_extension("bin");
