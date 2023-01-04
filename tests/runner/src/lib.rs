@@ -1,11 +1,15 @@
-use std::{io::Write, path::{Path, PathBuf}, process::Command};
+use std::{
+    io::Write,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 pub extern crate lazy_static;
 pub extern crate paste;
 #[doc(hidden)]
-pub use paste::paste;
-#[doc(hidden)]
 pub use lazy_static::lazy_static;
+#[doc(hidden)]
+pub use paste::paste;
 use rand::Rng;
 
 const QEMU_ARGS: &[&str] = &[
@@ -20,10 +24,10 @@ const QEMU_ARGS: &[&str] = &[
 
 pub fn generate_test_image_filename(path: &Path) -> PathBuf {
     let s: String = rand::thread_rng()
-    .sample_iter(&rand::distributions::Alphanumeric)
-    .take(8)
-    .map(char::from)
-    .collect();
+        .sample_iter(&rand::distributions::Alphanumeric)
+        .take(8)
+        .map(char::from)
+        .collect();
     path.with_file_name(s)
 }
 
@@ -66,7 +70,6 @@ pub fn run_test_kernel_uefi(kernel_binary_path: &str, ramdisk_path: Option<&str>
 
     uefi_builder.create_disk_image(&gpt_path).unwrap();
 
-
     run_test_kernel_on_uefi(&gpt_path);
 }
 
@@ -75,7 +78,6 @@ pub fn run_test_kernel(kernel_binary_path: &str, ramdisk_path: Option<&str>) {
     run_test_kernel_bios(kernel_binary_path, ramdisk_path);
     run_test_kernel_tftp(kernel_binary_path, ramdisk_path);
 }
-
 
 pub fn run_test_kernel_tftp(kernel_binary_path: &str, ramdisk_path: Option<&str>) {
     let kernel_path = Path::new(kernel_binary_path);
@@ -171,12 +173,12 @@ pub fn run_test_kernel_on_uefi_pxe(out_tftp_path: &Path) {
 
 #[macro_export]
 /// Creates a series of test functions for a given kernel image to cover bios, uefi, and tftp
-/// 
+///
 /// define_test!(name, kernel) will generate all 3 tests, with a ramdisk and no-ramdisk variant.
 /// define_test!(name, kernel, ramdisk) will generate all 3 tests, with the specified ramdisk
 /// define_test!(name, kernel, without_ramdisk_tests) will generate all 3 tests, with only the no-ramdisk variant
- macro_rules! define_test {
-    ($test_name: ident, $bin: tt) => (
+macro_rules! define_test {
+    ($test_name: ident, $bin: tt) => {
         $crate::paste! {
             #[test]
             fn [< $test_name _uefi_without_ramdisk >]() {
@@ -227,8 +229,8 @@ pub fn run_test_kernel_on_uefi_pxe(out_tftp_path: &Path) {
                 );
             }
         }
-     );
-     ($test_name: ident, $bin:tt, without_ramdisk_tests) => (
+    };
+    ($test_name: ident, $bin:tt, without_ramdisk_tests) => {
         $crate::paste! {
             #[test]
             fn [< $test_name _uefi_without_ramdisk >]() {
@@ -254,8 +256,8 @@ pub fn run_test_kernel_on_uefi_pxe(out_tftp_path: &Path) {
                 );
             }
         }
-     );
-     ($test_name: ident, $bin: tt, $ramdisk: tt) => (
+    };
+    ($test_name: ident, $bin: tt, $ramdisk: tt) => {
         $crate::paste! {
             #[test]
             fn [< $test_name _uefi_with_ramdisk >]() {
@@ -281,5 +283,5 @@ pub fn run_test_kernel_on_uefi_pxe(out_tftp_path: &Path) {
                 );
             }
         }
-     );
+    };
 }
