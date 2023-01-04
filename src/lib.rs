@@ -14,7 +14,6 @@ use tempfile::NamedTempFile;
 mod fat;
 mod gpt;
 mod mbr;
-mod pxe;
 
 const KERNEL_FILE_NAME: &str = "kernel-x86_64";
 const RAMDISK_FILE_NAME: &str = "ramdisk";
@@ -52,14 +51,14 @@ impl<'a> DiskImageBuilder<'a> {
     }
 
     /// Add or replace a kernel to be included in the final image.
-    fn set_kernel(&mut self, path: &'a PathBuf) {
+    pub fn set_kernel(&mut self, path: &'a PathBuf) {
         self.add_or_replace_file(path, KERNEL_FILE_NAME)
     }
 
     /// Add or replace arbitrary files.
     /// NOTE: You can overwrite internal files if you choose, such as EFI/BOOT/BOOTX64.EFI
     /// This can be useful in situations where you want to generate an image, but not use the provided bootloader.
-    fn add_or_replace_file(&mut self, path: &'a PathBuf, target: &'a str) {
+    pub fn add_or_replace_file(&mut self, path: &'a PathBuf, target: &'a str) {
         self.files.insert(
             0,
             DiskImageFile::<'a> {
