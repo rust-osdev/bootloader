@@ -1,4 +1,8 @@
-use std::{io::Write, path::Path, process::Command};
+use std::{
+    io::Write,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 const QEMU_ARGS: &[&str] = &[
     "-device",
@@ -11,29 +15,29 @@ const QEMU_ARGS: &[&str] = &[
 ];
 
 pub fn run_test_kernel(kernel_binary_path: &str, ramdisk_path: Option<&Path>) {
+    use bootloader::DiskImageBuilder;
     let kernel_path = Path::new(kernel_binary_path);
+    let ramdisk_path_buf = match ramdisk_path {
+        Some(rdp) => Some(rdp.to_path_buf()),
+        None => None,
+    };
+    let ramdisk_path_buf = ramdisk_path_buf.as_ref();
 
     // create an MBR disk image for legacy BIOS booting
     let mbr_path = kernel_path.with_extension("mbr");
-    let mut bios_builder = bootloader::BiosBoot::new(kernel_path);
-
-    // create a GPT disk image for UEFI booting
     let gpt_path = kernel_path.with_extension("gpt");
-    let mut uefi_builder = bootloader::UefiBoot::new(kernel_path);
+    let tftp_path = kernel_path.with_extension("tftp");
+    let kernel_path_buf = kernel_path.to_path_buf();
+    let mut image_builder = DiskImageBuilder::new(&kernel_path_buf);
 
     // Set ramdisk for test, if supplied.
-    if let Some(rdp) = ramdisk_path {
-        bios_builder.set_ramdisk(rdp);
-        uefi_builder.set_ramdisk(rdp);
+    if let Some(rdp) = ramdisk_path_buf {
+        image_builder.set_ramdisk(rdp);
     }
 
-    bios_builder.create_disk_image(&mbr_path).unwrap();
-    uefi_builder.create_disk_image(&gpt_path).unwrap();
-
-    // create a TFTP folder with the kernel executable and UEFI bootloader for
-    // UEFI PXE booting
-    let tftp_path = kernel_path.with_extension(".tftp");
-    uefi_builder.create_pxe_tftp_folder(&tftp_path).unwrap();
+    image_builder.create_bios_image(&mbr_path).unwrap();
+    image_builder.create_uefi_image(&gpt_path).unwrap();
+    image_builder.create_uefi_tftp_folder(&tftp_path).unwrap();
 
     run_test_kernel_on_uefi(&gpt_path);
     run_test_kernel_on_bios(&mbr_path);

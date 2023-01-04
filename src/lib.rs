@@ -20,103 +20,111 @@ const KERNEL_FILE_NAME: &str = "kernel-x86_64";
 const RAMDISK_FILE_NAME: &str = "ramdisk";
 const BIOS_STAGE_3: &str = "boot-stage-3";
 const BIOS_STAGE_4: &str = "boot-stage-4";
+const UEFI_BOOT_FILENAME: &str = "efi/boot/bootx64.efi";
+const UEFI_TFTP_BOOT_FILENAME: &str = "bootloader";
 
-/// Create disk images for booting on legacy BIOS systems.
-pub struct BiosBoot {
-    kernel: PathBuf,
-    ramdisk: Option<PathBuf>,
+struct DiskImageFile<'a> {
+    source: &'a PathBuf,
+    destination: &'a str,
 }
 
-impl BiosBoot {
-    /// Start creating a disk image for the given bootloader ELF executable.
-    pub fn new(kernel_path: &Path) -> Self {
-        Self {
-            kernel: kernel_path.to_owned(),
-            ramdisk: None,
+/// DiskImageBuilder helps create disk images for a specified set of files.
+/// It can currently create MBR (BIOS), GPT (UEFI), and TFTP (UEFI) images.
+pub struct DiskImageBuilder<'a> {
+    files: Vec<DiskImageFile<'a>>,
+}
+
+impl<'a> DiskImageBuilder<'a> {
+    /// Create a new instance of DiskImageBuilder, with the specified kernel.
+    pub fn new(kernel: &'a PathBuf) -> Self {
+        let mut obj = Self::empty();
+        obj.set_kernel(kernel);
+        obj
+    }
+
+    /// Create a new, empty instance of DiskImageBuilder
+    pub fn empty() -> Self {
+        Self { files: Vec::new() }
+    }
+    /// Add or replace a ramdisk to be included in the final image.
+    pub fn set_ramdisk(&mut self, path: &'a PathBuf) {
+        self.add_or_replace_file(path, RAMDISK_FILE_NAME);
+    }
+
+    /// Add or replace a kernel to be included in the final image.
+    fn set_kernel(&mut self, path: &'a PathBuf) {
+        self.add_or_replace_file(path, KERNEL_FILE_NAME)
+    }
+
+    /// Add or replace arbitrary files.
+    /// NOTE: You can overwrite internal files if you choose, such as EFI/BOOT/BOOTX64.EFI
+    /// This can be useful in situations where you want to generate an image, but not use the provided bootloader.
+    fn add_or_replace_file(&mut self, path: &'a PathBuf, target: &'a str) {
+        self.files.insert(
+            0,
+            DiskImageFile::<'a> {
+                source: &path,
+                destination: &target,
+            },
+        );
+    }
+    fn create_fat_filesystem_image(
+        &self,
+        internal_files: BTreeMap<&'a str, &'a Path>,
+    ) -> anyhow::Result<NamedTempFile> {
+        let mut local_map = BTreeMap::new();
+
+        for k in internal_files {
+            local_map.insert(k.0, k.1);
         }
+
+        for f in self.files.as_slice() {
+            local_map.insert(f.destination, &f.source.as_path());
+        }
+
+        let out_file = NamedTempFile::new().context("failed to create temp file")?;
+        fat::create_fat_filesystem(local_map, out_file.path())
+            .context("failed to create BIOS FAT filesystem")?;
+
+        Ok(out_file)
     }
 
-    /// Add a ramdisk file to the image
-    pub fn set_ramdisk(&mut self, ramdisk_path: &Path) -> &mut Self {
-        self.ramdisk = Some(ramdisk_path.to_owned());
-        self
-    }
-
-    /// Create a bootable UEFI disk image at the given path.
-    pub fn create_disk_image(&self, out_path: &Path) -> anyhow::Result<()> {
+    /// Create an MBR disk image for booting on BIOS systems.
+    pub fn create_bios_image(&self, image_filename: &Path) -> anyhow::Result<()> {
         let bootsector_path = Path::new(env!("BIOS_BOOT_SECTOR_PATH"));
         let stage_2_path = Path::new(env!("BIOS_STAGE_2_PATH"));
+        let stage_3_path = Path::new(env!("BIOS_STAGE_3_PATH"));
+        let stage_4_path = Path::new(env!("BIOS_STAGE_4_PATH"));
+        let mut internal_files = BTreeMap::new();
+        internal_files.insert(BIOS_STAGE_3, stage_3_path);
+        internal_files.insert(BIOS_STAGE_4, stage_4_path);
 
         let fat_partition = self
-            .create_fat_partition()
+            .create_fat_filesystem_image(internal_files)
             .context("failed to create FAT partition")?;
-
         mbr::create_mbr_disk(
             bootsector_path,
             stage_2_path,
             fat_partition.path(),
-            out_path,
+            image_filename,
         )
         .context("failed to create BIOS MBR disk image")?;
 
         fat_partition
             .close()
             .context("failed to delete FAT partition after disk image creation")?;
-
         Ok(())
     }
-
-    /// Creates an BIOS-bootable FAT partition with the kernel.
-    fn create_fat_partition(&self) -> anyhow::Result<NamedTempFile> {
-        let stage_3_path = Path::new(env!("BIOS_STAGE_3_PATH"));
-        let stage_4_path = Path::new(env!("BIOS_STAGE_4_PATH"));
-        let kernel_path = self.kernel.as_path();
-
-        let mut files = BTreeMap::new();
-        files.insert(KERNEL_FILE_NAME, kernel_path);
-        files.insert(BIOS_STAGE_3, stage_3_path);
-        files.insert(BIOS_STAGE_4, stage_4_path);
-        if let Some(ramdisk_path) = &self.ramdisk {
-            files.insert(RAMDISK_FILE_NAME, ramdisk_path);
-        }
-        let out_file = NamedTempFile::new().context("failed to create temp file")?;
-        fat::create_fat_filesystem(files, out_file.path())
-            .context("failed to create BIOS FAT filesystem")?;
-
-        Ok(out_file)
-    }
-}
-
-/// Create disk images for booting on UEFI systems.
-pub struct UefiBoot {
-    kernel: PathBuf,
-    ramdisk: Option<PathBuf>,
-}
-
-impl UefiBoot {
-    /// Start creating a disk image for the given bootloader ELF executable.
-    pub fn new(kernel_path: &Path) -> Self {
-        Self {
-            kernel: kernel_path.to_owned(),
-            ramdisk: None,
-        }
-    }
-
-    /// Add a ramdisk file to the disk image
-    pub fn set_ramdisk(&mut self, ramdisk_path: &Path) -> &mut Self {
-        self.ramdisk = Some(ramdisk_path.to_owned());
-        self
-    }
-
-    /// Create a bootable UEFI disk image at the given path.
-    pub fn create_disk_image(&self, out_path: &Path) -> anyhow::Result<()> {
+    /// Create a GPT disk image for booting on UEFI systems.
+    pub fn create_uefi_image(&self, image_filename: &Path) -> anyhow::Result<()> {
+        let bootloader_path = Path::new(env!("UEFI_BOOTLOADER_PATH"));
+        let mut internal_files = BTreeMap::new();
+        internal_files.insert(UEFI_BOOT_FILENAME, bootloader_path);
         let fat_partition = self
-            .create_fat_partition()
+            .create_fat_filesystem_image(internal_files)
             .context("failed to create FAT partition")?;
-
-        gpt::create_gpt_disk(fat_partition.path(), out_path)
+        gpt::create_gpt_disk(fat_partition.path(), image_filename)
             .context("failed to create UEFI GPT disk image")?;
-
         fat_partition
             .close()
             .context("failed to delete FAT partition after disk image creation")?;
@@ -124,41 +132,29 @@ impl UefiBoot {
         Ok(())
     }
 
-    /// Prepare a folder for use with booting over UEFI_PXE.
-    ///
-    /// This places the bootloader executable under the path "bootloader". The
-    /// DHCP server should set the filename option to that path, otherwise the
-    /// bootloader won't be found.
-    pub fn create_pxe_tftp_folder(&self, out_path: &Path) -> anyhow::Result<()> {
+    /// Create a folder containing the needed files for UEFI TFTP/PXE booting.
+    pub fn create_uefi_tftp_folder(&self, tftp_path: &Path) -> anyhow::Result<()> {
         let bootloader_path = Path::new(env!("UEFI_BOOTLOADER_PATH"));
-        let ramdisk_path = self.ramdisk.as_deref();
-        pxe::create_uefi_tftp_folder(
-            bootloader_path,
-            self.kernel.as_path(),
-            ramdisk_path,
-            out_path,
-        )
-        .context("failed to create UEFI PXE tftp folder")?;
+        std::fs::create_dir_all(tftp_path)
+            .with_context(|| format!("failed to create out dir at {}", tftp_path.display()))?;
 
-        Ok(())
-    }
+        let to = tftp_path.join(UEFI_TFTP_BOOT_FILENAME);
+        std::fs::copy(bootloader_path, &to).with_context(|| {
+            format!(
+                "failed to copy bootloader from {} to {}",
+                bootloader_path.display(),
+                to.display()
+            )
+        })?;
 
-    /// Creates an UEFI-bootable FAT partition with the kernel.
-    fn create_fat_partition(&self) -> anyhow::Result<NamedTempFile> {
-        let bootloader_path = Path::new(env!("UEFI_BOOTLOADER_PATH"));
-        let kernel_path = self.kernel.as_path();
-        let mut files = BTreeMap::new();
-        files.insert("efi/boot/bootx64.efi", bootloader_path);
-        files.insert(KERNEL_FILE_NAME, kernel_path);
-
-        if let Some(ramdisk_path) = &self.ramdisk {
-            files.insert(RAMDISK_FILE_NAME, ramdisk_path);
+        for f in self.files.as_slice() {
+            let to = tftp_path.join(f.destination);
+            let result = std::fs::copy(f.source, to);
+            if result.is_err() {
+                return Err(anyhow::Error::from(result.unwrap_err()));
+            }
         }
 
-        let out_file = NamedTempFile::new().context("failed to create temp file")?;
-        fat::create_fat_filesystem(files, out_file.path())
-            .context("failed to create UEFI FAT filesystem")?;
-
-        Ok(out_file)
+        Ok(())
     }
 }
