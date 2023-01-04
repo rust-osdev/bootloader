@@ -16,8 +16,6 @@ const QEMU_ARGS: &[&str] = &[
     "-display",
     "none",
     "--no-reboot",
-    "-m",
-    "size=2048",
 ];
 
 pub fn generate_test_image_filename(path: &Path) -> PathBuf {
