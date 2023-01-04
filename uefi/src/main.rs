@@ -119,27 +119,28 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
     let mmap_storage = {
         let mut memory_map_size = st.boot_services().memory_map_size();
         let mut target_size = memory_map_size.map_size + (8 * memory_map_size.entry_size);
-        let mut storage: &mut [u8];
         loop {
             let ptr = st
                 .boot_services()
                 .allocate_pool(MemoryType::LOADER_DATA, target_size)
                 .expect("Failed to allocate memory for mmap storage");
-            storage = unsafe { slice::from_raw_parts_mut(ptr, target_size) };
-            if let Err(_) = st.boot_services().memory_map(storage) {
-                memory_map_size = st.boot_services().memory_map_size();
-                // By measuring the size here, we can find out exactly how much we need.
-                // We may hit this code twice, if the map allocation ends up spanning more pages.
-                let next_target_size = memory_map_size.map_size + (8 * memory_map_size.entry_size);
-                target_size = next_target_size;
-                st.boot_services()
-                    .free_pool(ptr)
-                    .expect("Failed to free temporary memory for memory map!");
-                continue;
+            let storage = unsafe { slice::from_raw_parts_mut(ptr, target_size) };
+            if st.boot_services().memory_map(storage).is_ok() {
+                break storage;
             }
-            break;
+            // allocated memory region was not big enough -> free it again
+            st.boot_services()
+                .free_pool(ptr)
+                .expect("Failed to free temporary memory for memory map!");
+
+            // By measuring the size here, we can find out exactly how much we need.
+            // We may hit this code twice, if the map allocation ends up spanning more pages.
+            memory_map_size = st.boot_services().memory_map_size();
+
+            let next_target_size = memory_map_size.map_size + (8 * memory_map_size.entry_size);
+            target_size = next_target_size;
+            
         }
-        storage
     };
 
     log::trace!("exiting boot services");
@@ -309,11 +310,10 @@ fn load_file_from_disk(
 
     let file_handle_result = root.open(filename, FileMode::Read, FileAttribute::empty());
 
-    if file_handle_result.is_err() {
-        return None;
-    }
-
-    let file_handle = file_handle_result.unwrap();
+    let file_handle = match file_handle_result {
+        Err(_) => return None,
+        Ok(handle) => handle,
+    };
 
     let mut file = match file_handle.into_type().unwrap() {
         uefi::proto::media::file::FileType::Regular(f) => f,
@@ -353,7 +353,6 @@ fn load_file_from_tftp_boot_server(
     assert!(mode.dhcp_ack_received);
     let dhcpv4: &DhcpV4Packet = mode.dhcp_ack.as_ref();
     let server_ip = IpAddress::new_v4(dhcpv4.bootp_si_addr);
-    let mut buf = [0u8; 256];
     assert!(name.len() < 256);
 
     let filename = CStr8::from_bytes_with_nul(name.as_bytes()).unwrap();
