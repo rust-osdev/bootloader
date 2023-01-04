@@ -275,15 +275,16 @@ where
         let ramdisk_address_start = mapping_addr(
             config.mappings.ramdisk_memory,
             system_info.ramdisk_len,
-            8,
+            Size4KiB::SIZE,
             &mut used_entries,
         );
         let physical_address = PhysAddr::new(ramdisk_address);
         let ramdisk_physical_start_page: PhysFrame<Size4KiB> =
             PhysFrame::containing_address(physical_address);
-        let ramdisk_page_count = (system_info.ramdisk_len - 1 / Size4KiB::SIZE) + 1;
+        let ramdisk_page_count = ((system_info.ramdisk_len - 1) / Size4KiB::SIZE) + 1;
         let ramdisk_physical_end_page = ramdisk_physical_start_page + ramdisk_page_count;
-        let start_page = Page::containing_address(ramdisk_address_start);
+        let start_page = Page::from_start_address(ramdisk_address_start)
+            .expect("the ramdisk start address must be page aligned");
 
         let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
         for (i, frame) in
