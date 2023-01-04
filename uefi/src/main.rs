@@ -69,7 +69,6 @@ fn efi_main(image: Handle, st: SystemTable<Boot>) -> Status {
 
 fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
     // temporarily clone the y table for printing panics
-
     unsafe {
         *SYSTEM_TABLE.get() = Some(st.unsafe_clone());
     }
@@ -118,28 +117,25 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
     }
     let mmap_storage = {
         let mut memory_map_size = st.boot_services().memory_map_size();
-        let mut target_size = memory_map_size.map_size + (8 * memory_map_size.entry_size);
         loop {
             let ptr = st
                 .boot_services()
-                .allocate_pool(MemoryType::LOADER_DATA, target_size)
+                .allocate_pool(MemoryType::LOADER_DATA, memory_map_size.map_size)
                 .expect("Failed to allocate memory for mmap storage");
-            let storage = unsafe { slice::from_raw_parts_mut(ptr, target_size) };
+
+            let storage = unsafe { slice::from_raw_parts_mut(ptr, memory_map_size.map_size) };
+
             if st.boot_services().memory_map(storage).is_ok() {
                 break storage;
             }
-            // allocated memory region was not big enough -> free it again
-            st.boot_services()
-                .free_pool(ptr)
-                .expect("Failed to free temporary memory for memory map!");
 
             // By measuring the size here, we can find out exactly how much we need.
             // We may hit this code twice, if the map allocation ends up spanning more pages.
             memory_map_size = st.boot_services().memory_map_size();
-
-            let next_target_size = memory_map_size.map_size + (8 * memory_map_size.entry_size);
-            target_size = next_target_size;
-            
+            // allocated memory region was not big enough -> free it again
+            st.boot_services()
+                .free_pool(ptr)
+                .expect("Failed to free temporary memory for memory map!");
         }
     };
 
@@ -265,7 +261,7 @@ fn locate_and_open_protocol<P: ProtocolPointer>(
     st: &SystemTable<Boot>,
 ) -> Option<ScopedProtocol<P>> {
     let this = st.boot_services();
-    let mut device_path = open_device_path_protocol(image, st)?;
+    let device_path = open_device_path_protocol(image, st)?;
     let mut device_path = device_path.deref();
 
     let fs_handle = this.locate_device_path::<P>(&mut device_path);
