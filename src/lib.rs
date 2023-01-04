@@ -108,7 +108,7 @@ impl UefiBoot {
         self
     }
 
-    /// Create a bootable BIOS disk image at the given path.
+    /// Create a bootable UEFI disk image at the given path.
     pub fn create_disk_image(&self, out_path: &Path) -> anyhow::Result<()> {
         let fat_partition = self
             .create_fat_partition()
@@ -131,10 +131,7 @@ impl UefiBoot {
     /// bootloader won't be found.
     pub fn create_pxe_tftp_folder(&self, out_path: &Path) -> anyhow::Result<()> {
         let bootloader_path = Path::new(env!("UEFI_BOOTLOADER_PATH"));
-        let ramdisk_path = match self.ramdisk.as_ref() {
-            Some(rd) => Some(rd.as_path()),
-            None => None,
-        };
+        let ramdisk_path = self.ramdisk.as_deref();
         pxe::create_uefi_tftp_folder(
             bootloader_path,
             self.kernel.as_path(),
