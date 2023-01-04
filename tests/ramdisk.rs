@@ -1,18 +1,6 @@
-use bootloader_test_runner::run_test_kernel;
+use bootloader_test_runner::define_test;
 static RAMDISK_PATH: &str = "tests/ramdisk.txt";
-
-#[test]
-fn basic_boot() {
-    run_test_kernel(
-        env!("CARGO_BIN_FILE_TEST_KERNEL_RAMDISK_basic_boot"),
-        Some(RAMDISK_PATH),
-    );
-}
-
-#[test]
-fn check_ramdisk() {
-    run_test_kernel(
-        env!("CARGO_BIN_FILE_TEST_KERNEL_RAMDISK_ramdisk"),
-        Some(RAMDISK_PATH),
-    );
-}
+static BASIC_BOOT_KERNEL: &str = env!("CARGO_BIN_FILE_TEST_KERNEL_RAMDISK_basic_boot");
+static RAMDISK_KERNEL: &str = env!("CARGO_BIN_FILE_TEST_KERNEL_RAMDISK_ramdisk");
+define_test!(basic_boot, BASIC_BOOT_KERNEL, RAMDISK_PATH);
+define_test!(ramdisk, RAMDISK_KERNEL, RAMDISK_PATH);

@@ -1,21 +1,9 @@
-use bootloader_test_runner::run_test_kernel;
-
-#[test]
-fn basic_boot() {
-    run_test_kernel(env!("CARGO_BIN_FILE_TEST_KERNEL_PIE_basic_boot"), None);
-}
-
-#[test]
-fn should_panic() {
-    run_test_kernel(env!("CARGO_BIN_FILE_TEST_KERNEL_PIE_should_panic"), None);
-}
-
-#[test]
-fn check_boot_info() {
-    run_test_kernel(env!("CARGO_BIN_FILE_TEST_KERNEL_PIE_check_boot_info"), None);
-}
-
-#[test]
-fn global_variable() {
-    run_test_kernel(env!("CARGO_BIN_FILE_TEST_KERNEL_PIE_global_variable"), None);
-}
+use bootloader_test_runner::define_test;
+const BASIC_BOOT_KERNEL: &str = env!("CARGO_BIN_FILE_TEST_KERNEL_PIE_basic_boot");
+const SHOULD_PANIC_KERNEL: &str = env!("CARGO_BIN_FILE_TEST_KERNEL_PIE_should_panic");
+const CHECK_BOOT_INFO_KERNEL: &str = env!("CARGO_BIN_FILE_TEST_KERNEL_PIE_check_boot_info");
+const GLOBAL_VARIABLE_KERNEL: &str = env!("CARGO_BIN_FILE_TEST_KERNEL_PIE_global_variable");
+define_test!(basic_boot, BASIC_BOOT_KERNEL);
+define_test!(should_panic, SHOULD_PANIC_KERNEL);
+define_test!(check_boot_info, CHECK_BOOT_INFO_KERNEL);
+define_test!(global_variable, GLOBAL_VARIABLE_KERNEL);
