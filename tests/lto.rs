@@ -1,7 +1,7 @@
 use std::{path::Path, process::Command};
 
 use bootloader_test_runner::run_test_kernel;
-
+// This test must remain as is, or the LTO build fails due to parallel testing.
 #[test]
 fn basic_boot() {
     // build test kernel manually to force-enable link-time optimization
