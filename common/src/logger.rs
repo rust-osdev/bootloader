@@ -1,7 +1,7 @@
 use crate::framebuffer::FrameBufferWriter;
 use bootloader_api::info::FrameBufferInfo;
-use core::fmt::Write;
 use conquer_once::spin::OnceCell;
+use core::fmt::Write;
 use spinning_top::Spinlock;
 
 /// The global logger instance used for the `log` crate.
@@ -37,4 +37,3 @@ impl log::Log for LockedLogger {
 
     fn flush(&self) {}
 }
-

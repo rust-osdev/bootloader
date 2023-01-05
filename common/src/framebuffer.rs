@@ -1,8 +1,5 @@
 use bootloader_api::info::{FrameBufferInfo, PixelFormat};
-use core::{
-    fmt::self,
-    ptr,
-};
+use core::{fmt, ptr};
 use font_constants::BACKUP_CHAR;
 use noto_sans_mono_bitmap::{
     get_raster, get_raster_width, FontWeight, RasterHeight, RasterizedChar,
