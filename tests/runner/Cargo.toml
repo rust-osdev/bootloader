@@ -8,7 +8,7 @@ edition = "2021"
 
 [features]
 bios = ["bootloader/bios"]
-uefi = ["bootloader/uefi", "ovmf-prebuilt"]
+uefi = ["bootloader/uefi", "dep:ovmf-prebuilt"]
 
 [dependencies]
 bootloader = { path = "../..", default-features = false }
