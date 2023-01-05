@@ -6,7 +6,11 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+bios = ["bootloader/bios"]
+uefi = ["bootloader/uefi", "ovmf-prebuilt"]
+
 [dependencies]
-bootloader = { path = "../.." }
+bootloader = { path = "../..", default-features = false }
 strip-ansi-escapes = "0.1.1"
-ovmf-prebuilt = "0.1.0-alpha.1"
+ovmf-prebuilt = { version = "0.1.0-alpha.1", optional = true }
