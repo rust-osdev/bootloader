@@ -4,7 +4,7 @@
 
 use crate::legacy_memory_region::{LegacyFrameAllocator, LegacyMemoryRegion};
 use bootloader_api::{
-    config::{LevelFilter, Mapping},
+    config::{LevelFilter, LoggerStatus, Mapping},
     info::{FrameBuffer, FrameBufferInfo, MemoryRegion, TlsTemplate},
     BootInfo, BootloaderConfig,
 };
@@ -33,13 +33,27 @@ pub mod level_4_entries;
 pub mod load_kernel;
 /// Provides a logger that logs output as text in various formats.
 pub mod logger;
+/// Provides a type that logs output as text to a Serial Being port.
 pub mod serial;
 
 const PAGE_SIZE: u64 = 4096;
 
 /// Initialize a text-based logger using the given pixel-based framebuffer as output.  
-pub fn init_logger(framebuffer: &'static mut [u8], info: FrameBufferInfo, log_level: LevelFilter) {
-    let logger = logger::LOGGER.get_or_init(move || logger::LockedLogger::new(framebuffer, info));
+pub fn init_logger(
+    framebuffer: &'static mut [u8],
+    info: FrameBufferInfo,
+    log_level: LevelFilter,
+    frame_buffer_logger_status: LoggerStatus,
+    serial_logger_status: LoggerStatus,
+) {
+    let logger = logger::LOGGER.get_or_init(move || {
+        logger::LockedLogger::new(
+            framebuffer,
+            info,
+            frame_buffer_logger_status,
+            serial_logger_status,
+        )
+    });
     log::set_logger(logger).expect("logger already set");
     log::set_max_level(convert_level(log_level));
     log::info!("Framebuffer info: {:?}", info);

@@ -1,5 +1,5 @@
 use crate::{framebuffer::FrameBufferWriter, serial::SerialPort};
-use bootloader_api::info::FrameBufferInfo;
+use bootloader_api::{config::LoggerStatus, info::FrameBufferInfo};
 use conquer_once::spin::OnceCell;
 use core::fmt::Write;
 use spinning_top::Spinlock;
@@ -8,14 +8,26 @@ use spinning_top::Spinlock;
 pub static LOGGER: OnceCell<LockedLogger> = OnceCell::uninit();
 
 /// A [`FrameBufferWriter`] instance protected by a spinlock.
-pub struct LockedLogger(Spinlock<FrameBufferWriter>, Spinlock<SerialPort>);
+pub struct LockedLogger(
+    Spinlock<FrameBufferWriter>,
+    Spinlock<SerialPort>,
+    LoggerStatus,
+    LoggerStatus,
+);
 
 impl LockedLogger {
     /// Create a new instance that logs to the given framebuffer.
-    pub fn new(framebuffer: &'static mut [u8], info: FrameBufferInfo) -> Self {
+    pub fn new(
+        framebuffer: &'static mut [u8],
+        info: FrameBufferInfo,
+        frame_buffer_logger_status: LoggerStatus,
+        serial_logger_status: LoggerStatus,
+    ) -> Self {
         LockedLogger(
             Spinlock::new(FrameBufferWriter::new(framebuffer, info)),
             Spinlock::new(SerialPort::new()),
+            frame_buffer_logger_status,
+            serial_logger_status,
         )
     }
 
@@ -37,10 +49,14 @@ impl log::Log for LockedLogger {
     }
 
     fn log(&self, record: &log::Record) {
-        let mut logger = self.0.lock();
-        let mut serial = self.1.lock();
-        writeln!(logger, "{:5}: {}", record.level(), record.args()).unwrap();
-        writeln!(serial, "{:5}: {}", record.level(), record.args()).unwrap();
+        if self.2 == LoggerStatus::Enable {
+            let mut logger = self.0.lock();
+            writeln!(logger, "{:5}: {}", record.level(), record.args()).unwrap();
+        }
+        if self.3 == LoggerStatus::Enable {
+            let mut serial = self.1.lock();
+            writeln!(serial, "{:5}: {}", record.level(), record.args()).unwrap();
+        }
     }
 
     fn flush(&self) {}

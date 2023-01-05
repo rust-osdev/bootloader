@@ -3,7 +3,7 @@
 
 use crate::memory_descriptor::MemoryRegion;
 use bootloader_api::{
-    config::LevelFilter,
+    config::{LevelFilter, LoggerStatus},
     info::{FrameBufferInfo, PixelFormat},
 };
 use bootloader_x86_64_bios_common::{BiosFramebufferInfo, BiosInfo, E820MemoryRegion};
@@ -109,7 +109,12 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
     };
     let kernel = Kernel::parse(kernel_slice);
 
-    let framebuffer_info = init_logger(info.framebuffer, kernel.config.log_level);
+    let framebuffer_info = init_logger(
+        info.framebuffer,
+        kernel.config.log_level,
+        kernel.config.frame_buffer_logger_status,
+        kernel.config.serial_logger_status,
+    );
 
     log::info!("4th Stage");
     log::info!("{info:x?}");
@@ -126,7 +131,12 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
     load_and_switch_to_kernel(kernel, frame_allocator, page_tables, system_info);
 }
 
-fn init_logger(info: BiosFramebufferInfo, log_level: LevelFilter) -> FrameBufferInfo {
+fn init_logger(
+    info: BiosFramebufferInfo,
+    log_level: LevelFilter,
+    frame_buffer_logger_status: LoggerStatus,
+    serial_logger_status: LoggerStatus,
+) -> FrameBufferInfo {
     let framebuffer_info = FrameBufferInfo {
         byte_len: info.region.len.try_into().unwrap(),
         width: info.width.into(),
@@ -155,7 +165,13 @@ fn init_logger(info: BiosFramebufferInfo, log_level: LevelFilter) -> FrameBuffer
         )
     };
 
-    bootloader_x86_64_common::init_logger(framebuffer, framebuffer_info, log_level);
+    bootloader_x86_64_common::init_logger(
+        framebuffer,
+        framebuffer_info,
+        log_level,
+        frame_buffer_logger_status,
+        serial_logger_status,
+    );
 
     framebuffer_info
 }
