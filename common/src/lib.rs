@@ -29,7 +29,9 @@ pub mod legacy_memory_region;
 pub mod level_4_entries;
 /// Implements a loader for the kernel ELF binary.
 pub mod load_kernel;
-/// Provides a logger type that logs output as text to pixel-based framebuffers.
+/// Provides a type that logs output as text to pixel-based framebuffers.
+pub mod framebuffer;
+/// Provides a logger that logs output as text in various formats.
 pub mod logger;
 
 const PAGE_SIZE: u64 = 4096;
