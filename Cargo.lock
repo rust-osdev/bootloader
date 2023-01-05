@@ -120,6 +120,7 @@ dependencies = [
  "rand_hc",
  "raw-cpuid",
  "spinning_top",
+ "uart_16550",
  "usize_conversions",
  "x86_64",
  "xmas-elf",
@@ -628,11 +629,12 @@ dependencies = [
 
 [[package]]
 name = "uart_16550"
-version = "0.2.17"
+version = "0.2.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3616395dbb38a9c39a5865b5691c21d9f8369ba876355cfef8ce39d0d4cf3281"
+checksum = "b074eb9300ad949edd74c529c0e8d451625af71bb948e6b65fe69f72dc1363d9"
 dependencies = [
  "bitflags",
+ "rustversion",
  "x86_64",
 ]
 
