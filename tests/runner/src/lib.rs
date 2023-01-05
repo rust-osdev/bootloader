@@ -8,8 +8,6 @@ const QEMU_ARGS: &[&str] = &[
     "-display",
     "none",
     "--no-reboot",
-    "-m",
-    "size=2048",
 ];
 
 pub fn run_test_kernel(kernel_binary_path: &str, ramdisk_path: Option<&str>) {
