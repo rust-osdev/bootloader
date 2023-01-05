@@ -7,13 +7,11 @@ use spinning_top::Spinlock;
 /// The global logger instance used for the `log` crate.
 pub static LOGGER: OnceCell<LockedLogger> = OnceCell::uninit();
 
-/// A [`FrameBufferWriter`] instance protected by a spinlock.
-pub struct LockedLogger(
-    Spinlock<FrameBufferWriter>,
-    Spinlock<SerialPort>,
-    LoggerStatus,
-    LoggerStatus,
-);
+/// A logger instance protected by a spinlock.
+pub struct LockedLogger {
+    framebuffer: Option<Spinlock<FrameBufferWriter>>,
+    serial: Option<Spinlock<SerialPort>>,
+}
 
 impl LockedLogger {
     /// Create a new instance that logs to the given framebuffer.
@@ -23,12 +21,20 @@ impl LockedLogger {
         frame_buffer_logger_status: LoggerStatus,
         serial_logger_status: LoggerStatus,
     ) -> Self {
-        LockedLogger(
-            Spinlock::new(FrameBufferWriter::new(framebuffer, info)),
-            Spinlock::new(SerialPort::new()),
-            frame_buffer_logger_status,
-            serial_logger_status,
-        )
+        let framebuffer = match frame_buffer_logger_status {
+            LoggerStatus::Enable => Some(Spinlock::new(FrameBufferWriter::new(framebuffer, info))),
+            LoggerStatus::Disable => None,
+        };
+
+        let serial = match serial_logger_status {
+            LoggerStatus::Enable => Some(Spinlock::new(SerialPort::new())),
+            LoggerStatus::Disable => None,
+        };
+
+        LockedLogger {
+            framebuffer,
+            serial,
+        }
     }
 
     /// Force-unlocks the logger to prevent a deadlock.
@@ -36,10 +42,12 @@ impl LockedLogger {
     /// ## Safety
     /// This method is not memory safe and should be only used when absolutely necessary.
     pub unsafe fn force_unlock(&self) {
-        unsafe {
-            self.0.force_unlock();
-            self.1.force_unlock();
-        };
+        if let Some(framebuffer) = &self.framebuffer {
+            unsafe { framebuffer.force_unlock() };
+        }
+        if let Some(serial) = &self.serial {
+            unsafe { serial.force_unlock() };
+        }
     }
 }
 
@@ -49,12 +57,12 @@ impl log::Log for LockedLogger {
     }
 
     fn log(&self, record: &log::Record) {
-        if self.2 == LoggerStatus::Enable {
-            let mut logger = self.0.lock();
-            writeln!(logger, "{:5}: {}", record.level(), record.args()).unwrap();
+        if let Some(framebuffer) = &self.framebuffer {
+            let mut framebuffer = framebuffer.lock();
+            writeln!(framebuffer, "{:5}: {}", record.level(), record.args()).unwrap();
         }
-        if self.3 == LoggerStatus::Enable {
-            let mut serial = self.1.lock();
+        if let Some(serial) = &self.serial {
+            let mut serial = serial.lock();
             writeln!(serial, "{:5}: {}", record.level(), record.args()).unwrap();
         }
     }
