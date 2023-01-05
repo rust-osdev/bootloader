@@ -39,8 +39,8 @@ bootloader-x86_64-bios-common = { version = "0.11.0", path = "bios/common" }
 
 [features]
 default = ["bios", "uefi"]
-bios = ["mbrman", "bootloader_test_runner/bios"]
-uefi = ["gpt", "bootloader_test_runner/uefi"]
+bios = ["dep:mbrman", "bootloader_test_runner/bios"]
+uefi = ["dep:gpt", "bootloader_test_runner/uefi"]
 
 [dependencies]
 anyhow = "1.0.32"
