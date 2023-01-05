@@ -3,22 +3,28 @@ use std::{
     process::Command,
 };
 
-const BOOTLOADER_X86_64_UEFI_VERSION: &str = env!("CARGO_PKG_VERSION");
-
-const BOOTLOADER_X86_64_BIOS_BOOT_SECTOR_VERSION: &str = env!("CARGO_PKG_VERSION");
-const BOOTLOADER_X86_64_BIOS_STAGE_2_VERSION: &str = env!("CARGO_PKG_VERSION");
-const BOOTLOADER_X86_64_BIOS_STAGE_3_VERSION: &str = env!("CARGO_PKG_VERSION");
-const BOOTLOADER_X86_64_BIOS_STAGE_4_VERSION: &str = env!("CARGO_PKG_VERSION");
+const BOOTLOADER_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() {
-    let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
+    #[cfg(any(feature = "uefi", feature = "pxe"))]
+    uefi_main();
+    #[cfg(feature = "bios")]
+    bios_main();
+}
 
+#[cfg(all(any(feature = "uefi", feature = "pxe"), not(docsrs_dummy_build)))]
+fn uefi_main() {
+    let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
     let uefi_path = build_uefi_bootloader(&out_dir);
     println!(
         "cargo:rustc-env=UEFI_BOOTLOADER_PATH={}",
         uefi_path.display()
     );
+}
 
+#[cfg(all(feature = "bios", not(docsrs_dummy_build)))]
+fn bios_main() {
+    let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
     let bios_boot_sector_path = build_bios_boot_sector(&out_dir);
     println!(
         "cargo:rustc-env=BIOS_BOOT_SECTOR_PATH={}",
@@ -43,7 +49,7 @@ fn main() {
     );
 }
 
-#[cfg(not(docsrs_dummy_build))]
+#[cfg(all(any(feature = "uefi", feature = "pxe"), not(docsrs_dummy_build)))]
 fn build_uefi_bootloader(out_dir: &Path) -> PathBuf {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
     let mut cmd = Command::new(cargo);
@@ -53,7 +59,7 @@ fn build_uefi_bootloader(out_dir: &Path) -> PathBuf {
         cmd.arg("--path").arg("uefi");
         println!("cargo:rerun-if-changed=uefi");
     } else {
-        cmd.arg("--version").arg(BOOTLOADER_X86_64_UEFI_VERSION);
+        cmd.arg("--version").arg(BOOTLOADER_VERSION);
     }
     cmd.arg("--locked");
     cmd.arg("--target").arg("x86_64-unknown-uefi");
@@ -77,7 +83,7 @@ fn build_uefi_bootloader(out_dir: &Path) -> PathBuf {
     }
 }
 
-#[cfg(not(docsrs_dummy_build))]
+#[cfg(all(feature = "bios", not(docsrs_dummy_build)))]
 fn build_bios_boot_sector(out_dir: &Path) -> PathBuf {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
     let mut cmd = Command::new(cargo);
@@ -90,8 +96,7 @@ fn build_bios_boot_sector(out_dir: &Path) -> PathBuf {
         cmd.arg("--path").arg(&local_path);
         println!("cargo:rerun-if-changed={}", local_path.display());
     } else {
-        cmd.arg("--version")
-            .arg(BOOTLOADER_X86_64_BIOS_BOOT_SECTOR_VERSION);
+        cmd.arg("--version").arg(BOOTLOADER_VERSION);
     }
     cmd.arg("--locked");
     cmd.arg("--target").arg("i386-code16-boot-sector.json");
@@ -120,7 +125,7 @@ fn build_bios_boot_sector(out_dir: &Path) -> PathBuf {
     convert_elf_to_bin(elf_path)
 }
 
-#[cfg(not(docsrs_dummy_build))]
+#[cfg(all(feature = "bios", not(docsrs_dummy_build)))]
 fn build_bios_stage_2(out_dir: &Path) -> PathBuf {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
     let mut cmd = Command::new(cargo);
@@ -133,8 +138,7 @@ fn build_bios_stage_2(out_dir: &Path) -> PathBuf {
         cmd.arg("--path").arg(&local_path);
         println!("cargo:rerun-if-changed={}", local_path.display());
     } else {
-        cmd.arg("--version")
-            .arg(BOOTLOADER_X86_64_BIOS_STAGE_2_VERSION);
+        cmd.arg("--version").arg(BOOTLOADER_VERSION);
     }
     cmd.arg("--locked");
     cmd.arg("--target").arg("i386-code16-stage-2.json");
@@ -161,7 +165,7 @@ fn build_bios_stage_2(out_dir: &Path) -> PathBuf {
     convert_elf_to_bin(elf_path)
 }
 
-#[cfg(not(docsrs_dummy_build))]
+#[cfg(all(feature = "bios", not(docsrs_dummy_build)))]
 fn build_bios_stage_3(out_dir: &Path) -> PathBuf {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
     let mut cmd = Command::new(cargo);
@@ -174,8 +178,7 @@ fn build_bios_stage_3(out_dir: &Path) -> PathBuf {
         cmd.arg("--path").arg(&local_path);
         println!("cargo:rerun-if-changed={}", local_path.display());
     } else {
-        cmd.arg("--version")
-            .arg(BOOTLOADER_X86_64_BIOS_STAGE_3_VERSION);
+        cmd.arg("--version").arg(BOOTLOADER_VERSION);
     }
     cmd.arg("--locked");
     cmd.arg("--target").arg("i686-stage-3.json");
@@ -202,7 +205,7 @@ fn build_bios_stage_3(out_dir: &Path) -> PathBuf {
     convert_elf_to_bin(elf_path)
 }
 
-#[cfg(not(docsrs_dummy_build))]
+#[cfg(all(feature = "bios", not(docsrs_dummy_build)))]
 fn build_bios_stage_4(out_dir: &Path) -> PathBuf {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
     let mut cmd = Command::new(cargo);
@@ -215,8 +218,7 @@ fn build_bios_stage_4(out_dir: &Path) -> PathBuf {
         cmd.arg("--path").arg(&local_path);
         println!("cargo:rerun-if-changed={}", local_path.display());
     } else {
-        cmd.arg("--version")
-            .arg(BOOTLOADER_X86_64_BIOS_STAGE_4_VERSION);
+        cmd.arg("--version").arg(BOOTLOADER_VERSION);
     }
     cmd.arg("--locked");
     cmd.arg("--target").arg("x86_64-stage-4.json");
@@ -244,6 +246,7 @@ fn build_bios_stage_4(out_dir: &Path) -> PathBuf {
     convert_elf_to_bin(elf_path)
 }
 
+#[cfg(all(feature = "bios", not(docsrs_dummy_build)))]
 fn convert_elf_to_bin(elf_path: PathBuf) -> PathBuf {
     let flat_binary_path = elf_path.with_extension("bin");
 
@@ -273,23 +276,10 @@ fn convert_elf_to_bin(elf_path: PathBuf) -> PathBuf {
 
 // dummy implementations because docsrs builds have no network access
 
-#[cfg(docsrs_dummy_build)]
-fn build_uefi_bootloader(_out_dir: &Path) -> PathBuf {
-    PathBuf::new()
+#[cfg(all(feature = "uefi", docsrs_dummy_build))]
+fn uefi_main() {
+    // stub
 }
-#[cfg(docsrs_dummy_build)]
-fn build_bios_boot_sector(_out_dir: &Path) -> PathBuf {
-    PathBuf::new()
-}
-#[cfg(docsrs_dummy_build)]
-fn build_bios_stage_2(_out_dir: &Path) -> PathBuf {
-    PathBuf::new()
-}
-#[cfg(docsrs_dummy_build)]
-fn build_bios_stage_3(_out_dir: &Path) -> PathBuf {
-    PathBuf::new()
-}
-#[cfg(docsrs_dummy_build)]
-fn build_bios_stage_4(_out_dir: &Path) -> PathBuf {
-    PathBuf::new()
-}
+
+#[cfg(all(feature = "bios", docsrs_dummy_build))]
+fn bios_main() {}

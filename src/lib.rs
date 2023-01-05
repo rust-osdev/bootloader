@@ -12,15 +12,14 @@ use std::{
 use tempfile::NamedTempFile;
 
 mod fat;
+#[cfg(feature = "uefi")]
 mod gpt;
+
+#[cfg(feature = "bios")]
 mod mbr;
 
 const KERNEL_FILE_NAME: &str = "kernel-x86_64";
 const RAMDISK_FILE_NAME: &str = "ramdisk";
-const BIOS_STAGE_3: &str = "boot-stage-3";
-const BIOS_STAGE_4: &str = "boot-stage-4";
-const UEFI_BOOT_FILENAME: &str = "efi/boot/bootx64.efi";
-const UEFI_TFTP_BOOT_FILENAME: &str = "bootloader";
 
 struct DiskImageFile<'a> {
     source: &'a PathBuf,
@@ -87,9 +86,11 @@ impl<'a> DiskImageBuilder<'a> {
 
         Ok(out_file)
     }
-
+    #[cfg(feature = "bios")]
     /// Create an MBR disk image for booting on BIOS systems.
     pub fn create_bios_image(&self, image_filename: &Path) -> anyhow::Result<()> {
+        const BIOS_STAGE_3: &str = "boot-stage-3";
+        const BIOS_STAGE_4: &str = "boot-stage-4";
         let bootsector_path = Path::new(env!("BIOS_BOOT_SECTOR_PATH"));
         let stage_2_path = Path::new(env!("BIOS_STAGE_2_PATH"));
         let stage_3_path = Path::new(env!("BIOS_STAGE_3_PATH"));
@@ -114,8 +115,11 @@ impl<'a> DiskImageBuilder<'a> {
             .context("failed to delete FAT partition after disk image creation")?;
         Ok(())
     }
+
+    #[cfg(feature = "uefi")]
     /// Create a GPT disk image for booting on UEFI systems.
     pub fn create_uefi_image(&self, image_filename: &Path) -> anyhow::Result<()> {
+        const UEFI_BOOT_FILENAME: &str = "efi/boot/bootx64.efi";
         let bootloader_path = Path::new(env!("UEFI_BOOTLOADER_PATH"));
         let mut internal_files = BTreeMap::new();
         internal_files.insert(UEFI_BOOT_FILENAME, bootloader_path);
@@ -131,8 +135,10 @@ impl<'a> DiskImageBuilder<'a> {
         Ok(())
     }
 
+    #[cfg(all(feature = "uefi", feature = "pxe"))]
     /// Create a folder containing the needed files for UEFI TFTP/PXE booting.
     pub fn create_uefi_tftp_folder(&self, tftp_path: &Path) -> anyhow::Result<()> {
+        const UEFI_TFTP_BOOT_FILENAME: &str = "bootloader";
         let bootloader_path = Path::new(env!("UEFI_BOOTLOADER_PATH"));
         std::fs::create_dir_all(tftp_path)
             .with_context(|| format!("failed to create out dir at {}", tftp_path.display()))?;
