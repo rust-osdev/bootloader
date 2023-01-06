@@ -10,12 +10,8 @@ const QEMU_ARGS: &[&str] = &[
     "--no-reboot",
 ];
 
-pub fn run_test_kernel(kernel_binary_path: &str, ramdisk_path: Option<&str>) {
+pub fn run_test_kernel(kernel_binary_path: &str, ramdisk_path: Option<&Path>) {
     let kernel_path = Path::new(kernel_binary_path);
-    let ramdisk_path = match ramdisk_path {
-        Some(rdp) => Some(Path::new(rdp)),
-        None => None,
-    };
 
     // create an MBR disk image for legacy BIOS booting
     let mbr_path = kernel_path.with_extension("mbr");
