@@ -72,17 +72,14 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
     unsafe {
         *SYSTEM_TABLE.get() = Some(st.unsafe_clone());
     }
-    let stdout = unsafe { &mut *SYSTEM_TABLE.get() };
-    let stdout = stdout.as_mut().unwrap();
-    let stdout = stdout.stdout();
-    stdout.clear().unwrap();
+    st.stdout().clear().unwrap();
     writeln!(st.stdout(), "UEFI bootloader started; trying to load kernel").unwrap();
 
     let mut boot_mode = BootMode::Disk;
     let mut kernel = load_kernel(image, &mut st, boot_mode);
     if kernel.is_none() {
         writeln!(
-            stdout,
+            st.stdout(),
             "Failed to load kernel via {:?}, trying TFTP",
             boot_mode
         )
@@ -92,12 +89,12 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
         kernel = load_kernel(image, &mut st, boot_mode);
     }
     let kernel = kernel.expect("Failed to load kernel");
-    writeln!(stdout, "Trying to load ramdisk via {:?}", boot_mode).unwrap();
+    writeln!(st.stdout(), "Trying to load ramdisk via {:?}", boot_mode).unwrap();
     // Ramdisk must load from same source, or not at all.
     let ramdisk = load_ramdisk(image, &mut st, boot_mode);
 
     writeln!(
-        stdout,
+        st.stdout(),
         "{}",
         match ramdisk {
             Some(_) => "Loaded ramdisk",
