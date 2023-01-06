@@ -27,7 +27,6 @@ const BOOTLOADER_SECOND_STAGE_PARTITION_TYPE: u8 = 0x20;
 const STAGE_3_DST: *mut u8 = 0x0010_0000 as *mut u8; // 1MiB (typically 14MiB accessible here)
 const STAGE_4_DST: *mut u8 = 0x0020_0000 as *mut u8; // 2MiB (typically still 13MiB accessible here)
 const KERNEL_DST: *mut u8 = 0x0100_0000 as *mut u8; // 16MiB
-const RAMDISK_DST: *mut u8 = 0x0400_0000 as *mut u8; // 64MiB
 
 static mut DISK_BUFFER: AlignedArrayBuffer<0x4000> = AlignedArrayBuffer {
     buffer: [0; 0x4000],
@@ -99,8 +98,10 @@ fn start(disk_number: u16, partition_table_start: *const u8) -> ! {
     writeln!(screen::Writer, "loading kernel...").unwrap();
     let kernel_len = load_file("kernel-x86_64", KERNEL_DST, &mut fs, &mut disk, disk_buffer);
     writeln!(screen::Writer, "kernel loaded at {KERNEL_DST:#p}").unwrap();
+    let kernel_page_size = (((kernel_len - 1) / 4096) + 1) as usize;
+    let ramdisk_start = KERNEL_DST.wrapping_add(kernel_page_size * 4096);
     writeln!(screen::Writer, "Loading ramdisk...").unwrap();
-    let ramdisk_len = match try_load_file("ramdisk", RAMDISK_DST, &mut fs, &mut disk, disk_buffer) {
+    let ramdisk_len = match try_load_file("ramdisk", KERNEL_DST.wrapping_add(kernel_page_size * 4096), &mut fs, &mut disk, disk_buffer) {
         Some(s) => s,
         None => 0u64,
     };
@@ -108,7 +109,7 @@ fn start(disk_number: u16, partition_table_start: *const u8) -> ! {
     if ramdisk_len == 0 {
         writeln!(screen::Writer, "No ramdisk found, skipping.").unwrap();
     } else {
-        writeln!(screen::Writer, "Loaded ramdisk at {RAMDISK_DST:#p}").unwrap();
+        writeln!(screen::Writer, "Loaded ramdisk at {ramdisk_start:#p}").unwrap();
     }
 
     let memory_map = unsafe { memory_map::query_memory_map() }.unwrap();
@@ -142,7 +143,7 @@ fn start(disk_number: u16, partition_table_start: *const u8) -> ! {
             len: kernel_len,
         },
         ramdisk: Region {
-            start: RAMDISK_DST as u64,
+            start: ramdisk_start as u64,
             len: ramdisk_len,
         },
         memory_map_addr: memory_map.as_mut_ptr() as u32,
