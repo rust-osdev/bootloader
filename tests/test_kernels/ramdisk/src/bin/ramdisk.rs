@@ -27,8 +27,6 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
 #[cfg(not(test))]
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
-    use core::fmt::Write;
-
     let _ = writeln!(test_kernel_ramdisk::serial(), "PANIC: {}", info);
     exit_qemu(QemuExitCode::Failed);
 }

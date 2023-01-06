@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use bootloader_test_runner::run_test_kernel;
 static RAMDISK_PATH: &str = "tests/ramdisk.txt";
 
@@ -5,7 +7,7 @@ static RAMDISK_PATH: &str = "tests/ramdisk.txt";
 fn basic_boot() {
     run_test_kernel(
         env!("CARGO_BIN_FILE_TEST_KERNEL_RAMDISK_basic_boot"),
-        Some(RAMDISK_PATH),
+        Some(&Path::new(RAMDISK_PATH)),
     );
 }
 
@@ -13,6 +15,6 @@ fn basic_boot() {
 fn check_ramdisk() {
     run_test_kernel(
         env!("CARGO_BIN_FILE_TEST_KERNEL_RAMDISK_ramdisk"),
-        Some(RAMDISK_PATH),
+        Some(&Path::new(RAMDISK_PATH)),
     );
 }
