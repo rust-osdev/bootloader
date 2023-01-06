@@ -149,12 +149,12 @@ impl MemoryRegion {
 #[non_exhaustive]
 #[repr(C)]
 pub enum MemoryRegionKind {
-    /// Unused conventional memory, can be used by the kernel.
-    Usable,
     /// Memory mappings created by the bootloader, including the page table and boot info mappings.
     ///
     /// This memory should _not_ be used by the kernel.
     Bootloader,
+    /// Unused conventional memory, can be used by the kernel.
+    Usable,
     /// An unknown memory region reported by the UEFI firmware.
     ///
     /// Contains the UEFI memory type tag.
