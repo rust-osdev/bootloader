@@ -103,7 +103,7 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
     )
     .unwrap();
 
-    let framebuffer = init_logger(&st, kernel.config);
+    let framebuffer = init_logger(image, &st, kernel.config);
     unsafe {
         *SYSTEM_TABLE.get() = None;
     }
@@ -439,7 +439,7 @@ fn create_page_tables(
     }
 }
 
-fn init_logger(st: &SystemTable<Boot>, config: BootloaderConfig) -> Option<RawFrameBufferInfo> {
+fn init_logger(image_handle: Handle, st: &SystemTable<Boot>, config: BootloaderConfig) -> Option<RawFrameBufferInfo> {
     let gop_handle = st
         .boot_services()
         .get_handle_for_protocol::<GraphicsOutput>()
@@ -449,7 +449,7 @@ fn init_logger(st: &SystemTable<Boot>, config: BootloaderConfig) -> Option<RawFr
             .open_protocol::<GraphicsOutput>(
                 OpenProtocolParams {
                     handle: gop_handle,
-                    agent: st.boot_services().image_handle(),
+                    agent: image_handle,
                     controller: None,
                 },
                 OpenProtocolAttributes::Exclusive,
