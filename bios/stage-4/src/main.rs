@@ -58,7 +58,7 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
     let kernel_size = info.kernel.len;
     let next_free_frame = match info.ramdisk.len {
         0 => PhysFrame::containing_address(kernel_start + kernel_size - 1u64) + 1,
-        _ => PhysFrame::containing_address(PhysAddr::new(info.ramdisk.start + info.ramdisk.len)) + 1
+        _ => PhysFrame::containing_address(PhysAddr::new(info.ramdisk.start + info.ramdisk.len - 1u64)) + 1
     };
     let mut frame_allocator = LegacyFrameAllocator::new_starting_at(
         next_free_frame,
