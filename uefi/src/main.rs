@@ -76,7 +76,7 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
     let stdout = stdout.as_mut().unwrap();
     let stdout = stdout.stdout();
     stdout.clear().unwrap();
-    writeln!(stdout, "UEFI bootloader started; trying to load kernel").unwrap();
+    writeln!(st.stdout(), "UEFI bootloader started; trying to load kernel").unwrap();
 
     let mut boot_mode = BootMode::Disk;
     let mut kernel = load_kernel(image, &mut st, boot_mode);
