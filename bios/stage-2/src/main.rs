@@ -101,7 +101,13 @@ fn start(disk_number: u16, partition_table_start: *const u8) -> ! {
     let kernel_page_size = (((kernel_len - 1) / 4096) + 1) as usize;
     let ramdisk_start = KERNEL_DST.wrapping_add(kernel_page_size * 4096);
     writeln!(screen::Writer, "Loading ramdisk...").unwrap();
-    let ramdisk_len = match try_load_file("ramdisk", KERNEL_DST.wrapping_add(kernel_page_size * 4096), &mut fs, &mut disk, disk_buffer) {
+    let ramdisk_len = match try_load_file(
+        "ramdisk",
+        KERNEL_DST.wrapping_add(kernel_page_size * 4096),
+        &mut fs,
+        &mut disk,
+        disk_buffer,
+    ) {
         Some(s) => s,
         None => 0u64,
     };
