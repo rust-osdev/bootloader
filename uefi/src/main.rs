@@ -73,7 +73,11 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
         *SYSTEM_TABLE.get() = Some(st.unsafe_clone());
     }
     st.stdout().clear().unwrap();
-    writeln!(st.stdout(), "UEFI bootloader started; trying to load kernel").unwrap();
+    writeln!(
+        st.stdout(),
+        "UEFI bootloader started; trying to load kernel"
+    )
+    .unwrap();
 
     let mut boot_mode = BootMode::Disk;
     let mut kernel = load_kernel(image, &mut st, boot_mode);
@@ -439,7 +443,11 @@ fn create_page_tables(
     }
 }
 
-fn init_logger(image_handle: Handle, st: &SystemTable<Boot>, config: BootloaderConfig) -> Option<RawFrameBufferInfo> {
+fn init_logger(
+    image_handle: Handle,
+    st: &SystemTable<Boot>,
+    config: BootloaderConfig,
+) -> Option<RawFrameBufferInfo> {
     let gop_handle = st
         .boot_services()
         .get_handle_for_protocol::<GraphicsOutput>()
