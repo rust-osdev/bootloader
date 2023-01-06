@@ -56,22 +56,14 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
         PhysAddr::new(info.kernel.start)
     };
     let kernel_size = info.kernel.len;
-    let mut frame_allocator = if info.ramdisk.start == 0 {
-        let kernel_end = PhysFrame::containing_address(kernel_start + kernel_size - 1u64);
-        let next_free = kernel_end + 1;
-        LegacyFrameAllocator::new_starting_at(
-            next_free,
-            memory_map.iter().copied().map(MemoryRegion),
-        )
-    } else {
-        let ramdisk_end =
-            PhysFrame::containing_address(PhysAddr::new(info.ramdisk.start + info.ramdisk.len));
-        let next_free = ramdisk_end + 1;
-        LegacyFrameAllocator::new_starting_at(
-            next_free,
-            memory_map.iter().copied().map(MemoryRegion),
-        )
+    let next_free_frame = match info.ramdisk.len {
+        0 => PhysFrame::containing_address(kernel_start + kernel_size - 1u64) + 1,
+        _ => PhysFrame::containing_address(PhysAddr::new(info.ramdisk.start + info.ramdisk.len)) + 1
     };
+    let mut frame_allocator = LegacyFrameAllocator::new_starting_at(
+        next_free_frame,
+        memory_map.iter().copied().map(MemoryRegion),
+    );
 
     // We identity-mapped all memory, so the offset between physical and virtual addresses is 0
     let phys_offset = VirtAddr::new(0);
