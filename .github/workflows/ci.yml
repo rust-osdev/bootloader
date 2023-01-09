@@ -6,6 +6,11 @@ on:
   schedule:
     - cron: "40 5 * * *" # every day at 5:40
 
+# This causes PR pushes to cancel previous builds, but does not impact cron jobs due to use of .ref, which will have the commit.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
     name: Check
