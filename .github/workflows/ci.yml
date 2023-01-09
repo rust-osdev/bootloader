@@ -74,6 +74,15 @@ jobs:
       - name: Run integration test for feature ${{ matrix.feature }}
         run: cargo test --no-default-features --features ${{ matrix.feature }}
 
+  test-features-status:
+    needs: test-features
+    runs-on: ubuntu-latest
+    name: "Feature tests pass"
+    steps:
+      - run: exit 0
+
+
+
   test:
     name: Test
     strategy:
