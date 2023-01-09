@@ -42,7 +42,7 @@ impl BiosBoot {
         self
     }
 
-    /// Create a bootable UEFI disk image at the given path.
+    /// Create a bootable BIOS disk image at the given path.
     pub fn create_disk_image(&self, out_path: &Path) -> anyhow::Result<()> {
         let bootsector_path = Path::new(env!("BIOS_BOOT_SECTOR_PATH"));
         let stage_2_path = Path::new(env!("BIOS_STAGE_2_PATH"));
