@@ -32,12 +32,12 @@ pub struct BootloaderConfig {
     /// screen when booting. The default is 'Trace'.
     pub log_level: LevelFilter,
 
-    /// Wheter the bootloader should print log messages to the framebuffer when booting.
+    /// Whether the bootloader should print log messages to the framebuffer when booting.
     ///
     /// Enabled by default.
     pub frame_buffer_logger_status: LoggerStatus,
 
-    /// Wheter the bootloader should print log messages to the serial port when booting.
+    /// Whether the bootloader should print log messages to the serial port when booting.
     ///
     /// Enabled by default.
     pub serial_logger_status: LoggerStatus,
