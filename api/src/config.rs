@@ -27,6 +27,20 @@ pub struct BootloaderConfig {
     /// Configuration for the frame buffer that can be used by the kernel to display pixels
     /// on the screen.
     pub frame_buffer: FrameBuffer,
+
+    /// Configuration for changing the level of the filter of the messages that are shown in the
+    /// screen when booting. The default is 'Trace'.
+    pub log_level: LevelFilter,
+
+    /// Whether the bootloader should print log messages to the framebuffer when booting.
+    ///
+    /// Enabled by default.
+    pub frame_buffer_logger_status: LoggerStatus,
+
+    /// Whether the bootloader should print log messages to the serial port when booting.
+    ///
+    /// Enabled by default.
+    pub serial_logger_status: LoggerStatus,
 }
 
 impl BootloaderConfig {
@@ -35,7 +49,7 @@ impl BootloaderConfig {
         0x3D,
     ];
     #[doc(hidden)]
-    pub const SERIALIZED_LEN: usize = 115;
+    pub const SERIALIZED_LEN: usize = 118;
 
     /// Creates a new default configuration with the following values:
     ///
@@ -48,6 +62,9 @@ impl BootloaderConfig {
             version: ApiVersion::new_default(),
             mappings: Mappings::new_default(),
             frame_buffer: FrameBuffer::new_default(),
+            log_level: LevelFilter::Trace,
+            frame_buffer_logger_status: LoggerStatus::Enable,
+            serial_logger_status: LoggerStatus::Enable,
         }
     }
 
@@ -61,6 +78,9 @@ impl BootloaderConfig {
             mappings,
             kernel_stack_size,
             frame_buffer,
+            log_level,
+            frame_buffer_logger_status,
+            serial_logger_status,
         } = self;
         let ApiVersion {
             version_major,
@@ -133,12 +153,22 @@ impl BootloaderConfig {
             },
         );
 
-        concat_106_9(
+        let buf = concat_106_9(
             buf,
             match minimum_framebuffer_width {
                 Option::None => [0; 9],
                 Option::Some(addr) => concat_1_8([1], addr.to_le_bytes()),
             },
+        );
+
+        let log_level = concat_115_1(buf, (*log_level as u8).to_le_bytes());
+
+        let frame_buffer_logger_status =
+            concat_116_1(log_level, (*frame_buffer_logger_status as u8).to_le_bytes());
+
+        concat_117_1(
+            frame_buffer_logger_status,
+            (*serial_logger_status as u8).to_le_bytes(),
         )
     }
 
@@ -252,6 +282,28 @@ impl BootloaderConfig {
             (frame_buffer, s)
         };
 
+        let (&log_level, s) = split_array_ref(s);
+        let log_level = LevelFilter::from_u8(u8::from_le_bytes(log_level));
+        let log_level = match log_level {
+            Option::Some(level) => level,
+            Option::None => return Err("log_level invalid"),
+        };
+
+        let (&frame_buffer_logger_status, s) = split_array_ref(s);
+        let frame_buffer_logger_status =
+            LoggerStatus::from_u8(u8::from_le_bytes(frame_buffer_logger_status));
+        let frame_buffer_logger_status = match frame_buffer_logger_status {
+            Option::Some(status) => status,
+            Option::None => return Err("frame_buffer_logger_status invalid"),
+        };
+
+        let (&serial_logger_status, s) = split_array_ref(s);
+        let serial_logger_status = LoggerStatus::from_u8(u8::from_le_bytes(serial_logger_status));
+        let serial_logger_status = match serial_logger_status {
+            Option::Some(status) => status,
+            Option::None => return Err("serial_logger_status invalid"),
+        };
+
         if !s.is_empty() {
             return Err("unexpected rest");
         }
@@ -261,6 +313,9 @@ impl BootloaderConfig {
             kernel_stack_size: u64::from_le_bytes(kernel_stack_size),
             mappings,
             frame_buffer,
+            log_level,
+            frame_buffer_logger_status,
+            serial_logger_status,
         })
     }
 
@@ -271,6 +326,9 @@ impl BootloaderConfig {
             mappings: Mappings::random(),
             kernel_stack_size: rand::random(),
             frame_buffer: FrameBuffer::random(),
+            log_level: LevelFilter::Trace,
+            frame_buffer_logger_status: LoggerStatus::Enable,
+            serial_logger_status: LoggerStatus::Enable,
         }
     }
 }
@@ -531,6 +589,63 @@ impl Mapping {
 impl Default for Mapping {
     fn default() -> Self {
         Self::new_default()
+    }
+}
+
+/// An enum representing the available verbosity level filters of the logger.
+///
+/// Based on
+/// https://github.com/rust-lang/log/blob/dc32ab999f52805d5ce579b526bd9d9684c38d1a/src/lib.rs#L552-565
+#[repr(u8)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum LevelFilter {
+    /// A level lower than all log levels.
+    Off,
+    /// Corresponds to the `Error` log level.
+    Error,
+    /// Corresponds to the `Warn` log level.
+    Warn,
+    /// Corresponds to the `Info` log level.
+    Info,
+    /// Corresponds to the `Debug` log level.
+    Debug,
+    /// Corresponds to the `Trace` log level.
+    Trace,
+}
+
+impl LevelFilter {
+    /// Converts a u8 into a Option<LevelFilter>
+    pub fn from_u8(value: u8) -> Option<LevelFilter> {
+        match value {
+            0 => Some(Self::Off),
+            1 => Some(Self::Error),
+            2 => Some(Self::Warn),
+            3 => Some(Self::Info),
+            4 => Some(Self::Debug),
+            5 => Some(Self::Trace),
+            _ => None,
+        }
+    }
+}
+
+/// An enum for enabling or disabling the different methods for logging.
+#[repr(u8)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum LoggerStatus {
+    /// This method of logging is disabled
+    Disable,
+    /// This method of logging is enabled
+    Enable,
+}
+
+impl LoggerStatus {
+    /// Converts an u8 into a Option<LoggerStatus>
+    pub fn from_u8(value: u8) -> Option<LoggerStatus> {
+        match value {
+            0 => Some(Self::Disable),
+            1 => Some(Self::Enable),
+            _ => None,
+        }
     }
 }
 

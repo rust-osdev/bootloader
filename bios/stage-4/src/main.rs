@@ -2,7 +2,10 @@
 #![no_main]
 
 use crate::memory_descriptor::MemoryRegion;
-use bootloader_api::info::{FrameBufferInfo, PixelFormat};
+use bootloader_api::{
+    config::{LevelFilter, LoggerStatus},
+    info::{FrameBufferInfo, PixelFormat},
+};
 use bootloader_x86_64_bios_common::{BiosFramebufferInfo, BiosInfo, E820MemoryRegion};
 use bootloader_x86_64_common::RawFrameBufferInfo;
 use bootloader_x86_64_common::{
@@ -24,10 +27,6 @@ mod memory_descriptor;
 #[no_mangle]
 #[link_section = ".start"]
 pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
-    let framebuffer_info = init_logger(info.framebuffer);
-    log::info!("4th Stage");
-    log::info!("{info:x?}");
-
     let memory_map: &mut [E820MemoryRegion] = unsafe {
         core::slice::from_raw_parts_mut(
             info.memory_map_addr as *mut _,
@@ -102,8 +101,6 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
     // it's mapped using `invlpg`, for efficiency.
     x86_64::instructions::tlb::flush_all();
 
-    log::info!("BIOS boot");
-
     let page_tables = create_page_tables(&mut frame_allocator);
 
     let kernel_slice = {
@@ -111,6 +108,17 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
         unsafe { slice::from_raw_parts(ptr, usize_from(kernel_size)) }
     };
     let kernel = Kernel::parse(kernel_slice);
+
+    let framebuffer_info = init_logger(
+        info.framebuffer,
+        kernel.config.log_level,
+        kernel.config.frame_buffer_logger_status,
+        kernel.config.serial_logger_status,
+    );
+
+    log::info!("4th Stage");
+    log::info!("{info:x?}");
+    log::info!("BIOS boot");
 
     let system_info = SystemInfo {
         framebuffer: Some(RawFrameBufferInfo {
@@ -123,7 +131,12 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
     load_and_switch_to_kernel(kernel, frame_allocator, page_tables, system_info);
 }
 
-fn init_logger(info: BiosFramebufferInfo) -> FrameBufferInfo {
+fn init_logger(
+    info: BiosFramebufferInfo,
+    log_level: LevelFilter,
+    frame_buffer_logger_status: LoggerStatus,
+    serial_logger_status: LoggerStatus,
+) -> FrameBufferInfo {
     let framebuffer_info = FrameBufferInfo {
         byte_len: info.region.len.try_into().unwrap(),
         width: info.width.into(),
@@ -152,7 +165,13 @@ fn init_logger(info: BiosFramebufferInfo) -> FrameBufferInfo {
         )
     };
 
-    bootloader_x86_64_common::init_logger(framebuffer, framebuffer_info);
+    bootloader_x86_64_common::init_logger(
+        framebuffer,
+        framebuffer_info,
+        log_level,
+        frame_buffer_logger_status,
+        serial_logger_status,
+    );
 
     framebuffer_info
 }

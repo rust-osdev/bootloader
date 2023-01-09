@@ -420,7 +420,13 @@ fn init_logger(st: &SystemTable<Boot>, config: BootloaderConfig) -> Option<RawFr
 
     log::info!("UEFI boot");
 
-    bootloader_x86_64_common::init_logger(slice, info);
+    bootloader_x86_64_common::init_logger(
+        slice,
+        info,
+        config.log_level,
+        config.frame_buffer_logger_status,
+        config.serial_logger_status,
+    );
 
     Some(RawFrameBufferInfo {
         addr: PhysAddr::new(framebuffer.as_mut_ptr() as u64),
