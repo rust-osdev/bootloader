@@ -186,7 +186,10 @@ impl FrameBuffer {
         unsafe { self.create_buffer_mut() }
     }
 
-    /// The same as buffer_mut() but takes the ownership and returns the mutable buffer as static. So it's not possible to calling it twice.
+    /// Converts the frame buffer to a raw byte slice.
+    ///
+    /// The same as `buffer_mut()` but takes the ownership and returns the
+    /// mutable buffer with a `'static` lifetime.
     pub fn into_buffer(self) -> &'static mut [u8] {
         unsafe { self.create_buffer_mut() }
     }
