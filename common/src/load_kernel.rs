@@ -1,6 +1,7 @@
 use crate::{level_4_entries::UsedLevel4Entries, PAGE_SIZE};
 use bootloader_api::info::TlsTemplate;
-use core::mem::align_of;
+use core::{cmp, iter::Step, mem::size_of, ops::Add};
+use log::debug;
 
 use x86_64::{
     align_up,
@@ -29,7 +30,7 @@ struct Loader<'a, M, F> {
 
 struct Inner<'a, M, F> {
     kernel_offset: PhysAddr,
-    virtual_address_offset: u64,
+    virtual_address_offset: VirtualAddressOffset,
     page_table: &'a mut M,
     frame_allocator: &'a mut F,
 }
@@ -59,24 +60,35 @@ where
         let virtual_address_offset = match elf_file.header.pt2.type_().as_type() {
             header::Type::None => unimplemented!(),
             header::Type::Relocatable => unimplemented!(),
-            header::Type::Executable => 0,
+            header::Type::Executable => VirtualAddressOffset::zero(),
             header::Type::SharedObject => {
                 // Find the highest virtual memory address and the biggest alignment.
                 let load_program_headers = elf_file
                     .program_iter()
                     .filter(|h| matches!(h.get_type(), Ok(Type::Load)));
-                let size = load_program_headers
+                let max_addr = load_program_headers
                     .clone()
                     .map(|h| h.virtual_addr() + h.mem_size())
                     .max()
                     .unwrap_or(0);
+                let min_addr = load_program_headers
+                    .clone()
+                    .map(|h| h.virtual_addr())
+                    .min()
+                    .unwrap_or(0);
+                let size = max_addr - min_addr;
                 let align = load_program_headers.map(|h| h.align()).max().unwrap_or(1);
 
-                used_entries.get_free_address(size, align).as_u64()
+                let offset = used_entries.get_free_address(size, align).as_u64();
+                VirtualAddressOffset::new(i128::from(offset) - i128::from(min_addr))
             }
             header::Type::Core => unimplemented!(),
             header::Type::ProcessorSpecific(_) => unimplemented!(),
         };
+        log::info!(
+            "virtual_address_offset: {:#x}",
+            virtual_address_offset.virtual_address_offset()
+        );
 
         used_entries.mark_segments(elf_file.program_iter(), virtual_address_offset);
 
@@ -141,7 +153,7 @@ where
     }
 
     fn entry_point(&self) -> VirtAddr {
-        VirtAddr::new(self.elf_file.header.pt2.entry_point() + self.inner.virtual_address_offset)
+        VirtAddr::new(self.inner.virtual_address_offset + self.elf_file.header.pt2.entry_point())
     }
 }
 
@@ -158,7 +170,7 @@ where
         let end_frame: PhysFrame =
             PhysFrame::containing_address(phys_start_addr + segment.file_size() - 1u64);
 
-        let virt_start_addr = VirtAddr::new(segment.virtual_addr()) + self.virtual_address_offset;
+        let virt_start_addr = VirtAddr::new(self.virtual_address_offset + segment.virtual_addr());
         let start_page: Page = Page::containing_address(virt_start_addr);
 
         let mut segment_flags = Flags::PRESENT;
@@ -198,7 +210,7 @@ where
     ) -> Result<(), &'static str> {
         log::info!("Mapping bss section");
 
-        let virt_start_addr = VirtAddr::new(segment.virtual_addr()) + self.virtual_address_offset;
+        let virt_start_addr = VirtAddr::new(self.virtual_address_offset + segment.virtual_addr());
         let mem_size = segment.mem_size();
         let file_size = segment.file_size();
 
@@ -278,6 +290,138 @@ where
         }
 
         Ok(())
+    }
+
+    /// Copy from the kernel address space.
+    ///
+    /// ## Panics
+    ///
+    /// Panics if a page is not mapped in `self.page_table`.
+    fn copy_from(&self, addr: VirtAddr, buf: &mut [u8]) {
+        // We can't know for sure that contigous virtual address are contigous
+        // in physical memory, so we iterate of the pages spanning the
+        // addresses, translate them to frames and copy the data.
+
+        let end_inclusive_addr = Step::forward_checked(addr, buf.len() - 1)
+            .expect("end address outside of the virtual address space");
+        let start_page = Page::<Size4KiB>::containing_address(addr);
+        let end_inclusive_page = Page::<Size4KiB>::containing_address(end_inclusive_addr);
+
+        for page in start_page..=end_inclusive_page {
+            // Translate the virtual page to the physical frame.
+            debug!("{page:?}");
+            let phys_addr = self
+                .page_table
+                .translate_page(page)
+                .expect("address is not mapped to the kernel's memory space");
+
+            // Figure out which address range we want to copy from the frame.
+
+            // This page covers these addresses.
+            let page_start = page.start_address();
+            let page_end_inclusive = page.start_address() + 4095u64;
+
+            // We want to copy from the following address in this frame.
+            let start_copy_address = cmp::max(addr, page_start);
+            let end_inclusive_copy_address = cmp::min(end_inclusive_addr, page_end_inclusive);
+
+            // These are the offsets into the frame we want to copy from.
+            let start_offset_in_frame = (start_copy_address - page_start) as usize;
+            let end_inclusive_offset_in_frame = (end_inclusive_copy_address - page_start) as usize;
+
+            // Calculate how many bytes we want to copy from this frame.
+            let copy_len = end_inclusive_offset_in_frame - start_offset_in_frame + 1;
+
+            // Calculate the physical addresses.
+            let start_phys_addr = phys_addr.start_address() + start_offset_in_frame;
+
+            // These are the offsets from the start address. These correspond
+            // to the destionation indices in `buf`.
+            let start_offset_in_buf = Step::steps_between(&addr, &start_copy_address).unwrap();
+
+            // Calculate the source slice.
+            // Utilize that frames are identity mapped.
+            let src_ptr = start_phys_addr.as_u64() as *const u8;
+            let src = unsafe {
+                // SAFETY: We know that this memory is valid because we got it
+                // as a result from a translation. There are not other
+                // references to it.
+                &*core::ptr::slice_from_raw_parts(src_ptr, copy_len)
+            };
+
+            // Calculate the destination pointer.
+            let dest = &mut buf[start_offset_in_buf..][..copy_len];
+
+            // Do the actual copy.
+            dest.copy_from_slice(src);
+        }
+    }
+
+    /// Write to the kernel address space.
+    ///
+    /// ## Safety
+    /// - `addr` should refer to a page mapped by a Load segment.
+    ///  
+    /// ## Panics
+    ///
+    /// Panics if a page is not mapped in `self.page_table`.
+    unsafe fn copy_to(&mut self, addr: VirtAddr, buf: &[u8]) {
+        // We can't know for sure that contigous virtual address are contigous
+        // in physical memory, so we iterate of the pages spanning the
+        // addresses, translate them to frames and copy the data.
+
+        let end_inclusive_addr = Step::forward_checked(addr, buf.len() - 1)
+            .expect("the end address should be in the virtual address space");
+        let start_page = Page::<Size4KiB>::containing_address(addr);
+        let end_inclusive_page = Page::<Size4KiB>::containing_address(end_inclusive_addr);
+
+        for page in start_page..=end_inclusive_page {
+            // Translate the virtual page to the physical frame.
+            let phys_addr = unsafe {
+                // SAFETY: The caller asserts that the pages are mapped by a Load segment.
+                self.make_mut(page)
+            };
+
+            // Figure out which address range we want to copy from the frame.
+
+            // This page covers these addresses.
+            let page_start = page.start_address();
+            let page_end_inclusive = page.start_address() + 4095u64;
+
+            // We want to copy from the following address in this frame.
+            let start_copy_address = cmp::max(addr, page_start);
+            let end_inclusive_copy_address = cmp::min(end_inclusive_addr, page_end_inclusive);
+
+            // These are the offsets into the frame we want to copy from.
+            let start_offset_in_frame = (start_copy_address - page_start) as usize;
+            let end_inclusive_offset_in_frame = (end_inclusive_copy_address - page_start) as usize;
+
+            // Calculate how many bytes we want to copy from this frame.
+            let copy_len = end_inclusive_offset_in_frame - start_offset_in_frame + 1;
+
+            // Calculate the physical addresses.
+            let start_phys_addr = phys_addr.start_address() + start_offset_in_frame;
+
+            // These are the offsets from the start address. These correspond
+            // to the destionation indices in `buf`.
+            let start_offset_in_buf = Step::steps_between(&addr, &start_copy_address).unwrap();
+
+            // Calculate the source slice.
+            // Utilize that frames are identity mapped.
+            let dest_ptr = start_phys_addr.as_u64() as *mut u8;
+            let dest = unsafe {
+                // SAFETY: We know that this memory is valid because we got it
+                // as a result from a translation. There are not other
+                // references to it.
+                &mut *core::ptr::slice_from_raw_parts_mut(dest_ptr, copy_len)
+            };
+
+            // Calculate the destination pointer.
+            let src = &buf[start_offset_in_buf..][..copy_len];
+
+            // Do the actual copy.
+            dest.copy_from_slice(src);
+        }
     }
 
     /// This method is intended for making the memory loaded by a Load segment mutable.
@@ -380,7 +524,7 @@ where
 
     fn handle_tls_segment(&mut self, segment: ProgramHeader) -> Result<TlsTemplate, &'static str> {
         Ok(TlsTemplate {
-            start_addr: segment.virtual_addr() + self.virtual_address_offset,
+            start_addr: self.virtual_address_offset + segment.virtual_addr(),
             mem_size: segment.mem_size(),
             file_size: segment.file_size(),
         })
@@ -443,63 +587,74 @@ where
         let total_size = rela_size.ok_or("RelaSize entry is missing")?;
         let entry_size = rela_ent.ok_or("RelaEnt entry is missing")?;
 
-        // Apply the mappings.
-        let entries = (total_size / entry_size) as usize;
-        let rela_start = elf_file
-            .input
-            .as_ptr()
-            .wrapping_add(offset as usize)
-            .cast::<Rela<u64>>();
-
-        // Make sure the relocations are inside the elf file.
-        let rela_end = rela_start.wrapping_add(entries);
-        assert!(rela_start <= rela_end);
-        let file_ptr_range = elf_file.input.as_ptr_range();
-        assert!(
-            file_ptr_range.start <= rela_start.cast(),
-            "the relocation table must start in the elf file"
-        );
-        assert!(
-            rela_end.cast() <= file_ptr_range.end,
-            "the relocation table must end in the elf file"
+        // Make sure that the reported size matches our `Rela<u64>`.
+        assert_eq!(
+            entry_size,
+            size_of::<Rela<u64>>() as u64,
+            "unsupported entry size: {entry_size}"
         );
 
-        let relas = unsafe { core::slice::from_raw_parts(rela_start, entries) };
-        for rela in relas {
-            let idx = rela.get_symbol_table_index();
-            assert_eq!(
-                idx, 0,
-                "relocations using the symbol table are not supported"
-            );
+        // Apply the relocations.
+        let num_entries = total_size / entry_size;
+        for idx in 0..num_entries {
+            let rela = self.read_relocation(offset, idx);
+            self.apply_relocation(rela, elf_file)?;
+        }
 
-            match rela.get_type() {
-                // R_AMD64_RELATIVE
-                8 => {
-                    check_is_in_load(elf_file, rela.get_offset())?;
-                    let addr = self.virtual_address_offset + rela.get_offset();
-                    let value = self
-                        .virtual_address_offset
-                        .checked_add(rela.get_addend())
-                        .unwrap();
+        Ok(())
+    }
 
-                    let ptr = addr as *mut u64;
-                    if ptr as usize % align_of::<u64>() != 0 {
-                        return Err("destination of relocation is not aligned");
-                    }
+    /// Reads a relocation from a relocation table.
+    fn read_relocation(&self, relocation_table: u64, idx: u64) -> Rela<u64> {
+        // Calculate the address of the entry in the relocation table.
+        let offset = relocation_table + size_of::<Rela<u64>>() as u64 * idx;
+        let value = self.virtual_address_offset + offset;
+        let addr = VirtAddr::try_new(value).expect("relocation table is outside the address space");
 
-                    let virt_addr = VirtAddr::from_ptr(ptr);
-                    let page = Page::containing_address(virt_addr);
-                    let offset_in_page = virt_addr - page.start_address();
+        // Read the Rela from the kernel address space.
+        let mut buf = [0; 24];
+        self.copy_from(addr, &mut buf);
 
-                    let new_frame = unsafe { self.make_mut(page) };
-                    let phys_addr = new_frame.start_address() + offset_in_page;
-                    let addr = phys_addr.as_u64() as *mut u64;
-                    unsafe {
-                        addr.write(value);
-                    }
+        // Convert the bytes we read into a `Rela<u64>`.
+        unsafe {
+            // SAFETY: Any bitpattern is valid for `Rela<u64>` and buf is
+            // valid for reads.
+            core::ptr::read_unaligned(&buf as *const u8 as *const Rela<u64>)
+        }
+    }
+
+    fn apply_relocation(
+        &mut self,
+        rela: Rela<u64>,
+        elf_file: &ElfFile,
+    ) -> Result<(), &'static str> {
+        let symbol_idx = rela.get_symbol_table_index();
+        assert_eq!(
+            symbol_idx, 0,
+            "relocations using the symbol table are not supported"
+        );
+
+        match rela.get_type() {
+            // R_AMD64_RELATIVE
+            8 => {
+                // Make sure that the relocation happens in memory mapped
+                // by a Load segment.
+                check_is_in_load(elf_file, rela.get_offset())?;
+
+                // Calculate the destionation of the relocation.
+                let addr = self.virtual_address_offset + rela.get_offset();
+                let addr = VirtAddr::new(addr);
+
+                // Calculate the relocated value.
+                let value = self.virtual_address_offset + rela.get_addend();
+
+                // Write the relocated value to memory.
+                unsafe {
+                    // SAFETY: We just verified that the address is in a Load segment.
+                    self.copy_to(addr, &value.to_ne_bytes());
                 }
-                ty => unimplemented!("relocation type {:x} not supported", ty),
             }
+            ty => unimplemented!("relocation type {:x} not supported", ty),
         }
 
         Ok(())
@@ -550,7 +705,7 @@ fn check_is_in_load(elf_file: &ElfFile, virt_offset: u64) -> Result<(), &'static
         if let Type::Load = program_header.get_type()? {
             if program_header.virtual_addr() <= virt_offset {
                 let offset_in_segment = virt_offset - program_header.virtual_addr();
-                if offset_in_segment < program_header.file_size() {
+                if offset_in_segment < program_header.mem_size() {
                     return Ok(());
                 }
             }
@@ -573,4 +728,40 @@ pub fn load_kernel(
     let tls_template = loader.load_segments()?;
 
     Ok((loader.entry_point(), tls_template))
+}
+
+/// A helper type used to offset virtual addresses for position independent
+/// executables.
+#[derive(Clone, Copy)]
+pub struct VirtualAddressOffset {
+    virtual_address_offset: i128,
+}
+
+impl VirtualAddressOffset {
+    pub fn zero() -> Self {
+        Self::new(0)
+    }
+
+    pub fn new(virtual_address_offset: i128) -> Self {
+        Self {
+            virtual_address_offset,
+        }
+    }
+
+    pub fn virtual_address_offset(&self) -> i128 {
+        self.virtual_address_offset
+    }
+}
+
+impl Add<u64> for VirtualAddressOffset {
+    type Output = u64;
+
+    fn add(self, offset: u64) -> Self::Output {
+        u64::try_from(
+            self.virtual_address_offset
+                .checked_add(i128::from(offset))
+                .unwrap(),
+        )
+        .unwrap()
+    }
 }

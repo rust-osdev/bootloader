@@ -1,4 +1,4 @@
-use crate::{entropy, BootInfo, RawFrameBufferInfo};
+use crate::{entropy, load_kernel::VirtualAddressOffset, BootInfo, RawFrameBufferInfo};
 use bootloader_api::{config, info::MemoryRegion, BootloaderConfig};
 use core::{alloc::Layout, iter::Step};
 use rand::{
@@ -126,11 +126,11 @@ impl UsedLevel4Entries {
     pub fn mark_segments<'a>(
         &mut self,
         segments: impl Iterator<Item = ProgramHeader<'a>>,
-        virtual_address_offset: u64,
+        virtual_address_offset: VirtualAddressOffset,
     ) {
         for segment in segments.filter(|s| s.mem_size() > 0) {
             self.mark_range_as_used(
-                segment.virtual_addr() + virtual_address_offset,
+                virtual_address_offset + segment.virtual_addr(),
                 segment.mem_size(),
             );
         }
@@ -158,7 +158,7 @@ impl UsedLevel4Entries {
             // Choose the first index.
             free_entries.next()
         };
-        let idx = idx_opt.expect("no usable level 4 entries found");
+        let Some(idx) = idx_opt else { panic!("no usable level 4 entries found ({num} entries requested)"); };
 
         // Mark the entries as used.
         for i in 0..num.into_usize() {
