@@ -3,47 +3,49 @@ use std::{
     process::Command,
 };
 
-const BOOTLOADER_X86_64_UEFI_VERSION: &str = env!("CARGO_PKG_VERSION");
-
-const BOOTLOADER_X86_64_BIOS_BOOT_SECTOR_VERSION: &str = env!("CARGO_PKG_VERSION");
-const BOOTLOADER_X86_64_BIOS_STAGE_2_VERSION: &str = env!("CARGO_PKG_VERSION");
-const BOOTLOADER_X86_64_BIOS_STAGE_3_VERSION: &str = env!("CARGO_PKG_VERSION");
-const BOOTLOADER_X86_64_BIOS_STAGE_4_VERSION: &str = env!("CARGO_PKG_VERSION");
+const BOOTLOADER_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() {
     let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
 
-    let uefi_path = build_uefi_bootloader(&out_dir);
-    println!(
-        "cargo:rustc-env=UEFI_BOOTLOADER_PATH={}",
-        uefi_path.display()
-    );
+    #[cfg(feature = "uefi")]
+    {
+        let uefi_path = build_uefi_bootloader(&out_dir);
+        println!(
+            "cargo:rustc-env=UEFI_BOOTLOADER_PATH={}",
+            uefi_path.display()
+        );
+    }
 
-    let bios_boot_sector_path = build_bios_boot_sector(&out_dir);
-    println!(
-        "cargo:rustc-env=BIOS_BOOT_SECTOR_PATH={}",
-        bios_boot_sector_path.display()
-    );
-    let bios_stage_2_path = build_bios_stage_2(&out_dir);
-    println!(
-        "cargo:rustc-env=BIOS_STAGE_2_PATH={}",
-        bios_stage_2_path.display()
-    );
+    #[cfg(feature = "bios")]
+    {
+        let bios_boot_sector_path = build_bios_boot_sector(&out_dir);
+        println!(
+            "cargo:rustc-env=BIOS_BOOT_SECTOR_PATH={}",
+            bios_boot_sector_path.display()
+        );
+        let bios_stage_2_path = build_bios_stage_2(&out_dir);
+        println!(
+            "cargo:rustc-env=BIOS_STAGE_2_PATH={}",
+            bios_stage_2_path.display()
+        );
 
-    let bios_stage_3_path = build_bios_stage_3(&out_dir);
-    println!(
-        "cargo:rustc-env=BIOS_STAGE_3_PATH={}",
-        bios_stage_3_path.display()
-    );
+        let bios_stage_3_path = build_bios_stage_3(&out_dir);
+        println!(
+            "cargo:rustc-env=BIOS_STAGE_3_PATH={}",
+            bios_stage_3_path.display()
+        );
 
-    let bios_stage_4_path = build_bios_stage_4(&out_dir);
-    println!(
-        "cargo:rustc-env=BIOS_STAGE_4_PATH={}",
-        bios_stage_4_path.display()
-    );
+        let bios_stage_4_path = build_bios_stage_4(&out_dir);
+        println!(
+            "cargo:rustc-env=BIOS_STAGE_4_PATH={}",
+            bios_stage_4_path.display()
+        );
+    }
 }
 
 #[cfg(not(docsrs_dummy_build))]
+#[cfg(feature = "uefi")]
 fn build_uefi_bootloader(out_dir: &Path) -> PathBuf {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
     let mut cmd = Command::new(cargo);
@@ -53,7 +55,7 @@ fn build_uefi_bootloader(out_dir: &Path) -> PathBuf {
         cmd.arg("--path").arg("uefi");
         println!("cargo:rerun-if-changed=uefi");
     } else {
-        cmd.arg("--version").arg(BOOTLOADER_X86_64_UEFI_VERSION);
+        cmd.arg("--version").arg(BOOTLOADER_VERSION);
     }
     cmd.arg("--locked");
     cmd.arg("--target").arg("x86_64-unknown-uefi");
@@ -78,6 +80,7 @@ fn build_uefi_bootloader(out_dir: &Path) -> PathBuf {
 }
 
 #[cfg(not(docsrs_dummy_build))]
+#[cfg(feature = "bios")]
 fn build_bios_boot_sector(out_dir: &Path) -> PathBuf {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
     let mut cmd = Command::new(cargo);
@@ -90,8 +93,7 @@ fn build_bios_boot_sector(out_dir: &Path) -> PathBuf {
         cmd.arg("--path").arg(&local_path);
         println!("cargo:rerun-if-changed={}", local_path.display());
     } else {
-        cmd.arg("--version")
-            .arg(BOOTLOADER_X86_64_BIOS_BOOT_SECTOR_VERSION);
+        cmd.arg("--version").arg(BOOTLOADER_VERSION);
     }
     cmd.arg("--locked");
     cmd.arg("--target").arg("i386-code16-boot-sector.json");
@@ -121,6 +123,7 @@ fn build_bios_boot_sector(out_dir: &Path) -> PathBuf {
 }
 
 #[cfg(not(docsrs_dummy_build))]
+#[cfg(feature = "bios")]
 fn build_bios_stage_2(out_dir: &Path) -> PathBuf {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
     let mut cmd = Command::new(cargo);
@@ -133,8 +136,7 @@ fn build_bios_stage_2(out_dir: &Path) -> PathBuf {
         cmd.arg("--path").arg(&local_path);
         println!("cargo:rerun-if-changed={}", local_path.display());
     } else {
-        cmd.arg("--version")
-            .arg(BOOTLOADER_X86_64_BIOS_STAGE_2_VERSION);
+        cmd.arg("--version").arg(BOOTLOADER_VERSION);
     }
     cmd.arg("--locked");
     cmd.arg("--target").arg("i386-code16-stage-2.json");
@@ -162,6 +164,7 @@ fn build_bios_stage_2(out_dir: &Path) -> PathBuf {
 }
 
 #[cfg(not(docsrs_dummy_build))]
+#[cfg(feature = "bios")]
 fn build_bios_stage_3(out_dir: &Path) -> PathBuf {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
     let mut cmd = Command::new(cargo);
@@ -174,8 +177,7 @@ fn build_bios_stage_3(out_dir: &Path) -> PathBuf {
         cmd.arg("--path").arg(&local_path);
         println!("cargo:rerun-if-changed={}", local_path.display());
     } else {
-        cmd.arg("--version")
-            .arg(BOOTLOADER_X86_64_BIOS_STAGE_3_VERSION);
+        cmd.arg("--version").arg(BOOTLOADER_VERSION);
     }
     cmd.arg("--locked");
     cmd.arg("--target").arg("i686-stage-3.json");
@@ -203,6 +205,7 @@ fn build_bios_stage_3(out_dir: &Path) -> PathBuf {
 }
 
 #[cfg(not(docsrs_dummy_build))]
+#[cfg(feature = "bios")]
 fn build_bios_stage_4(out_dir: &Path) -> PathBuf {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
     let mut cmd = Command::new(cargo);
@@ -215,8 +218,7 @@ fn build_bios_stage_4(out_dir: &Path) -> PathBuf {
         cmd.arg("--path").arg(&local_path);
         println!("cargo:rerun-if-changed={}", local_path.display());
     } else {
-        cmd.arg("--version")
-            .arg(BOOTLOADER_X86_64_BIOS_STAGE_4_VERSION);
+        cmd.arg("--version").arg(BOOTLOADER_VERSION);
     }
     cmd.arg("--locked");
     cmd.arg("--target").arg("x86_64-stage-4.json");
@@ -244,6 +246,7 @@ fn build_bios_stage_4(out_dir: &Path) -> PathBuf {
     convert_elf_to_bin(elf_path)
 }
 
+#[cfg(feature = "bios")]
 fn convert_elf_to_bin(elf_path: PathBuf) -> PathBuf {
     let flat_binary_path = elf_path.with_extension("bin");
 
