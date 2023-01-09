@@ -26,9 +26,56 @@ jobs:
       - name: "Run `cargo check`"
         run: cargo check --all-targets --all
 
+  setup-features:
+    runs-on: ubuntu-latest
+    outputs:
+      features: ${{ steps.output-features.outputs.features }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo install cargo-feature --locked
+      - name: List features
+        run: cargo feature -i bootloader 
+      - name: Generate feature matrix
+        id: output-features
+        run: |
+          echo "::set-output name=features::$(
+            cargo feature -i bootloader 2> /dev/null | # List the features in Cargo.toml, and redirect stderr to null
+              grep "=" | # Filter down to only actual features (Not additional stuff cargo-feature outputs)
+              grep -v "default" | # Remove the default feature
+              sed -r "s/\x1B\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g" | # Strip color output from cargo-feature, since it doesn't do this on it's own.
+              cut -d ' ' -f1 | # Remove everything after the feature name
+              jq -Rrsc 'split("\n") | map(select(length>0))' # Convert to json
+          )"
+  test-features:
+    needs: setup-features
+    name: "Run tests with '${{ matrix.feature }}' feature"
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: ${{fromJSON(needs.setup-features.outputs.features)}}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v3
+      - run: cargo --version --verbose
+      - uses: Swatinem/rust-cache@v2
+
+      # install QEMU
+      - name: Install QEMU
+        run: sudo apt update && sudo apt install qemu-system-x86
+
+      - name: "Print QEMU Version"
+        run: qemu-system-x86_64 --version
+
+      - uses: r7kamura/rust-problem-matchers@v1.1.0
+
+      - name: Run integration test for feature ${{ matrix.feature }}
+        run: cargo test --no-default-features --features ${{ matrix.feature }}
+
   test:
     name: Test
-
     strategy:
       fail-fast: false
       matrix:
@@ -66,14 +113,6 @@ jobs:
         run: cargo test -p bootloader_api
       - name: Run integration tests
         run: cargo test
-
-      # test feature gates (only on one OS is enough)
-      - name: Test with only UEFI feature
-        if: runner.os == 'Linux'
-        run: cargo test --no-default-features --features uefi
-      - name: Test with only BIOS feature
-        if: runner.os == 'Linux'
-        run: cargo test --no-default-features --features bios
 
   fmt:
     name: Check Formatting
