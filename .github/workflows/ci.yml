@@ -62,14 +62,6 @@ jobs:
       - name: Run integration tests
         run: cargo test
 
-      # test feature gates (only on one OS is enough)
-      - name: Test with only UEFI feature
-        if: runner.os == 'Linux'
-        run: cargo test --no-default-features --features uefi
-      - name: Test with only BIOS feature
-        if: runner.os == 'Linux'
-        run: cargo test --no-default-features --features bios
-
   fmt:
     name: Check Formatting
     runs-on: ubuntu-latest

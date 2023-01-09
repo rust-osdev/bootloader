@@ -13,35 +13,27 @@ const QEMU_ARGS: &[&str] = &[
 pub fn run_test_kernel(kernel_binary_path: &str) {
     let kernel_path = Path::new(kernel_binary_path);
 
-    #[cfg(feature = "uefi")]
-    {
-        // create a GPT disk image for UEFI booting
-        let gpt_path = kernel_path.with_extension("gpt");
-        let uefi_builder = bootloader::UefiBoot::new(kernel_path);
-        uefi_builder.create_disk_image(&gpt_path).unwrap();
+    // create an MBR disk image for legacy BIOS booting
+    let mbr_path = kernel_path.with_extension("mbr");
+    bootloader::BiosBoot::new(kernel_path)
+        .create_disk_image(&mbr_path)
+        .unwrap();
 
-        // create a TFTP folder with the kernel executable and UEFI bootloader for
-        // UEFI PXE booting
-        let tftp_path = kernel_path.with_extension(".tftp");
-        uefi_builder.create_pxe_tftp_folder(&tftp_path).unwrap();
+    // create a GPT disk image for UEFI booting
+    let gpt_path = kernel_path.with_extension("gpt");
+    let uefi_builder = bootloader::UefiBoot::new(kernel_path);
+    uefi_builder.create_disk_image(&gpt_path).unwrap();
 
-        run_test_kernel_on_uefi(&gpt_path);
-        run_test_kernel_on_uefi_pxe(&tftp_path);
-    }
+    // create a TFTP folder with the kernel executable and UEFI bootloader for
+    // UEFI PXE booting
+    let tftp_path = kernel_path.with_extension(".tftp");
+    uefi_builder.create_pxe_tftp_folder(&tftp_path).unwrap();
 
-    #[cfg(feature = "bios")]
-    {
-        // create an MBR disk image for legacy BIOS booting
-        let mbr_path = kernel_path.with_extension("mbr");
-        bootloader::BiosBoot::new(kernel_path)
-            .create_disk_image(&mbr_path)
-            .unwrap();
-
-        run_test_kernel_on_bios(&mbr_path);
-    }
+    run_test_kernel_on_uefi(&gpt_path);
+    run_test_kernel_on_bios(&mbr_path);
+    run_test_kernel_on_uefi_pxe(&tftp_path);
 }
 
-#[cfg(feature = "uefi")]
 pub fn run_test_kernel_on_uefi(out_gpt_path: &Path) {
     let mut run_cmd = Command::new("qemu-system-x86_64");
     run_cmd
@@ -65,7 +57,6 @@ pub fn run_test_kernel_on_uefi(out_gpt_path: &Path) {
     }
 }
 
-#[cfg(feature = "bios")]
 pub fn run_test_kernel_on_bios(out_mbr_path: &Path) {
     let mut run_cmd = Command::new("qemu-system-x86_64");
     run_cmd
@@ -88,7 +79,6 @@ pub fn run_test_kernel_on_bios(out_mbr_path: &Path) {
     }
 }
 
-#[cfg(feature = "uefi")]
 pub fn run_test_kernel_on_uefi_pxe(out_tftp_path: &Path) {
     let mut run_cmd = Command::new("qemu-system-x86_64");
     run_cmd.arg("-netdev").arg(format!(
