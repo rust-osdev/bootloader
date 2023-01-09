@@ -31,6 +31,16 @@ pub struct BootloaderConfig {
     /// Configuration for changing the level of the filter of the messages that are shown in the
     /// screen when booting. The default is 'Trace'.
     pub log_level: LevelFilter,
+
+    /// Whether the bootloader should print log messages to the framebuffer when booting.
+    ///
+    /// Enabled by default.
+    pub frame_buffer_logger_status: LoggerStatus,
+
+    /// Whether the bootloader should print log messages to the serial port when booting.
+    ///
+    /// Enabled by default.
+    pub serial_logger_status: LoggerStatus,
 }
 
 impl BootloaderConfig {
@@ -39,7 +49,7 @@ impl BootloaderConfig {
         0x3D,
     ];
     #[doc(hidden)]
-    pub const SERIALIZED_LEN: usize = 116;
+    pub const SERIALIZED_LEN: usize = 118;
 
     /// Creates a new default configuration with the following values:
     ///
@@ -53,6 +63,8 @@ impl BootloaderConfig {
             mappings: Mappings::new_default(),
             frame_buffer: FrameBuffer::new_default(),
             log_level: LevelFilter::Trace,
+            frame_buffer_logger_status: LoggerStatus::Enable,
+            serial_logger_status: LoggerStatus::Enable,
         }
     }
 
@@ -67,6 +79,8 @@ impl BootloaderConfig {
             kernel_stack_size,
             frame_buffer,
             log_level,
+            frame_buffer_logger_status,
+            serial_logger_status,
         } = self;
         let ApiVersion {
             version_major,
@@ -147,7 +161,15 @@ impl BootloaderConfig {
             },
         );
 
-        concat_115_1(buf, (*log_level as u8).to_le_bytes())
+        let log_level = concat_115_1(buf, (*log_level as u8).to_le_bytes());
+
+        let frame_buffer_logger_status =
+            concat_116_1(log_level, (*frame_buffer_logger_status as u8).to_le_bytes());
+
+        concat_117_1(
+            frame_buffer_logger_status,
+            (*serial_logger_status as u8).to_le_bytes(),
+        )
     }
 
     /// Tries to deserialize a config byte array that was created using [`Self::serialize`].
@@ -267,6 +289,21 @@ impl BootloaderConfig {
             Option::None => return Err("log_level invalid"),
         };
 
+        let (&frame_buffer_logger_status, s) = split_array_ref(s);
+        let frame_buffer_logger_status =
+            LoggerStatus::from_u8(u8::from_le_bytes(frame_buffer_logger_status));
+        let frame_buffer_logger_status = match frame_buffer_logger_status {
+            Option::Some(status) => status,
+            Option::None => return Err("frame_buffer_logger_status invalid"),
+        };
+
+        let (&serial_logger_status, s) = split_array_ref(s);
+        let serial_logger_status = LoggerStatus::from_u8(u8::from_le_bytes(serial_logger_status));
+        let serial_logger_status = match serial_logger_status {
+            Option::Some(status) => status,
+            Option::None => return Err("serial_logger_status invalid"),
+        };
+
         if !s.is_empty() {
             return Err("unexpected rest");
         }
@@ -277,6 +314,8 @@ impl BootloaderConfig {
             mappings,
             frame_buffer,
             log_level,
+            frame_buffer_logger_status,
+            serial_logger_status,
         })
     }
 
@@ -288,6 +327,8 @@ impl BootloaderConfig {
             kernel_stack_size: rand::random(),
             frame_buffer: FrameBuffer::random(),
             log_level: LevelFilter::Trace,
+            frame_buffer_logger_status: LoggerStatus::Enable,
+            serial_logger_status: LoggerStatus::Enable,
         }
     }
 }
@@ -582,6 +623,27 @@ impl LevelFilter {
             3 => Some(Self::Info),
             4 => Some(Self::Debug),
             5 => Some(Self::Trace),
+            _ => None,
+        }
+    }
+}
+
+/// An enum for enabling or disabling the different methods for logging.
+#[repr(u8)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum LoggerStatus {
+    /// This method of logging is disabled
+    Disable,
+    /// This method of logging is enabled
+    Enable,
+}
+
+impl LoggerStatus {
+    /// Converts an u8 into a Option<LoggerStatus>
+    pub fn from_u8(value: u8) -> Option<LoggerStatus> {
+        match value {
+            0 => Some(Self::Disable),
+            1 => Some(Self::Enable),
             _ => None,
         }
     }
