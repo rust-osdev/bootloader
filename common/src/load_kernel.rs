@@ -360,7 +360,7 @@ where
     /// Write to the kernel address space.
     ///
     /// ## Safety
-    /// - `page` should be a page mapped by a Load segment.
+    /// - `addr` should refer to a page mapped by a Load segment.
     ///  
     /// ## Panics
     ///
