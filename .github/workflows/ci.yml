@@ -31,7 +31,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       features: ${{ steps.output-features.outputs.features }}
-      names: ${{ steps.output-features.outputs.names }}
     steps:
       - uses: actions/checkout@v3
       - uses: Swatinem/rust-cache@v2
@@ -49,7 +48,18 @@ jobs:
               cut -d ' ' -f1 | # Remove everything after the feature name
               jq -Rrsc 'split("\n") | map(select(length>0))' # Convert to json
           )" >> $GITHUB_OUTPUT
-      - run: |
+  setup-tests:
+    name: "Setup bootloader test matrix"
+    runs-on: ubuntu-latest
+    outputs:
+      names: ${{ steps.output-tests.outputs.names }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build
+      - name: Generate test matrix
+        id: output-tests
+        run: |
           echo "names=$(
             cargo test -- --list 2>&1 | # List all tests
             grep 'Running' |  # Get the file/test names
@@ -99,13 +109,13 @@ jobs:
       - run: exit 0
 
   test-with-matrix:
-    needs: setup-features
+    needs: setup-tests
     name: "Run test suite '${{ matrix.test-name }}' on '${{ matrix.os }}'"
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        test-name: ${{fromJSON(needs.setup-features.outputs.names)}}
+        test-name: ${{fromJSON(needs.setup-tests.outputs.names)}}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
 
