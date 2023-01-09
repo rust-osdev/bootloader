@@ -39,14 +39,14 @@ jobs:
       - name: Generate feature matrix
         id: output-features
         run: |
-          echo "::set-output name=features::$(
+          echo "features=$(
             cargo feature -i bootloader 2> /dev/null | # List the features in Cargo.toml, and redirect stderr to null
               grep "=" | # Filter down to only actual features (Not additional stuff cargo-feature outputs)
               grep -v "default" | # Remove the default feature
               sed -r "s/\x1B\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g" | # Strip color output from cargo-feature, since it doesn't do this on it's own.
               cut -d ' ' -f1 | # Remove everything after the feature name
               jq -Rrsc 'split("\n") | map(select(length>0))' # Convert to json
-          )"
+          )" >> $GITHUB_OUTPUT
   test-features:
     needs: setup-features
     name: "Run tests with '${{ matrix.feature }}' feature"
