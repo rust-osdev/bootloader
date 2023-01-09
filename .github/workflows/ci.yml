@@ -27,6 +27,7 @@ jobs:
         run: cargo check --all-targets --all
 
   setup-features:
+    name: "Setup bootloader feature matrix"
     runs-on: ubuntu-latest
     outputs:
       features: ${{ steps.output-features.outputs.features }}
