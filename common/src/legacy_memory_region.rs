@@ -68,7 +68,7 @@ where
             self.next_frame = start_frame;
         }
 
-        if self.next_frame < end_frame {
+        if self.next_frame <= end_frame {
             let ret = self.next_frame;
             self.next_frame += 1;
             Some(ret)
