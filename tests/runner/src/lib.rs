@@ -11,13 +11,21 @@ const QEMU_ARGS: &[&str] = &[
 ];
 
 pub fn run_test_kernel(kernel_binary_path: &str) {
+    run_test_kernel_with_ramdisk(kernel_binary_path, None)
+}
+
+pub fn run_test_kernel_with_ramdisk(kernel_binary_path: &str, ramdisk_path: Option<&Path>) {
     let kernel_path = Path::new(kernel_binary_path);
 
     #[cfg(feature = "uefi")]
     {
         // create a GPT disk image for UEFI booting
         let gpt_path = kernel_path.with_extension("gpt");
-        let uefi_builder = bootloader::UefiBoot::new(kernel_path);
+        let mut uefi_builder = bootloader::UefiBoot::new(kernel_path);
+        // Set ramdisk for test, if supplied.
+        if let Some(rdp) = ramdisk_path {
+            uefi_builder.set_ramdisk(rdp);
+        }
         uefi_builder.create_disk_image(&gpt_path).unwrap();
 
         // create a TFTP folder with the kernel executable and UEFI bootloader for
@@ -33,9 +41,12 @@ pub fn run_test_kernel(kernel_binary_path: &str) {
     {
         // create an MBR disk image for legacy BIOS booting
         let mbr_path = kernel_path.with_extension("mbr");
-        bootloader::BiosBoot::new(kernel_path)
-            .create_disk_image(&mbr_path)
-            .unwrap();
+        let mut bios_builder = bootloader::BiosBoot::new(kernel_path);
+        // Set ramdisk for test, if supplied.
+        if let Some(rdp) = ramdisk_path {
+            bios_builder.set_ramdisk(rdp);
+        }
+        bios_builder.create_disk_image(&mbr_path).unwrap();
 
         run_test_kernel_on_bios(&mbr_path);
     }

@@ -17,3 +17,4 @@ pub use bios::BiosBoot;
 pub use uefi::UefiBoot;
 
 const KERNEL_FILE_NAME: &str = "kernel-x86_64";
+const RAMDISK_FILE_NAME: &str = "ramdisk";

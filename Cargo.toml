@@ -23,6 +23,7 @@ members = [
     "tests/test_kernels/higher_half",
     "tests/test_kernels/pie",
     "tests/test_kernels/lto",
+    "tests/test_kernels/ramdisk"
 ]
 exclude = ["examples/basic", "examples/test_framework"]
 
@@ -55,6 +56,7 @@ test_kernel_default_settings = { path = "tests/test_kernels/default_settings", a
 test_kernel_higher_half = { path = "tests/test_kernels/higher_half", artifact = "bin", target = "x86_64-unknown-none" }
 test_kernel_map_phys_mem = { path = "tests/test_kernels/map_phys_mem", artifact = "bin", target = "x86_64-unknown-none" }
 test_kernel_pie = { path = "tests/test_kernels/pie", artifact = "bin", target = "x86_64-unknown-none" }
+test_kernel_ramdisk = { path = "tests/test_kernels/ramdisk", artifact = "bin", target = "x86_64-unknown-none" }
 
 [profile.dev]
 panic = "abort"
