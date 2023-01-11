@@ -12,7 +12,11 @@ fn main() {
 #[cfg(feature = "bios")]
 async fn bios_main() {
     let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
-    // Run the bios parts concurrently. (Build time / 4 :D )
+    // Run the bios build commands concurrently.
+    // (Cargo already uses multiple threads for building dependencies, but these
+    // BIOS crates don't have enough dependencies to utilize all cores on modern
+    // CPUs. So by running the build commands in parallel, we increase the number
+    // of utilized cores.)
     let (bios_boot_sector_path, bios_stage_2_path, bios_stage_3_path, bios_stage_4_path) = (
         build_bios_boot_sector(&out_dir),
         build_bios_stage_2(&out_dir),
