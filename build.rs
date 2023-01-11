@@ -291,6 +291,7 @@ async fn convert_elf_to_bin(elf_path: PathBuf) -> PathBuf {
     flat_binary_path
 }
 
+// dummy implementations because docsrs builds have no network access
 #[cfg(any(not(feature = "bios"), docsrs_dummy_build))]
 async fn bios_main() {}
 #[cfg(any(not(feature = "uefi"), docsrs_dummy_build))]
