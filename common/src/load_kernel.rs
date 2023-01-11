@@ -309,7 +309,6 @@ where
 
         for page in start_page..=end_inclusive_page {
             // Translate the virtual page to the physical frame.
-            debug!("{page:?}");
             let phys_addr = self
                 .page_table
                 .translate_page(page)
