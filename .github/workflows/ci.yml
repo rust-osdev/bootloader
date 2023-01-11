@@ -92,3 +92,18 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - uses: r7kamura/rust-problem-matchers@v1.1.0
       - run: cargo clippy --all --all-targets
+
+  semver-checks:
+    name: Semver Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "semver-checks"
+          cache-targets: false
+      - run: cargo install cargo-semver-checks --locked
+      - name: Check semver (API)
+        run: cargo semver-checks check-release -p bootloader_api
+      - name: Check semver
+        run: cargo semver-checks check-release
