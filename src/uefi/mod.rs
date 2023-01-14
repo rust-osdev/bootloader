@@ -13,6 +13,7 @@ mod pxe;
 pub struct UefiBoot {
     kernel: PathBuf,
     ramdisk: Option<PathBuf>,
+    config_file: Option<PathBuf>,
 }
 
 impl UefiBoot {
@@ -21,12 +22,19 @@ impl UefiBoot {
         Self {
             kernel: kernel_path.to_owned(),
             ramdisk: None,
+            config_file: None,
         }
     }
 
     /// Add a ramdisk file to the disk image
     pub fn set_ramdisk(&mut self, ramdisk_path: &Path) -> &mut Self {
         self.ramdisk = Some(ramdisk_path.to_owned());
+        self
+    }
+
+    /// Add a JSON configuration file to the disk image
+    pub fn set_config_file(&mut self, config_file_path: &Path) -> &mut Self {
+        self.config_file = Some(config_file_path.to_owned());
         self
     }
 
@@ -74,6 +82,9 @@ impl UefiBoot {
         files.insert(crate::KERNEL_FILE_NAME, self.kernel.as_path());
         if let Some(ramdisk_path) = &self.ramdisk {
             files.insert(crate::RAMDISK_FILE_NAME, ramdisk_path);
+        }
+        if let Some(config_file_path) = &self.config_file {
+            files.insert(crate::CONFIG_FILE_NAME, config_file_path);
         }
 
         let out_file = NamedTempFile::new().context("failed to create temp file")?;

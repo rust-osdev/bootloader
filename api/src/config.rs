@@ -23,24 +23,6 @@ pub struct BootloaderConfig {
     /// the stack size that the bootloader should allocate and map. The stack is created
     /// with a guard page, so a stack overflow will lead to a page fault.
     pub kernel_stack_size: u64,
-
-    /// Configuration for the frame buffer that can be used by the kernel to display pixels
-    /// on the screen.
-    pub frame_buffer: FrameBuffer,
-
-    /// Configuration for changing the level of the filter of the messages that are shown in the
-    /// screen when booting. The default is 'Trace'.
-    pub log_level: LevelFilter,
-
-    /// Whether the bootloader should print log messages to the framebuffer when booting.
-    ///
-    /// Enabled by default.
-    pub frame_buffer_logger_status: LoggerStatus,
-
-    /// Whether the bootloader should print log messages to the serial port when booting.
-    ///
-    /// Enabled by default.
-    pub serial_logger_status: LoggerStatus,
 }
 
 impl BootloaderConfig {
@@ -49,7 +31,7 @@ impl BootloaderConfig {
         0x3D,
     ];
     #[doc(hidden)]
-    pub const SERIALIZED_LEN: usize = 127;
+    pub const SERIALIZED_LEN: usize = 106;
 
     /// Creates a new default configuration with the following values:
     ///
@@ -61,10 +43,6 @@ impl BootloaderConfig {
             kernel_stack_size: 80 * 1024,
             version: ApiVersion::new_default(),
             mappings: Mappings::new_default(),
-            frame_buffer: FrameBuffer::new_default(),
-            log_level: LevelFilter::Trace,
-            frame_buffer_logger_status: LoggerStatus::Enable,
-            serial_logger_status: LoggerStatus::Enable,
         }
     }
 
@@ -77,10 +55,6 @@ impl BootloaderConfig {
             version,
             mappings,
             kernel_stack_size,
-            frame_buffer,
-            log_level,
-            frame_buffer_logger_status,
-            serial_logger_status,
         } = self;
         let ApiVersion {
             version_major,
@@ -99,10 +73,6 @@ impl BootloaderConfig {
             dynamic_range_end,
             ramdisk_memory,
         } = mappings;
-        let FrameBuffer {
-            minimum_framebuffer_height,
-            minimum_framebuffer_width,
-        } = frame_buffer;
 
         let version = {
             let one = concat_2_2(version_major.to_le_bytes(), version_minor.to_le_bytes());
@@ -146,33 +116,7 @@ impl BootloaderConfig {
             },
         );
 
-        let buf = concat_97_9(buf, ramdisk_memory.serialize());
-
-        let buf = concat_106_9(
-            buf,
-            match minimum_framebuffer_height {
-                Option::None => [0; 9],
-                Option::Some(addr) => concat_1_8([1], addr.to_le_bytes()),
-            },
-        );
-
-        let buf = concat_115_9(
-            buf,
-            match minimum_framebuffer_width {
-                Option::None => [0; 9],
-                Option::Some(addr) => concat_1_8([1], addr.to_le_bytes()),
-            },
-        );
-
-        let log_level = concat_124_1(buf, (*log_level as u8).to_le_bytes());
-
-        let frame_buffer_logger_status =
-            concat_125_1(log_level, (*frame_buffer_logger_status as u8).to_le_bytes());
-
-        concat_126_1(
-            frame_buffer_logger_status,
-            (*serial_logger_status as u8).to_le_bytes(),
-        )
+        concat_97_9(buf, ramdisk_memory.serialize())
     }
 
     /// Tries to deserialize a config byte array that was created using [`Self::serialize`].
@@ -266,49 +210,6 @@ impl BootloaderConfig {
             (mappings, s)
         };
 
-        let (frame_buffer, s) = {
-            let (&min_framebuffer_height_some, s) = split_array_ref(s);
-            let (&min_framebuffer_height, s) = split_array_ref(s);
-            let (&min_framebuffer_width_some, s) = split_array_ref(s);
-            let (&min_framebuffer_width, s) = split_array_ref(s);
-
-            let frame_buffer = FrameBuffer {
-                minimum_framebuffer_height: match min_framebuffer_height_some {
-                    [0] if min_framebuffer_height == [0; 8] => Option::None,
-                    [1] => Option::Some(u64::from_le_bytes(min_framebuffer_height)),
-                    _ => return Err("minimum_framebuffer_height invalid"),
-                },
-                minimum_framebuffer_width: match min_framebuffer_width_some {
-                    [0] if min_framebuffer_width == [0; 8] => Option::None,
-                    [1] => Option::Some(u64::from_le_bytes(min_framebuffer_width)),
-                    _ => return Err("minimum_framebuffer_width invalid"),
-                },
-            };
-            (frame_buffer, s)
-        };
-
-        let (&log_level, s) = split_array_ref(s);
-        let log_level = LevelFilter::from_u8(u8::from_le_bytes(log_level));
-        let log_level = match log_level {
-            Option::Some(level) => level,
-            Option::None => return Err("log_level invalid"),
-        };
-
-        let (&frame_buffer_logger_status, s) = split_array_ref(s);
-        let frame_buffer_logger_status =
-            LoggerStatus::from_u8(u8::from_le_bytes(frame_buffer_logger_status));
-        let frame_buffer_logger_status = match frame_buffer_logger_status {
-            Option::Some(status) => status,
-            Option::None => return Err("frame_buffer_logger_status invalid"),
-        };
-
-        let (&serial_logger_status, s) = split_array_ref(s);
-        let serial_logger_status = LoggerStatus::from_u8(u8::from_le_bytes(serial_logger_status));
-        let serial_logger_status = match serial_logger_status {
-            Option::Some(status) => status,
-            Option::None => return Err("serial_logger_status invalid"),
-        };
-
         if !s.is_empty() {
             return Err("unexpected rest");
         }
@@ -317,10 +218,6 @@ impl BootloaderConfig {
             version,
             kernel_stack_size: u64::from_le_bytes(kernel_stack_size),
             mappings,
-            frame_buffer,
-            log_level,
-            frame_buffer_logger_status,
-            serial_logger_status,
         })
     }
 

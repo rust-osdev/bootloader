@@ -4,9 +4,10 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 
 use crate::memory_descriptor::UefiMemoryDescriptor;
-use bootloader_api::{info::FrameBufferInfo, BootloaderConfig};
+use bootloader_api::info::FrameBufferInfo;
 use bootloader_x86_64_common::{
-    legacy_memory_region::LegacyFrameAllocator, Kernel, RawFrameBufferInfo, SystemInfo,
+    config::BootloaderConfigFile, legacy_memory_region::LegacyFrameAllocator, Kernel,
+    RawFrameBufferInfo, SystemInfo,
 };
 use core::{
     cell::UnsafeCell,
@@ -96,6 +97,9 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
     writeln!(st.stdout(), "Trying to load ramdisk via {:?}", boot_mode).unwrap();
     // Ramdisk must load from same source, or not at all.
     let ramdisk = load_ramdisk(image, &mut st, boot_mode);
+    // Dirty code!
+    let config_file = load_config_file(image, &mut st, boot_mode);
+    let config = BootloaderConfigFile::deserialize(config_file);
 
     writeln!(
         st.stdout(),
@@ -107,7 +111,7 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
     )
     .unwrap();
 
-    let framebuffer = init_logger(image, &st, kernel.config);
+    let framebuffer = init_logger(image, &st, config);
     unsafe {
         *SYSTEM_TABLE.get() = None;
     }
@@ -192,6 +196,14 @@ fn load_ramdisk(
     boot_mode: BootMode,
 ) -> Option<&'static mut [u8]> {
     load_file_from_boot_method(image, st, "ramdisk\0", boot_mode)
+}
+
+fn load_config_file(
+    image: Handle,
+    st: &mut SystemTable<Boot>,
+    boot_mode: BootMode,
+) -> Option<&'static mut [u8]> {
+    load_file_from_boot_method(image, st, "config.json\0", boot_mode)
 }
 
 fn load_kernel(
@@ -446,7 +458,7 @@ fn create_page_tables(
 fn init_logger(
     image_handle: Handle,
     st: &SystemTable<Boot>,
-    config: BootloaderConfig,
+    config: BootloaderConfigFile,
 ) -> Option<RawFrameBufferInfo> {
     let gop_handle = st
         .boot_services()

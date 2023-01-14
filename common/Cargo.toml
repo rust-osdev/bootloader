@@ -20,6 +20,8 @@ raw-cpuid = "10.2.0"
 rand = { version = "0.8.4", default-features = false }
 rand_hc = "0.3.1"
 uart_16550 = "0.2.18"
+serde-json-core = "0.5.0"
+serde = { version = "1.0.152", default-features = false, features = ["derive"] }
 
 [dependencies.noto-sans-mono-bitmap]
 version = "0.2.0"

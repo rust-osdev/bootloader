@@ -2,15 +2,13 @@
 #![no_main]
 
 use crate::memory_descriptor::MemoryRegion;
-use bootloader_api::{
-    config::{LevelFilter, LoggerStatus},
-    info::{FrameBufferInfo, PixelFormat},
-};
+use bootloader_api::info::{FrameBufferInfo, PixelFormat};
 use bootloader_x86_64_bios_common::{BiosFramebufferInfo, BiosInfo, E820MemoryRegion};
 use bootloader_x86_64_common::RawFrameBufferInfo;
 use bootloader_x86_64_common::{
-    legacy_memory_region::LegacyFrameAllocator, load_and_switch_to_kernel, Kernel, PageTables,
-    SystemInfo,
+    config::{BootloaderConfigFile, LevelFilter, LoggerStatus},
+    legacy_memory_region::LegacyFrameAllocator,
+    load_and_switch_to_kernel, Kernel, PageTables, SystemInfo,
 };
 use core::{cmp, slice};
 use usize_conversions::usize_from;
@@ -113,11 +111,17 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
     };
     let kernel = Kernel::parse(kernel_slice);
 
+    let mut config_file_slice = {
+        let mut ptr = info.config_file.start as *mut u8;
+        unsafe { slice::from_raw_parts_mut(ptr, usize_from(info.config_file.len)) }
+    };
+    let config_file = BootloaderConfigFile::deserialize(Some(&mut config_file_slice));
+
     let framebuffer_info = init_logger(
         info.framebuffer,
-        kernel.config.log_level,
-        kernel.config.frame_buffer_logger_status,
-        kernel.config.serial_logger_status,
+        config_file.log_level,
+        config_file.frame_buffer_logger_status,
+        config_file.serial_logger_status,
     );
 
     log::info!("4th Stage");

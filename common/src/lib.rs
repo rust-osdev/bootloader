@@ -2,9 +2,12 @@
 #![feature(step_trait)]
 #![deny(unsafe_op_in_unsafe_fn)]
 
-use crate::legacy_memory_region::{LegacyFrameAllocator, LegacyMemoryRegion};
+use crate::{
+    config::{LevelFilter, LoggerStatus},
+    legacy_memory_region::{LegacyFrameAllocator, LegacyMemoryRegion},
+};
 use bootloader_api::{
-    config::{LevelFilter, LoggerStatus, Mapping},
+    config::Mapping,
     info::{FrameBuffer, FrameBufferInfo, MemoryRegion, TlsTemplate},
     BootInfo, BootloaderConfig,
 };
@@ -20,6 +23,8 @@ use x86_64::{
 };
 use xmas_elf::ElfFile;
 
+/// Provides a type with the runtime configurations that are saved in a JSON file.
+pub mod config;
 /// Provides a function to gather entropy and build a RNG.
 mod entropy;
 /// Provides a type that logs output as text to pixel-based framebuffers.
