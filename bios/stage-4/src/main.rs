@@ -112,7 +112,7 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
     let kernel = Kernel::parse(kernel_slice);
 
     let mut config_file_slice = {
-        let mut ptr = info.config_file.start as *mut u8;
+        let ptr = info.config_file.start as *mut u8;
         unsafe { slice::from_raw_parts_mut(ptr, usize_from(info.config_file.len)) }
     };
     let config_file = BootloaderConfigFile::deserialize(Some(&mut config_file_slice));

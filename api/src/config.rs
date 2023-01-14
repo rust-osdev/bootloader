@@ -37,7 +37,6 @@ impl BootloaderConfig {
     ///
     /// - `kernel_stack_size`: 80kiB
     /// - `mappings`: See [`Mappings::new_default()`]
-    /// - `frame_buffer`: See [`FrameBuffer::new_default()`]
     pub const fn new_default() -> Self {
         Self {
             kernel_stack_size: 80 * 1024,
@@ -227,10 +226,6 @@ impl BootloaderConfig {
             version: ApiVersion::random(),
             mappings: Mappings::random(),
             kernel_stack_size: rand::random(),
-            frame_buffer: FrameBuffer::random(),
-            log_level: LevelFilter::Trace,
-            frame_buffer_logger_status: LoggerStatus::Enable,
-            serial_logger_status: LoggerStatus::Enable,
         }
     }
 }
@@ -398,46 +393,6 @@ impl Mappings {
     }
 }
 
-/// Configuration for the frame buffer used for graphical output.
-#[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
-#[non_exhaustive]
-pub struct FrameBuffer {
-    /// Instructs the bootloader to set up a framebuffer format that has at least the given height.
-    ///
-    /// If this is not possible, the bootloader will fall back to a smaller format.
-    pub minimum_framebuffer_height: Option<u64>,
-    /// Instructs the bootloader to set up a framebuffer format that has at least the given width.
-    ///
-    /// If this is not possible, the bootloader will fall back to a smaller format.
-    pub minimum_framebuffer_width: Option<u64>,
-}
-
-impl FrameBuffer {
-    /// Creates a default configuration without any requirements.
-    pub const fn new_default() -> Self {
-        Self {
-            minimum_framebuffer_height: Option::None,
-            minimum_framebuffer_width: Option::None,
-        }
-    }
-
-    #[cfg(test)]
-    fn random() -> FrameBuffer {
-        Self {
-            minimum_framebuffer_height: if rand::random() {
-                Option::Some(rand::random())
-            } else {
-                Option::None
-            },
-            minimum_framebuffer_width: if rand::random() {
-                Option::Some(rand::random())
-            } else {
-                Option::None
-            },
-        }
-    }
-}
-
 /// Specifies how the bootloader should map a memory region into the virtual address space.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Mapping {
@@ -496,63 +451,6 @@ impl Mapping {
 impl Default for Mapping {
     fn default() -> Self {
         Self::new_default()
-    }
-}
-
-/// An enum representing the available verbosity level filters of the logger.
-///
-/// Based on
-/// https://github.com/rust-lang/log/blob/dc32ab999f52805d5ce579b526bd9d9684c38d1a/src/lib.rs#L552-565
-#[repr(u8)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum LevelFilter {
-    /// A level lower than all log levels.
-    Off,
-    /// Corresponds to the `Error` log level.
-    Error,
-    /// Corresponds to the `Warn` log level.
-    Warn,
-    /// Corresponds to the `Info` log level.
-    Info,
-    /// Corresponds to the `Debug` log level.
-    Debug,
-    /// Corresponds to the `Trace` log level.
-    Trace,
-}
-
-impl LevelFilter {
-    /// Converts a u8 into a Option<LevelFilter>
-    pub fn from_u8(value: u8) -> Option<LevelFilter> {
-        match value {
-            0 => Some(Self::Off),
-            1 => Some(Self::Error),
-            2 => Some(Self::Warn),
-            3 => Some(Self::Info),
-            4 => Some(Self::Debug),
-            5 => Some(Self::Trace),
-            _ => None,
-        }
-    }
-}
-
-/// An enum for enabling or disabling the different methods for logging.
-#[repr(u8)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum LoggerStatus {
-    /// This method of logging is disabled
-    Disable,
-    /// This method of logging is enabled
-    Enable,
-}
-
-impl LoggerStatus {
-    /// Converts an u8 into a Option<LoggerStatus>
-    pub fn from_u8(value: u8) -> Option<LoggerStatus> {
-        match value {
-            0 => Some(Self::Disable),
-            1 => Some(Self::Enable),
-            _ => None,
-        }
     }
 }
 
