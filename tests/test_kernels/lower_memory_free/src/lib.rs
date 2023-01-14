@@ -7,7 +7,6 @@ pub enum QemuExitCode {
     Failed = 0x11,
 }
 
-pub static RAMDISK_CONTENTS: &[u8] = include_bytes!("../../../ramdisk.txt");
 
 pub fn exit_qemu(exit_code: QemuExitCode) -> ! {
     use x86_64::instructions::{nop, port::Port};
