@@ -161,6 +161,7 @@ dependencies = [
  "llvm-tools",
  "mbrman",
  "tempfile",
+ "test_kernel_config_file",
  "test_kernel_default_settings",
  "test_kernel_higher_half",
  "test_kernel_map_phys_mem",
@@ -966,6 +967,15 @@ dependencies = [
  "redox_syscall",
  "remove_dir_all",
  "winapi",
+]
+
+[[package]]
+name = "test_kernel_config_file"
+version = "0.1.0"
+dependencies = [
+ "bootloader_api",
+ "uart_16550",
+ "x86_64",
 ]
 
 [[package]]

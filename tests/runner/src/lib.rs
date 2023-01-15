@@ -10,11 +10,11 @@ const QEMU_ARGS: &[&str] = &[
     "--no-reboot",
 ];
 
-pub fn run_test_kernel(kernel_binary_path: &str) {
-    run_test_kernel_with_ramdisk(kernel_binary_path, None)
-}
-
-pub fn run_test_kernel_with_ramdisk(kernel_binary_path: &str, ramdisk_path: Option<&Path>) {
+pub fn run_test_kernel(
+    kernel_binary_path: &str,
+    ramdisk_path: Option<&Path>,
+    config_file_path: Option<&Path>,
+) {
     let kernel_path = Path::new(kernel_binary_path);
 
     #[cfg(feature = "uefi")]
@@ -25,6 +25,9 @@ pub fn run_test_kernel_with_ramdisk(kernel_binary_path: &str, ramdisk_path: Opti
         // Set ramdisk for test, if supplied.
         if let Some(rdp) = ramdisk_path {
             uefi_builder.set_ramdisk(rdp);
+        }
+        if let Some(cfp) = config_file_path {
+            uefi_builder.set_ramdisk(cfp);
         }
         uefi_builder.create_disk_image(&gpt_path).unwrap();
 
@@ -45,6 +48,9 @@ pub fn run_test_kernel_with_ramdisk(kernel_binary_path: &str, ramdisk_path: Opti
         // Set ramdisk for test, if supplied.
         if let Some(rdp) = ramdisk_path {
             bios_builder.set_ramdisk(rdp);
+        }
+        if let Some(cfp) = config_file_path {
+            bios_builder.set_ramdisk(cfp);
         }
         bios_builder.create_disk_image(&mbr_path).unwrap();
 
