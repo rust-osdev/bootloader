@@ -1,4 +1,5 @@
 use serde::Deserialize;
+use serde_json_core::de;
 
 #[derive(Deserialize)]
 pub struct BootloaderConfigFile {
@@ -37,10 +38,15 @@ impl Default for BootloaderConfigFile {
 }
 
 impl BootloaderConfigFile {
-    pub fn deserialize<'a>(serialized: Option<&'a mut [u8]>) -> Self {
+    pub fn deserialize<'a>(serialized: Option<&'a mut [u8]>) -> Result<Self, (Self, de::Error)> {
         match serialized {
-            Some(json) => return serde_json_core::from_slice(&json).unwrap().0,
-            None => return Default::default(),
+            Some(json) => {
+                match serde_json_core::from_slice::<Self>(&json) {
+                    Ok((data, _)) => return Ok(data),
+                    Err(err) => return Err((Default::default(), err)),
+                };
+            }
+            None => return Ok(Default::default()),
         }
     }
 }

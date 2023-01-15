@@ -97,9 +97,20 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
     writeln!(st.stdout(), "Trying to load ramdisk via {:?}", boot_mode).unwrap();
     // Ramdisk must load from same source, or not at all.
     let ramdisk = load_ramdisk(image, &mut st, boot_mode);
-    // Dirty code!
+
     let config_file = load_config_file(image, &mut st, boot_mode);
-    let config = BootloaderConfigFile::deserialize(config_file);
+    let config = match BootloaderConfigFile::deserialize(config_file) {
+        Ok(data) => data,
+        Err((data, err)) => {
+            writeln!(
+                st.stdout(),
+                "Failed to deserialize the config file {:?}",
+                err
+            )
+            .unwrap();
+            data
+        }
+    };
 
     writeln!(
         st.stdout(),

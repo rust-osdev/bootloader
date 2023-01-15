@@ -111,17 +111,31 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
     };
     let kernel = Kernel::parse(kernel_slice);
 
-    let mut config_file_slice = {
-        let ptr = info.config_file.start as *mut u8;
-        unsafe { slice::from_raw_parts_mut(ptr, usize_from(info.config_file.len)) }
+    let mut config_file_slice: Option<&'static mut [u8]> = None;
+    if info.config_file.len != 0 {
+        config_file_slice = {
+            let ptr = info.config_file.start as *mut u8;
+            unsafe {
+                Some(slice::from_raw_parts_mut(
+                    ptr,
+                    usize_from(info.config_file.len),
+                ))
+            }
+        };
+    }
+    let config = match BootloaderConfigFile::deserialize(config_file_slice) {
+        Ok(data) => data,
+        Err((data, err)) => {
+            log::warn!("Failed to deserialize the config file {:?}", err);
+            data
+        }
     };
-    let config_file = BootloaderConfigFile::deserialize(Some(&mut config_file_slice));
 
     let framebuffer_info = init_logger(
         info.framebuffer,
-        config_file.log_level,
-        config_file.frame_buffer_logger_status,
-        config_file.serial_logger_status,
+        config.log_level,
+        config.frame_buffer_logger_status,
+        config.serial_logger_status,
     );
 
     log::info!("4th Stage");

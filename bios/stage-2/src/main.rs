@@ -113,13 +113,16 @@ fn start(disk_number: u16, partition_table_start: *const u8) -> ! {
         writeln!(screen::Writer, "Loaded ramdisk at {ramdisk_start:#p}").unwrap();
     }
     let config_file_start = ramdisk_start.wrapping_add(ramdisk_len.try_into().unwrap());
-    let config_file_len = load_file(
+    let config_file_len = match try_load_file(
         "config.json",
         config_file_start,
         &mut fs,
         &mut disk,
         disk_buffer,
-    );
+    ) {
+        Some(s) => s,
+        None => 0u64,
+    };
 
     let memory_map = unsafe { memory_map::query_memory_map() }.unwrap();
     writeln!(screen::Writer, "{memory_map:x?}").unwrap();
