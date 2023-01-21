@@ -14,3 +14,4 @@ bootloader-x86_64-common = { workspace = true }
 log = "0.4.14"
 uefi = "0.18.0"
 x86_64 = "0.14.8"
+serde-json-core = "0.5.0"

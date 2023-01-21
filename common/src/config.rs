@@ -1,8 +1,7 @@
-use serde::Deserialize;
-use serde_json_core::de;
+use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize)]
-pub struct BootloaderConfigFile {
+#[derive(Serialize, Deserialize)]
+pub struct BootConfig {
     /// Configuration for the frame buffer that can be used by the kernel to display pixels
     /// on the screen.
     #[serde(default)]
@@ -16,43 +15,29 @@ pub struct BootloaderConfigFile {
     /// Whether the bootloader should print log messages to the framebuffer when booting.
     ///
     /// Enabled by default.
-    #[serde(default)]
-    pub frame_buffer_logger_status: LoggerStatus,
+    #[serde(default = "default_logger_status")]
+    pub frame_buffer_logger_status: bool,
 
     /// Whether the bootloader should print log messages to the serial port when booting.
     ///
     /// Enabled by default.
-    #[serde(default)]
-    pub serial_logger_status: LoggerStatus,
+    #[serde(default = "default_logger_status")]
+    pub serial_logger_status: bool,
 }
 
-impl Default for BootloaderConfigFile {
+impl Default for BootConfig {
     fn default() -> Self {
         Self {
             frame_buffer: Default::default(),
             log_level: Default::default(),
-            frame_buffer_logger_status: Default::default(),
-            serial_logger_status: Default::default(),
-        }
-    }
-}
-
-impl BootloaderConfigFile {
-    pub fn deserialize<'a>(serialized: Option<&'a mut [u8]>) -> Result<Self, (Self, de::Error)> {
-        match serialized {
-            Some(json) => {
-                match serde_json_core::from_slice::<Self>(&json) {
-                    Ok((data, _)) => return Ok(data),
-                    Err(err) => return Err((Default::default(), err)),
-                };
-            }
-            None => return Ok(Default::default()),
+            frame_buffer_logger_status: true,
+            serial_logger_status: true,
         }
     }
 }
 
 /// Configuration for the frame buffer used for graphical output.
-#[derive(Deserialize, Debug, Default, PartialEq, Eq, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Default, PartialEq, Eq, Clone, Copy)]
 #[non_exhaustive]
 pub struct FrameBuffer {
     /// Instructs the bootloader to set up a framebuffer format that has at least the given height.
@@ -65,29 +50,11 @@ pub struct FrameBuffer {
     pub minimum_framebuffer_width: Option<u64>,
 }
 
-impl FrameBuffer {
-    #[cfg(test)]
-    fn random() -> FrameBuffer {
-        Self {
-            minimum_framebuffer_height: if rand::random() {
-                Option::Some(rand::random())
-            } else {
-                Option::None
-            },
-            minimum_framebuffer_width: if rand::random() {
-                Option::Some(rand::random())
-            } else {
-                Option::None
-            },
-        }
-    }
-}
-
 /// An enum representing the available verbosity level filters of the logger.
 ///
 /// Based on
 /// https://github.com/rust-lang/log/blob/dc32ab999f52805d5ce579b526bd9d9684c38d1a/src/lib.rs#L552-565
-#[derive(Deserialize, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum LevelFilter {
     /// A level lower than all log levels.
     Off,
@@ -109,17 +76,6 @@ impl Default for LevelFilter {
     }
 }
 
-/// An enum for enabling or disabling the different methods for logging.
-#[derive(Deserialize, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum LoggerStatus {
-    /// This method of logging is disabled
-    Disable,
-    /// This method of logging is enabled
-    Enable,
-}
-
-impl Default for LoggerStatus {
-    fn default() -> Self {
-        Self::Enable
-    }
+fn default_logger_status() -> bool {
+    true
 }

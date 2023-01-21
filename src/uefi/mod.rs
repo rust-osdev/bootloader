@@ -1,5 +1,7 @@
 use crate::fat;
 use anyhow::Context;
+use bootloader_x86_64_common::config::BootConfig;
+use std::io::Write;
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
@@ -13,7 +15,7 @@ mod pxe;
 pub struct UefiBoot {
     kernel: PathBuf,
     ramdisk: Option<PathBuf>,
-    config_file: Option<PathBuf>,
+    config: Option<String>,
 }
 
 impl UefiBoot {
@@ -22,7 +24,7 @@ impl UefiBoot {
         Self {
             kernel: kernel_path.to_owned(),
             ramdisk: None,
-            config_file: None,
+            config: None,
         }
     }
 
@@ -33,8 +35,8 @@ impl UefiBoot {
     }
 
     /// Add a JSON configuration file to the disk image
-    pub fn set_config_file(&mut self, config_file_path: &Path) -> &mut Self {
-        self.config_file = Some(config_file_path.to_owned());
+    pub fn set_config_file(&mut self, config: &BootConfig) -> &mut Self {
+        self.config = Some(serde_json::to_string(&config).expect("failed to serialize BootConfig"));
         self
     }
 
@@ -83,8 +85,15 @@ impl UefiBoot {
         if let Some(ramdisk_path) = &self.ramdisk {
             files.insert(crate::RAMDISK_FILE_NAME, ramdisk_path);
         }
-        if let Some(config_file_path) = &self.config_file {
-            files.insert(crate::CONFIG_FILE_NAME, config_file_path);
+
+        let mut config_file: NamedTempFile;
+
+        if let Some(config_ser) = &self.config {
+            config_file = NamedTempFile::new()
+                .context("failed to create temp file")
+                .unwrap();
+            writeln!(config_file, "{config_ser}")?;
+            files.insert(crate::CONFIG_FILE_NAME, config_file.path());
         }
 
         let out_file = NamedTempFile::new().context("failed to create temp file")?;

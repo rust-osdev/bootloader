@@ -1,3 +1,4 @@
+use bootloader::BootConfig;
 use std::{io::Write, path::Path, process::Command};
 
 const QEMU_ARGS: &[&str] = &[
@@ -10,10 +11,23 @@ const QEMU_ARGS: &[&str] = &[
     "--no-reboot",
 ];
 
-pub fn run_test_kernel(
+pub fn run_test_kernel(kernel_binary_path: &str) {
+    run_test_kernel_internal(kernel_binary_path, None, None)
+}
+pub fn run_test_kernel_with_ramdisk(kernel_binary_path: &str, ramdisk_path: Option<&Path>) {
+    run_test_kernel_internal(kernel_binary_path, ramdisk_path, None)
+}
+pub fn run_test_kernel_with_config_file(
+    kernel_binary_path: &str,
+    config_file: Option<&BootConfig>,
+) {
+    run_test_kernel_internal(kernel_binary_path, None, config_file)
+}
+
+pub fn run_test_kernel_internal(
     kernel_binary_path: &str,
     ramdisk_path: Option<&Path>,
-    config_file_path: Option<&Path>,
+    config_file_path: Option<&BootConfig>,
 ) {
     let kernel_path = Path::new(kernel_binary_path);
 
@@ -27,7 +41,7 @@ pub fn run_test_kernel(
             uefi_builder.set_ramdisk(rdp);
         }
         if let Some(cfp) = config_file_path {
-            uefi_builder.set_ramdisk(cfp);
+            uefi_builder.set_config_file(cfp);
         }
         uefi_builder.create_disk_image(&gpt_path).unwrap();
 
@@ -50,7 +64,7 @@ pub fn run_test_kernel(
             bios_builder.set_ramdisk(rdp);
         }
         if let Some(cfp) = config_file_path {
-            bios_builder.set_ramdisk(cfp);
+            bios_builder.set_config_file(cfp);
         }
         bios_builder.create_disk_image(&mbr_path).unwrap();
 

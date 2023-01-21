@@ -16,6 +16,8 @@ pub use bios::BiosBoot;
 #[cfg(feature = "uefi")]
 pub use uefi::UefiBoot;
 
+pub use bootloader_x86_64_common::config::BootConfig;
+
 const KERNEL_FILE_NAME: &str = "kernel-x86_64";
 const RAMDISK_FILE_NAME: &str = "ramdisk";
-const CONFIG_FILE_NAME: &str = "config.json";
+const CONFIG_FILE_NAME: &str = "boot.json";

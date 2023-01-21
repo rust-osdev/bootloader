@@ -21,5 +21,5 @@ fn basic_boot() {
         .join("basic_boot");
     assert!(kernel_path.exists());
 
-    run_test_kernel(kernel_path.as_path().to_str().unwrap(), None, None);
+    run_test_kernel(kernel_path.as_path().to_str().unwrap());
 }

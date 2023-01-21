@@ -1,6 +1,0 @@
-{
-	"frame_buffer": { "minimun_framebuffer_height": null, "minimun_framebuffer_width": null },
-	"log_level": "Trace",
-	"frame_buffer_logger_status": "Enable",
-	"serial_logger_status": "Enable"
-}

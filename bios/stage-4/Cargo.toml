@@ -16,6 +16,7 @@ log = "0.4.14"
 x86_64 = "0.14.8"
 rsdp = "2.0.0"
 usize_conversions = "0.2.0"
+serde-json-core = "0.5.0"
 
 # This currently causes a cargo warning, but it is required for publishing to crates.io.
 # See https://github.com/rust-lang/cargo/issues/8264 for details.

@@ -3,7 +3,7 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 
 use crate::{
-    config::{LevelFilter, LoggerStatus},
+    config::LevelFilter,
     legacy_memory_region::{LegacyFrameAllocator, LegacyMemoryRegion},
 };
 use bootloader_api::{
@@ -48,8 +48,8 @@ pub fn init_logger(
     framebuffer: &'static mut [u8],
     info: FrameBufferInfo,
     log_level: LevelFilter,
-    frame_buffer_logger_status: LoggerStatus,
-    serial_logger_status: LoggerStatus,
+    frame_buffer_logger_status: bool,
+    serial_logger_status: bool,
 ) {
     let logger = logger::LOGGER.get_or_init(move || {
         logger::LockedLogger::new(

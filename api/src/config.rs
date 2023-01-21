@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use crate::{concat::*, version_info};
 
 /// Allows configuring the bootloader behavior.
@@ -23,6 +25,14 @@ pub struct BootloaderConfig {
     /// the stack size that the bootloader should allocate and map. The stack is created
     /// with a guard page, so a stack overflow will lead to a page fault.
     pub kernel_stack_size: u64,
+
+    /// Configuration for the frame buffer that can be used by the kernel to display pixels
+    /// on the screen.
+    #[deprecated(
+        since = "0.11.1",
+        note = "This field is being obsolete because now it's at the JSON configuration file"
+    )]
+    pub frame_buffer: FrameBuffer,
 }
 
 impl BootloaderConfig {
@@ -31,7 +41,7 @@ impl BootloaderConfig {
         0x3D,
     ];
     #[doc(hidden)]
-    pub const SERIALIZED_LEN: usize = 106;
+    pub const SERIALIZED_LEN: usize = 124;
 
     /// Creates a new default configuration with the following values:
     ///
@@ -42,6 +52,7 @@ impl BootloaderConfig {
             kernel_stack_size: 80 * 1024,
             version: ApiVersion::new_default(),
             mappings: Mappings::new_default(),
+            frame_buffer: FrameBuffer::new_default(),
         }
     }
 
@@ -54,6 +65,7 @@ impl BootloaderConfig {
             version,
             mappings,
             kernel_stack_size,
+            frame_buffer,
         } = self;
         let ApiVersion {
             version_major,
@@ -72,6 +84,10 @@ impl BootloaderConfig {
             dynamic_range_end,
             ramdisk_memory,
         } = mappings;
+        let FrameBuffer {
+            minimum_framebuffer_height,
+            minimum_framebuffer_width,
+        } = frame_buffer;
 
         let version = {
             let one = concat_2_2(version_major.to_le_bytes(), version_minor.to_le_bytes());
@@ -115,7 +131,23 @@ impl BootloaderConfig {
             },
         );
 
-        concat_97_9(buf, ramdisk_memory.serialize())
+        let buf = concat_97_9(buf, ramdisk_memory.serialize());
+
+        let buf = concat_106_9(
+            buf,
+            match minimum_framebuffer_height {
+                Option::None => [0; 9],
+                Option::Some(addr) => concat_1_8([1], addr.to_le_bytes()),
+            },
+        );
+
+        concat_115_9(
+            buf,
+            match minimum_framebuffer_width {
+                Option::None => [0; 9],
+                Option::Some(addr) => concat_1_8([1], addr.to_le_bytes()),
+            },
+        )
     }
 
     /// Tries to deserialize a config byte array that was created using [`Self::serialize`].
@@ -209,6 +241,27 @@ impl BootloaderConfig {
             (mappings, s)
         };
 
+        let (frame_buffer, s) = {
+            let (&min_framebuffer_height_some, s) = split_array_ref(s);
+            let (&min_framebuffer_height, s) = split_array_ref(s);
+            let (&min_framebuffer_width_some, s) = split_array_ref(s);
+            let (&min_framebuffer_width, s) = split_array_ref(s);
+
+            let frame_buffer = FrameBuffer {
+                minimum_framebuffer_height: match min_framebuffer_height_some {
+                    [0] if min_framebuffer_height == [0; 8] => Option::None,
+                    [1] => Option::Some(u64::from_le_bytes(min_framebuffer_height)),
+                    _ => return Err("minimum_framebuffer_height invalid"),
+                },
+                minimum_framebuffer_width: match min_framebuffer_width_some {
+                    [0] if min_framebuffer_width == [0; 8] => Option::None,
+                    [1] => Option::Some(u64::from_le_bytes(min_framebuffer_width)),
+                    _ => return Err("minimum_framebuffer_width invalid"),
+                },
+            };
+            (frame_buffer, s)
+        };
+
         if !s.is_empty() {
             return Err("unexpected rest");
         }
@@ -217,6 +270,7 @@ impl BootloaderConfig {
             version,
             kernel_stack_size: u64::from_le_bytes(kernel_stack_size),
             mappings,
+            frame_buffer,
         })
     }
 
@@ -226,6 +280,7 @@ impl BootloaderConfig {
             version: ApiVersion::random(),
             mappings: Mappings::random(),
             kernel_stack_size: rand::random(),
+            frame_buffer: FrameBuffer::random(),
         }
     }
 }
@@ -451,6 +506,46 @@ impl Mapping {
 impl Default for Mapping {
     fn default() -> Self {
         Self::new_default()
+    }
+}
+
+/// Configuration for the frame buffer used for graphical output.
+#[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
+#[non_exhaustive]
+pub struct FrameBuffer {
+    /// Instructs the bootloader to set up a framebuffer format that has at least the given height.
+    ///
+    /// If this is not possible, the bootloader will fall back to a smaller format.
+    pub minimum_framebuffer_height: Option<u64>,
+    /// Instructs the bootloader to set up a framebuffer format that has at least the given width.
+    ///
+    /// If this is not possible, the bootloader will fall back to a smaller format.
+    pub minimum_framebuffer_width: Option<u64>,
+}
+
+impl FrameBuffer {
+    /// Creates a default configuration without any requirements.
+    pub const fn new_default() -> Self {
+        Self {
+            minimum_framebuffer_height: Option::None,
+            minimum_framebuffer_width: Option::None,
+        }
+    }
+
+    #[cfg(test)]
+    fn random() -> FrameBuffer {
+        Self {
+            minimum_framebuffer_height: if rand::random() {
+                Option::Some(rand::random())
+            } else {
+                Option::None
+            },
+            minimum_framebuffer_width: if rand::random() {
+                Option::Some(rand::random())
+            } else {
+                Option::None
+            },
+        }
     }
 }
 

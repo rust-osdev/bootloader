@@ -11,7 +11,6 @@ repository.workspace = true
 [dependencies]
 bootloader_api = { workspace = true }
 conquer-once = { version = "0.3.2", default-features = false }
-log = "0.4.14"
 spinning_top = "0.2.4"
 usize_conversions = "0.2.0"
 x86_64 = { version = "0.14.8" }
@@ -22,6 +21,7 @@ rand_hc = "0.3.1"
 uart_16550 = "0.2.18"
 serde-json-core = "0.5.0"
 serde = { version = "1.0.152", default-features = false, features = ["derive"] }
+log = "0.4.17"
 
 [dependencies.noto-sans-mono-bitmap]
 version = "0.2.0"
