@@ -31,7 +31,7 @@ pub fn run_test_kernel_with_ramdisk(kernel_binary_path: &str, ramdisk_path: Opti
 
         // create a TFTP folder with the kernel executable and UEFI bootloader for
         // UEFI PXE booting
-        let tftp_path = kernel_path.with_extension(".tftp");
+        let tftp_path = kernel_path.with_extension("tftp");
         uefi_builder.create_pxe_tftp_folder(&tftp_path).unwrap();
 
         run_test_kernel_on_uefi(&gpt_path);
