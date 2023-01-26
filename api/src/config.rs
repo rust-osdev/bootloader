@@ -30,7 +30,7 @@ pub struct BootloaderConfig {
     /// on the screen.
     #[deprecated(
         since = "0.11.1",
-        note = "This field is being obsolete because now it's at the JSON configuration file"
+        note = "The frame buffer is now configured through the `BootConfig` struct when creating the bootable disk image"
     )]
     pub frame_buffer: FrameBuffer,
 }

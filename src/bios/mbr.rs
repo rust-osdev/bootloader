@@ -84,7 +84,7 @@ pub fn create_mbr_disk(
     assert_eq!(
         disk.stream_position()
             .context("failed to get disk image seek position")?,
-        <u32 as Into<u64>>::into(second_stage_start_sector * SECTOR_SIZE)
+        u64::from(second_stage_start_sector * SECTOR_SIZE)
     );
     io::copy(&mut second_stage, &mut disk)
         .context("failed to copy second stage binary to MBR disk image")?;

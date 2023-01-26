@@ -1,6 +1,8 @@
+#![no_std]
+
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct BootConfig {
     /// Configuration for the frame buffer that can be used by the kernel to display pixels
     /// on the screen.
@@ -16,24 +18,13 @@ pub struct BootConfig {
     ///
     /// Enabled by default.
     #[serde(default = "default_logger_status")]
-    pub frame_buffer_logger_status: bool,
+    pub frame_buffer_logging: bool,
 
     /// Whether the bootloader should print log messages to the serial port when booting.
     ///
     /// Enabled by default.
     #[serde(default = "default_logger_status")]
-    pub serial_logger_status: bool,
-}
-
-impl Default for BootConfig {
-    fn default() -> Self {
-        Self {
-            frame_buffer: Default::default(),
-            log_level: Default::default(),
-            frame_buffer_logger_status: true,
-            serial_logger_status: true,
-        }
-    }
+    pub serial_logging: bool,
 }
 
 /// Configuration for the frame buffer used for graphical output.

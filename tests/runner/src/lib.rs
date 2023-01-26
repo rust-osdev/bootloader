@@ -41,7 +41,7 @@ pub fn run_test_kernel_internal(
             uefi_builder.set_ramdisk(rdp);
         }
         if let Some(cfp) = config_file_path {
-            uefi_builder.set_config_file(cfp);
+            uefi_builder.set_boot_config(cfp);
         }
         uefi_builder.create_disk_image(&gpt_path).unwrap();
 
@@ -64,7 +64,7 @@ pub fn run_test_kernel_internal(
             bios_builder.set_ramdisk(rdp);
         }
         if let Some(cfp) = config_file_path {
-            bios_builder.set_config_file(cfp);
+            bios_builder.set_boot_config(cfp);
         }
         bios_builder.create_disk_image(&mbr_path).unwrap();
 

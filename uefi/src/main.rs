@@ -2,13 +2,12 @@
 #![no_main]
 #![feature(abi_efiapi)]
 #![deny(unsafe_op_in_unsafe_fn)]
-#![allow(deprecated)]
 
 use crate::memory_descriptor::UefiMemoryDescriptor;
 use bootloader_api::info::FrameBufferInfo;
+use bootloader_boot_config::BootConfig;
 use bootloader_x86_64_common::{
-    config::BootConfig, legacy_memory_region::LegacyFrameAllocator, Kernel, RawFrameBufferInfo,
-    SystemInfo,
+    legacy_memory_region::LegacyFrameAllocator, Kernel, RawFrameBufferInfo, SystemInfo,
 };
 use core::{
     cell::UnsafeCell,
@@ -76,13 +75,12 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
 
     let mut boot_mode = BootMode::Disk;
     let config_file = load_config_file(image, &mut st, boot_mode);
-    let config_file: Option<&[u8]> = match config_file {
-        Some(config) => Some(config),
-        None => None,
-    };
-
     let mut error_loading_config: Option<serde_json_core::de::Error> = None;
-    let mut config: BootConfig = match config_file.map(serde_json_core::from_slice).transpose() {
+    let mut config: BootConfig = match config_file
+        .as_deref()
+        .map(serde_json_core::from_slice)
+        .transpose()
+    {
         Ok(data) => data.unwrap_or_default().0,
         Err(err) => {
             error_loading_config = Some(err);
@@ -98,10 +96,12 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
     }
     let kernel = kernel.expect("Failed to load kernel");
 
+    #[allow(deprecated)]
     if config.frame_buffer.minimum_framebuffer_height.is_none() {
         config.frame_buffer.minimum_framebuffer_height =
             kernel.config.frame_buffer.minimum_framebuffer_height;
     }
+    #[allow(deprecated)]
     if config.frame_buffer.minimum_framebuffer_width.is_none() {
         config.frame_buffer.minimum_framebuffer_width =
             kernel.config.frame_buffer.minimum_framebuffer_width;
@@ -545,8 +545,8 @@ fn init_logger(
         slice,
         info,
         config.log_level,
-        config.frame_buffer_logger_status,
-        config.serial_logger_status,
+        config.frame_buffer_logging,
+        config.serial_logging,
     );
 
     Some(RawFrameBufferInfo {

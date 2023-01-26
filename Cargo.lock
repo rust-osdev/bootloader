@@ -153,7 +153,7 @@ version = "0.11.0"
 dependencies = [
  "anyhow",
  "async-process",
- "bootloader-x86_64-common",
+ "bootloader-boot-config",
  "bootloader_test_runner",
  "fatfs",
  "futures",
@@ -169,6 +169,13 @@ dependencies = [
  "test_kernel_map_phys_mem",
  "test_kernel_pie",
  "test_kernel_ramdisk",
+]
+
+[[package]]
+name = "bootloader-boot-config"
+version = "0.11.0"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
@@ -200,6 +207,7 @@ dependencies = [
 name = "bootloader-x86_64-bios-stage-4"
 version = "0.11.0"
 dependencies = [
+ "bootloader-boot-config",
  "bootloader-x86_64-bios-common",
  "bootloader-x86_64-common",
  "bootloader_api",
@@ -214,6 +222,7 @@ dependencies = [
 name = "bootloader-x86_64-common"
 version = "0.11.0"
 dependencies = [
+ "bootloader-boot-config",
  "bootloader_api",
  "conquer-once",
  "log",
@@ -221,8 +230,6 @@ dependencies = [
  "rand",
  "rand_hc",
  "raw-cpuid",
- "serde",
- "serde-json-core",
  "spinning_top",
  "uart_16550",
  "usize_conversions",
@@ -234,6 +241,7 @@ dependencies = [
 name = "bootloader-x86_64-uefi"
 version = "0.11.0"
 dependencies = [
+ "bootloader-boot-config",
  "bootloader-x86_64-common",
  "bootloader_api",
  "log",

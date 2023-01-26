@@ -1,15 +1,14 @@
 #![no_std]
 #![no_main]
-#![allow(deprecated)]
 
 use crate::memory_descriptor::MemoryRegion;
 use bootloader_api::info::{FrameBufferInfo, PixelFormat};
+use bootloader_boot_config::{BootConfig, LevelFilter};
 use bootloader_x86_64_bios_common::{BiosFramebufferInfo, BiosInfo, E820MemoryRegion};
 use bootloader_x86_64_common::RawFrameBufferInfo;
 use bootloader_x86_64_common::{
-    config::{BootConfig, LevelFilter},
-    legacy_memory_region::LegacyFrameAllocator,
-    load_and_switch_to_kernel, Kernel, PageTables, SystemInfo,
+    legacy_memory_region::LegacyFrameAllocator, load_and_switch_to_kernel, Kernel, PageTables,
+    SystemInfo,
 };
 use core::{cmp, slice};
 use usize_conversions::usize_from;
@@ -136,10 +135,12 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
         }
     };
 
+    #[allow(deprecated)]
     if config.frame_buffer.minimum_framebuffer_height.is_none() {
         config.frame_buffer.minimum_framebuffer_height =
             kernel.config.frame_buffer.minimum_framebuffer_height;
     }
+    #[allow(deprecated)]
     if config.frame_buffer.minimum_framebuffer_width.is_none() {
         config.frame_buffer.minimum_framebuffer_width =
             kernel.config.frame_buffer.minimum_framebuffer_width;
@@ -147,8 +148,8 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
     let framebuffer_info = init_logger(
         info.framebuffer,
         config.log_level,
-        config.frame_buffer_logger_status,
-        config.serial_logger_status,
+        config.frame_buffer_logging,
+        config.serial_logging,
     );
 
     if let Some(err) = error_loading_config {

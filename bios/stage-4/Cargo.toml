@@ -12,6 +12,7 @@ description = "Fourth BIOS stage of the `bootloader` crate"
 bootloader_api = { workspace = true }
 bootloader-x86_64-common = { workspace = true }
 bootloader-x86_64-bios-common = { workspace = true }
+bootloader-boot-config = { workspace = true }
 log = "0.4.14"
 x86_64 = "0.14.8"
 rsdp = "2.0.0"

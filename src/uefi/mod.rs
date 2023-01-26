@@ -1,6 +1,6 @@
 use crate::fat;
 use anyhow::Context;
-use bootloader_x86_64_common::config::BootConfig;
+use bootloader_boot_config::BootConfig;
 use std::io::Write;
 use std::{
     collections::BTreeMap,
@@ -28,14 +28,14 @@ impl UefiBoot {
         }
     }
 
-    /// Add a ramdisk file to the disk image
+    /// Add a ramdisk file to the disk image.
     pub fn set_ramdisk(&mut self, ramdisk_path: &Path) -> &mut Self {
         self.ramdisk = Some(ramdisk_path.to_owned());
         self
     }
 
-    /// Add a JSON configuration file to the disk image
-    pub fn set_config_file(&mut self, config: &BootConfig) -> &mut Self {
+    /// Configures the runtime behavior of the bootloader.
+    pub fn set_boot_config(&mut self, config: &BootConfig) -> &mut Self {
         self.config = Some(serde_json::to_string(&config).expect("failed to serialize BootConfig"));
         self
     }
