@@ -1,6 +1,5 @@
 #![no_std]
 #![no_main]
-#![feature(abi_efiapi)]
 #![deny(unsafe_op_in_unsafe_fn)]
 
 use crate::memory_descriptor::UefiMemoryDescriptor;

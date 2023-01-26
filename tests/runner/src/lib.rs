@@ -1,5 +1,5 @@
 use bootloader::BootConfig;
-use std::{io::Write, path::Path, process::Command};
+use std::{io::Read, path::Path, process::Command};
 
 const QEMU_ARGS: &[&str] = &[
     "-device",
