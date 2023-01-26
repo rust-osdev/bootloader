@@ -39,9 +39,10 @@ pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) -> 
 }
 
 fn start(disk_number: u16, partition_table_start: *const u8) -> ! {
-    screen::Writer.write_str(" -> SECOND STAGE\n").unwrap();
-
+    // Enter unreal mode before doing anything else.
     enter_unreal_mode();
+
+    screen::Writer.write_str(" -> SECOND STAGE\n").unwrap();
 
     // parse partition table
     let partitions = {

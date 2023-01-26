@@ -59,8 +59,10 @@ unsafe impl Sync for GdtPointer {}
 
 pub fn enter_unreal_mode() {
     let ds: u16;
+    let ss: u16;
     unsafe {
         asm!("mov {0:x}, ds", out(reg) ds, options(nomem, nostack, preserves_flags));
+        asm!("mov {0:x}, ss", out(reg) ss, options(nomem, nostack, preserves_flags));
     }
 
     GDT.clear_interrupts_and_load();
@@ -70,7 +72,7 @@ pub fn enter_unreal_mode() {
 
     // load GDT
     unsafe {
-        asm!("mov {0}, 0x10", "mov ds, {0}", out(reg) _);
+        asm!("mov {0}, 0x10", "mov ds, {0}", "mov ss, {0}", out(reg) _);
     }
 
     // unset protected mode bit again
@@ -78,6 +80,7 @@ pub fn enter_unreal_mode() {
 
     unsafe {
         asm!("mov ds, {0:x}", in(reg) ds, options(nostack, preserves_flags));
+        asm!("mov ss, {0:x}", in(reg) ss, options(nostack, preserves_flags));
         asm!("sti");
     }
 }

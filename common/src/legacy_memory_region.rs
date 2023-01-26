@@ -160,7 +160,7 @@ where
             let kernel_slice_end = kernel_slice_start + kernel_slice_len;
             if region.kind == MemoryRegionKind::Usable
                 && kernel_slice_start < region.end
-                && kernel_slice_end >= region.start
+                && kernel_slice_end > region.start
             {
                 // region overlaps with kernel -> we might need to split it
 
