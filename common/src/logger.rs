@@ -27,7 +27,7 @@ impl LockedLogger {
         };
 
         let serial = match serial_logger_status {
-            true => Some(Spinlock::new(SerialPort::new())),
+            true => Some(Spinlock::new(Default::default())),
             false => None,
         };
 

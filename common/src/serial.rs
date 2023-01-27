@@ -4,8 +4,8 @@ pub struct SerialPort {
     port: uart_16550::SerialPort,
 }
 
-impl SerialPort {
-    pub fn new() -> Self {
+impl Default for SerialPort {
+    fn default() -> Self {
         let mut port = unsafe { uart_16550::SerialPort::new(0x3F8) };
         port.init();
         Self { port }
