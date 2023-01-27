@@ -8,7 +8,7 @@ use test_kernel_default_settings::{exit_qemu, serial, QemuExitCode};
 entry_point!(kernel_main);
 
 fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
-    writeln!(serial(), "Entered kernel with boot info: {:?}", boot_info).unwrap();
+    writeln!(serial(), "Entered kernel with boot info: {boot_info:?}").unwrap();
     exit_qemu(QemuExitCode::Success);
 }
 
@@ -16,6 +16,6 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
 #[panic_handler]
 #[cfg(not(test))]
 fn panic(info: &core::panic::PanicInfo) -> ! {
-    let _ = writeln!(serial(), "PANIC: {}", info);
+    let _ = writeln!(serial(), "PANIC: {info}");
     exit_qemu(QemuExitCode::Failed);
 }
