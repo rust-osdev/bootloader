@@ -24,9 +24,12 @@ mod vesa;
 /// We use this partition type to store the second bootloader stage;
 const BOOTLOADER_SECOND_STAGE_PARTITION_TYPE: u8 = 0x20;
 
-const STAGE_3_DST: *mut u8 = 0x0010_0000 as *mut u8; // 1MiB (typically 14MiB accessible here)
-const STAGE_4_DST: *mut u8 = 0x0020_0000 as *mut u8; // 2MiB (typically still 13MiB accessible here)
-const KERNEL_DST: *mut u8 = 0x0100_0000 as *mut u8; // 16MiB
+// 1MiB (typically 14MiB accessible here)
+const STAGE_3_DST: *mut u8 = 0x0010_0000 as *mut u8;
+// must match the start address in bios/stage-4/stage-4-link.ld
+const STAGE_4_DST: *mut u8 = 0x0013_0000 as *mut u8;
+// 16MiB
+const KERNEL_DST: *mut u8 = 0x0100_0000 as *mut u8;
 
 static mut DISK_BUFFER: AlignedArrayBuffer<0x4000> = AlignedArrayBuffer {
     buffer: [0; 0x4000],
