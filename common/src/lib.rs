@@ -332,7 +332,7 @@ where
         let size = max_phys.as_u64();
         let alignment = Size2MiB::SIZE;
         let offset = mapping_addr(mapping, size, alignment, &mut used_entries)
-            .expect("start addraess for physical memory mapping must be 2MiB-page-aligned");
+            .expect("start address for physical memory mapping must be 2MiB-page-aligned");
 
         for frame in PhysFrame::range_inclusive(start_frame, end_frame) {
             let page = Page::containing_address(offset + frame.start_address().as_u64());
@@ -388,7 +388,7 @@ where
     Mappings {
         framebuffer: framebuffer_virt_addr,
         entry_point,
-        // Use the configured stack size, even if it's not page aligned. However, we
+        // Use the configured stack size, even if it's not page-aligned. However, we
         // need to align it down to the next 16-byte boundary because the System V
         // ABI requires a 16-byte stack alignment.
         stack_top: stack_end_addr.align_down(16u8),
