@@ -34,11 +34,11 @@ fn main() {
             i = i,
             j = j,
             a = (0..i)
-                .map(|idx| format!("a[{}]", idx))
+                .map(|idx| format!("a[{idx}]"))
                 .collect::<Vec<_>>()
                 .join(","),
             b = (0..j)
-                .map(|idx| format!("b[{}]", idx))
+                .map(|idx| format!("b[{idx}]"))
                 .collect::<Vec<_>>()
                 .join(","),
         );
@@ -56,12 +56,11 @@ fn main() {
         Path::new(&out_dir).join("version_info.rs"),
         format!(
             "
-            pub const VERSION_MAJOR: u16 = {};
-            pub const VERSION_MINOR: u16 = {};
-            pub const VERSION_PATCH: u16 = {};
-            pub const VERSION_PRE: bool = {};
-            ",
-            version_major, version_minor, version_patch, pre_release
+            pub const VERSION_MAJOR: u16 = {version_major};
+            pub const VERSION_MINOR: u16 = {version_minor};
+            pub const VERSION_PATCH: u16 = {version_patch};
+            pub const VERSION_PRE: bool = {pre_release};
+            "
         ),
     )
     .unwrap();

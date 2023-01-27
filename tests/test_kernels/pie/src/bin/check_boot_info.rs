@@ -45,6 +45,6 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
 fn panic(info: &core::panic::PanicInfo) -> ! {
     use core::fmt::Write;
 
-    let _ = writeln!(test_kernel_pie::serial(), "PANIC: {}", info);
+    let _ = writeln!(test_kernel_pie::serial(), "PANIC: {info}");
     exit_qemu(QemuExitCode::Failed);
 }

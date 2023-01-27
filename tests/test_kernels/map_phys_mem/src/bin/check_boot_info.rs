@@ -49,6 +49,6 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     use core::fmt::Write;
     use test_kernel_map_phys_mem::serial;
 
-    let _ = writeln!(serial(), "PANIC: {}", info);
+    let _ = writeln!(serial(), "PANIC: {info}");
     exit_qemu(QemuExitCode::Failed);
 }
