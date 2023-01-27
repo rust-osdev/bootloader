@@ -1,16 +1,15 @@
 #![no_std]
 #![no_main]
-#![feature(abi_efiapi)]
 #![deny(unsafe_op_in_unsafe_fn)]
 
 use crate::memory_descriptor::UefiMemoryDescriptor;
-use bootloader_api::{info::FrameBufferInfo, BootloaderConfig};
+use bootloader_api::info::FrameBufferInfo;
+use bootloader_boot_config::BootConfig;
 use bootloader_x86_64_common::{
     legacy_memory_region::LegacyFrameAllocator, Kernel, RawFrameBufferInfo, SystemInfo,
 };
 use core::{
     cell::UnsafeCell,
-    fmt::Write,
     ops::{Deref, DerefMut},
     ptr, slice,
 };
@@ -72,50 +71,70 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
     unsafe {
         *SYSTEM_TABLE.get() = Some(st.unsafe_clone());
     }
-    st.stdout().clear().unwrap();
-    writeln!(
-        st.stdout(),
-        "UEFI bootloader started; trying to load kernel"
-    )
-    .unwrap();
 
     let mut boot_mode = BootMode::Disk;
+    let config_file = load_config_file(image, &mut st, boot_mode);
+    let mut error_loading_config: Option<serde_json_core::de::Error> = None;
+    let mut config: BootConfig = match config_file
+        .as_deref()
+        .map(serde_json_core::from_slice)
+        .transpose()
+    {
+        Ok(data) => data.unwrap_or_default().0,
+        Err(err) => {
+            error_loading_config = Some(err);
+            Default::default()
+        }
+    };
+
     let mut kernel = load_kernel(image, &mut st, boot_mode);
     if kernel.is_none() {
-        writeln!(
-            st.stdout(),
-            "Failed to load kernel via {:?}, trying TFTP",
-            boot_mode
-        )
-        .unwrap();
         // Try TFTP boot
         boot_mode = BootMode::Tftp;
         kernel = load_kernel(image, &mut st, boot_mode);
     }
     let kernel = kernel.expect("Failed to load kernel");
-    writeln!(st.stdout(), "Trying to load ramdisk via {:?}", boot_mode).unwrap();
+
+    #[allow(deprecated)]
+    if config.frame_buffer.minimum_framebuffer_height.is_none() {
+        config.frame_buffer.minimum_framebuffer_height =
+            kernel.config.frame_buffer.minimum_framebuffer_height;
+    }
+    #[allow(deprecated)]
+    if config.frame_buffer.minimum_framebuffer_width.is_none() {
+        config.frame_buffer.minimum_framebuffer_width =
+            kernel.config.frame_buffer.minimum_framebuffer_width;
+    }
+    let framebuffer = init_logger(image, &st, config);
+
+    unsafe {
+        *SYSTEM_TABLE.get() = None;
+    }
+
+    log::info!("UEFI bootloader started");
+
+    if let Some(framebuffer) = framebuffer {
+        log::info!("Using framebuffer at {:#x}", framebuffer.addr);
+    }
+
+    if let Some(err) = error_loading_config {
+        log::warn!("Failed to deserialize the config file {:?}", err);
+    } else {
+        log::info!("Reading configuration from disk was successful");
+    }
+
+    log::info!("Trying to load ramdisk via {:?}", boot_mode);
     // Ramdisk must load from same source, or not at all.
     let ramdisk = load_ramdisk(image, &mut st, boot_mode);
 
-    writeln!(
-        st.stdout(),
+    log::info!(
         "{}",
         match ramdisk {
             Some(_) => "Loaded ramdisk",
             None => "Ramdisk not found.",
         }
-    )
-    .unwrap();
+    );
 
-    let framebuffer = init_logger(image, &st, kernel.config);
-    unsafe {
-        *SYSTEM_TABLE.get() = None;
-    }
-    log::info!("UEFI bootloader started");
-    log::info!("Reading kernel and configuration from disk was successful");
-    if let Some(framebuffer) = framebuffer {
-        log::info!("Using framebuffer at {:#x}", framebuffer.addr);
-    }
     let mmap_storage = {
         let mut memory_map_size = st.boot_services().memory_map_size();
         loop {
@@ -192,6 +211,14 @@ fn load_ramdisk(
     boot_mode: BootMode,
 ) -> Option<&'static mut [u8]> {
     load_file_from_boot_method(image, st, "ramdisk\0", boot_mode)
+}
+
+fn load_config_file(
+    image: Handle,
+    st: &mut SystemTable<Boot>,
+    boot_mode: BootMode,
+) -> Option<&'static mut [u8]> {
+    load_file_from_boot_method(image, st, "config.json\0", boot_mode)
 }
 
 fn load_kernel(
@@ -446,7 +473,7 @@ fn create_page_tables(
 fn init_logger(
     image_handle: Handle,
     st: &SystemTable<Boot>,
-    config: BootloaderConfig,
+    config: BootConfig,
 ) -> Option<RawFrameBufferInfo> {
     let gop_handle = st
         .boot_services()
@@ -517,8 +544,8 @@ fn init_logger(
         slice,
         info,
         config.log_level,
-        config.frame_buffer_logger_status,
-        config.serial_logger_status,
+        config.frame_buffer_logging,
+        config.serial_logging,
     );
 
     Some(RawFrameBufferInfo {
@@ -531,8 +558,10 @@ fn init_logger(
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
     use core::arch::asm;
+    use core::fmt::Write;
 
     if let Some(st) = unsafe { &mut *SYSTEM_TABLE.get() } {
+        let _ = st.stdout().clear();
         let _ = writeln!(st.stdout(), "{}", info);
     }
 

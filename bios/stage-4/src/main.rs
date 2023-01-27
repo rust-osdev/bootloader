@@ -2,10 +2,8 @@
 #![no_main]
 
 use crate::memory_descriptor::MemoryRegion;
-use bootloader_api::{
-    config::{LevelFilter, LoggerStatus},
-    info::{FrameBufferInfo, PixelFormat},
-};
+use bootloader_api::info::{FrameBufferInfo, PixelFormat};
+use bootloader_boot_config::{BootConfig, LevelFilter};
 use bootloader_x86_64_bios_common::{BiosFramebufferInfo, BiosInfo, E820MemoryRegion};
 use bootloader_x86_64_common::RawFrameBufferInfo;
 use bootloader_x86_64_common::{
@@ -113,12 +111,50 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
     };
     let kernel = Kernel::parse(kernel_slice);
 
+    let mut config_file_slice: Option<&[u8]> = None;
+    if info.config_file.len != 0 {
+        config_file_slice = {
+            let ptr = info.config_file.start as *mut u8;
+            unsafe {
+                Some(slice::from_raw_parts_mut(
+                    ptr,
+                    usize_from(info.config_file.len),
+                ))
+            }
+        };
+    }
+    let mut error_loading_config: Option<serde_json_core::de::Error> = None;
+    let mut config: BootConfig = match config_file_slice
+        .map(serde_json_core::from_slice)
+        .transpose()
+    {
+        Ok(data) => data.unwrap_or_default().0,
+        Err(err) => {
+            error_loading_config = Some(err);
+            Default::default()
+        }
+    };
+
+    #[allow(deprecated)]
+    if config.frame_buffer.minimum_framebuffer_height.is_none() {
+        config.frame_buffer.minimum_framebuffer_height =
+            kernel.config.frame_buffer.minimum_framebuffer_height;
+    }
+    #[allow(deprecated)]
+    if config.frame_buffer.minimum_framebuffer_width.is_none() {
+        config.frame_buffer.minimum_framebuffer_width =
+            kernel.config.frame_buffer.minimum_framebuffer_width;
+    }
     let framebuffer_info = init_logger(
         info.framebuffer,
-        kernel.config.log_level,
-        kernel.config.frame_buffer_logger_status,
-        kernel.config.serial_logger_status,
+        config.log_level,
+        config.frame_buffer_logging,
+        config.serial_logging,
     );
+
+    if let Some(err) = error_loading_config {
+        log::warn!("Failed to deserialize the config file {:?}", err);
+    }
 
     log::info!("4th Stage");
     log::info!("{info:x?}");
@@ -143,8 +179,8 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
 fn init_logger(
     info: BiosFramebufferInfo,
     log_level: LevelFilter,
-    frame_buffer_logger_status: LoggerStatus,
-    serial_logger_status: LoggerStatus,
+    frame_buffer_logger_status: bool,
+    serial_logger_status: bool,
 ) -> FrameBufferInfo {
     let framebuffer_info = FrameBufferInfo {
         byte_len: info.region.len.try_into().unwrap(),

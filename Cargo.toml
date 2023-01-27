@@ -13,6 +13,7 @@ edition = "2021"
 members = [
     "api",
     "common",
+    "common/config",
     "uefi",
     "bios/boot_sector",
     "bios/stage-*",
@@ -36,6 +37,7 @@ repository = "https://github.com/rust-osdev/bootloader"
 [workspace.dependencies]
 bootloader_api = { version = "0.11.0", path = "api" }
 bootloader-x86_64-common = { version = "0.11.0", path = "common" }
+bootloader-boot-config = { version = "0.11.0", path = "common/config" }
 bootloader-x86_64-bios-common = { version = "0.11.0", path = "bios/common" }
 
 [features]
@@ -52,6 +54,8 @@ fatfs = { version = "0.3.4", default-features = false, features = [
 tempfile = "3.3.0"
 mbrman = { version = "0.5.1", optional = true }
 gpt = { version = "3.0.0", optional = true }
+bootloader-boot-config = { version = "0.11.0", path = "common/config" }
+serde_json = "1.0.91"
 
 [dev-dependencies]
 bootloader_test_runner = { path = "tests/runner" }
@@ -60,6 +64,7 @@ test_kernel_higher_half = { path = "tests/test_kernels/higher_half", artifact = 
 test_kernel_map_phys_mem = { path = "tests/test_kernels/map_phys_mem", artifact = "bin", target = "x86_64-unknown-none" }
 test_kernel_pie = { path = "tests/test_kernels/pie", artifact = "bin", target = "x86_64-unknown-none" }
 test_kernel_ramdisk = { path = "tests/test_kernels/ramdisk", artifact = "bin", target = "x86_64-unknown-none" }
+test_kernel_config_file = { path = "tests/test_kernels/config_file", artifact = "bin", target = "x86_64-unknown-none" }
 
 [profile.dev]
 panic = "abort"

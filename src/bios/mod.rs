@@ -1,5 +1,7 @@
 use crate::fat;
 use anyhow::Context;
+use bootloader_boot_config::BootConfig;
+use std::io::Write;
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
@@ -15,6 +17,7 @@ const BIOS_STAGE_4: &str = "boot-stage-4";
 pub struct BiosBoot {
     kernel: PathBuf,
     ramdisk: Option<PathBuf>,
+    config: Option<String>,
 }
 
 impl BiosBoot {
@@ -23,12 +26,19 @@ impl BiosBoot {
         Self {
             kernel: kernel_path.to_owned(),
             ramdisk: None,
+            config: None,
         }
     }
 
-    /// Add a ramdisk file to the image
+    /// Add a ramdisk file to the image.
     pub fn set_ramdisk(&mut self, ramdisk_path: &Path) -> &mut Self {
         self.ramdisk = Some(ramdisk_path.to_owned());
+        self
+    }
+
+    /// Configures the runtime behavior of the bootloader.
+    pub fn set_boot_config(&mut self, config: &BootConfig) -> &mut Self {
+        self.config = Some(serde_json::to_string(&config).expect("failed to serialize BootConfig"));
         self
     }
 
@@ -67,6 +77,16 @@ impl BiosBoot {
         files.insert(BIOS_STAGE_4, stage_4_path);
         if let Some(ramdisk_path) = &self.ramdisk {
             files.insert(crate::RAMDISK_FILE_NAME, ramdisk_path);
+        }
+
+        let mut config_file: NamedTempFile;
+
+        if let Some(config_ser) = &self.config {
+            config_file = NamedTempFile::new()
+                .context("failed to create temp file")
+                .unwrap();
+            writeln!(config_file, "{config_ser}")?;
+            files.insert(crate::CONFIG_FILE_NAME, config_file.path());
         }
 
         let out_file = NamedTempFile::new().context("failed to create temp file")?;

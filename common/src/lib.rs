@@ -4,10 +4,11 @@
 
 use crate::legacy_memory_region::{LegacyFrameAllocator, LegacyMemoryRegion};
 use bootloader_api::{
-    config::{LevelFilter, LoggerStatus, Mapping},
+    config::Mapping,
     info::{FrameBuffer, FrameBufferInfo, MemoryRegion, TlsTemplate},
     BootInfo, BootloaderConfig,
 };
+use bootloader_boot_config::LevelFilter;
 use core::{alloc::Layout, arch::asm, mem::MaybeUninit, slice};
 use level_4_entries::UsedLevel4Entries;
 use usize_conversions::FromUsize;
@@ -43,8 +44,8 @@ pub fn init_logger(
     framebuffer: &'static mut [u8],
     info: FrameBufferInfo,
     log_level: LevelFilter,
-    frame_buffer_logger_status: LoggerStatus,
-    serial_logger_status: LoggerStatus,
+    frame_buffer_logger_status: bool,
+    serial_logger_status: bool,
 ) {
     let logger = logger::LOGGER.get_or_init(move || {
         logger::LockedLogger::new(

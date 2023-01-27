@@ -73,7 +73,7 @@ mod version_info {
 ///   
 ///   pub static BOOTLOADER_CONFIG: BootloaderConfig = {
 ///       let mut config = BootloaderConfig::new_default();
-///       config.frame_buffer.minimum_framebuffer_height = Some(720);
+///       config.kernel_stack_size = 90 * 1024;
 ///       config
 ///   };
 ///
