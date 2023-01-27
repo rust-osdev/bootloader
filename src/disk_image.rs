@@ -166,9 +166,9 @@ pub enum DiskImageError {
     /// An unexpected I/O error occurred
     #[error("I/O error: {message}:\n{error}")]
     Io {
-        /// Desciption of the failed I/O operation
+        /// Description of the failed I/O operation
         message: &'static str,
-        /// The I/O error that occured
+        /// The I/O error that occurred
         error: io::Error,
     },
 }

@@ -54,7 +54,7 @@ fn get_random_64(rd_rand: RdRand) -> Option<u64> {
 
 /// Gather entropy by reading the current time with the `RDTSC` instruction if it's available.
 ///
-/// This function doesn't provide particulary good entropy, but it's better than nothing.
+/// This function doesn't provide particularly good entropy, but it's better than nothing.
 fn tsc_entropy() -> [u8; 32] {
     let mut entropy = [0; 32];
 
@@ -77,7 +77,7 @@ fn tsc_entropy() -> [u8; 32] {
 
 /// Gather entropy by reading the current count of PIT channel 1-3.
 ///
-/// This function doesn't provide particulary good entropy, but it's always available.
+/// This function doesn't provide particularly good entropy, but it's always available.
 fn pit_entropy() -> [u8; 32] {
     let mut entropy = [0; 32];
 
