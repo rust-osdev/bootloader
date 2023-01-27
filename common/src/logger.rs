@@ -1,5 +1,5 @@
 use crate::{framebuffer::FrameBufferWriter, serial::SerialPort};
-use bootloader_api::{config::LoggerStatus, info::FrameBufferInfo};
+use bootloader_api::info::FrameBufferInfo;
 use conquer_once::spin::OnceCell;
 use core::fmt::Write;
 use spinning_top::Spinlock;
@@ -18,17 +18,17 @@ impl LockedLogger {
     pub fn new(
         framebuffer: &'static mut [u8],
         info: FrameBufferInfo,
-        frame_buffer_logger_status: LoggerStatus,
-        serial_logger_status: LoggerStatus,
+        frame_buffer_logger_status: bool,
+        serial_logger_status: bool,
     ) -> Self {
         let framebuffer = match frame_buffer_logger_status {
-            LoggerStatus::Enable => Some(Spinlock::new(FrameBufferWriter::new(framebuffer, info))),
-            LoggerStatus::Disable => None,
+            true => Some(Spinlock::new(FrameBufferWriter::new(framebuffer, info))),
+            false => None,
         };
 
         let serial = match serial_logger_status {
-            LoggerStatus::Enable => Some(Spinlock::new(SerialPort::new())),
-            LoggerStatus::Disable => None,
+            true => Some(Spinlock::new(SerialPort::new())),
+            false => None,
         };
 
         LockedLogger {
