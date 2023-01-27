@@ -113,10 +113,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: Swatinem/rust-cache@v2
-        with:    
-          shared-key: "typos"
-          cache-targets: false
-      - run: cargo install typos-cli
+      - run: cargo install typos-cli --locked
       - run: typos
-
