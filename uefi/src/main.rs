@@ -187,8 +187,8 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
                 .or_else(|| config_entries.find(|entry| matches!(entry.guid, cfg::ACPI_GUID)));
             rsdp.map(|entry| PhysAddr::new(entry.address as u64))
         },
-        ramdisk_addr: ramdisk_addr,
-        ramdisk_len: ramdisk_len,
+        ramdisk_addr,
+        ramdisk_len,
     };
 
     bootloader_x86_64_common::load_and_switch_to_kernel(
@@ -382,7 +382,7 @@ fn load_file_from_tftp_boot_server(
     let filename = CStr8::from_bytes_with_nul(name.as_bytes()).unwrap();
 
     // Determine the kernel file size.
-    let file_size = base_code.tftp_get_file_size(&server_ip, &filename).ok()?;
+    let file_size = base_code.tftp_get_file_size(&server_ip, filename).ok()?;
     let kernel_size = usize::try_from(file_size).expect("The file size should fit into usize");
 
     // Allocate some memory for the kernel file.
@@ -398,7 +398,7 @@ fn load_file_from_tftp_boot_server(
 
     // Load the kernel file.
     base_code
-        .tftp_read_file(&server_ip, &filename, Some(slice))
+        .tftp_read_file(&server_ip, filename, Some(slice))
         .expect("Failed to read kernel file from the TFTP boot server");
 
     Some(slice)
