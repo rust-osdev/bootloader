@@ -2,29 +2,37 @@
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize)]
+#[serde(default)]
 pub struct BootConfig {
     /// Configuration for the frame buffer that can be used by the kernel to display pixels
     /// on the screen.
-    #[serde(default)]
     pub frame_buffer: FrameBuffer,
 
     /// Configuration for changing the level of the filter of the messages that are shown in the
     /// screen when booting. The default is 'Trace'.
-    #[serde(default)]
     pub log_level: LevelFilter,
 
     /// Whether the bootloader should print log messages to the framebuffer when booting.
     ///
     /// Enabled by default.
-    #[serde(default = "default_logger_status")]
     pub frame_buffer_logging: bool,
 
     /// Whether the bootloader should print log messages to the serial port when booting.
     ///
     /// Enabled by default.
-    #[serde(default = "default_logger_status")]
     pub serial_logging: bool,
+}
+
+impl Default for BootConfig {
+    fn default() -> Self {
+        Self {
+            frame_buffer: Default::default(),
+            log_level: Default::default(),
+            frame_buffer_logging: true,
+            serial_logging: true,
+        }
+    }
 }
 
 /// Configuration for the frame buffer used for graphical output.
@@ -65,8 +73,4 @@ impl Default for LevelFilter {
     fn default() -> Self {
         Self::Trace
     }
-}
-
-fn default_logger_status() -> bool {
-    true
 }
