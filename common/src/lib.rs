@@ -204,12 +204,17 @@ where
     .expect("no entry point");
     log::info!("Entry point at: {:#x}", entry_point.as_u64());
     // create a stack
-    let stack_start_addr = mapping_addr(
-        config.mappings.kernel_stack,
-        config.kernel_stack_size,
-        16,
-        &mut used_entries,
-    );
+    let stack_start_addr = {
+        let guard_page_start = mapping_addr(
+            config.mappings.kernel_stack,
+            // allocate an additional page as a guard page
+            Size4KiB::SIZE + config.kernel_stack_size,
+            // we need page-alignment because we want a guard page directly below the stack
+            Size4KiB::SIZE,
+            &mut used_entries,
+        );
+        guard_page_start + Size4KiB::SIZE
+    };
     let stack_end_addr = stack_start_addr + config.kernel_stack_size;
 
     let stack_start: Page = Page::containing_address(stack_start_addr);
