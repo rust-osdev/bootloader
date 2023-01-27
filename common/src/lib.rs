@@ -210,11 +210,10 @@ where
         16,
         &mut used_entries,
     );
+    let stack_end_addr = stack_start_addr + config.kernel_stack_size;
+
     let stack_start: Page = Page::containing_address(stack_start_addr);
-    let stack_end = {
-        let end_addr = stack_start_addr + config.kernel_stack_size;
-        Page::containing_address(end_addr - 1u64)
-    };
+    let stack_end = Page::containing_address(stack_end_addr - 1u64);
     for page in Page::range_inclusive(stack_start, stack_end) {
         let frame = frame_allocator
             .allocate_frame()
@@ -387,7 +386,10 @@ where
     Mappings {
         framebuffer: framebuffer_virt_addr,
         entry_point,
-        stack_end,
+        // Use the configured stack size, even if it's not page aligned. However, we
+        // need to align it down to the next 16-byte boundary because the System V
+        // ABI requires a 16-byte stack alignment.
+        stack_top: stack_end_addr.align_down(16u8),
         used_entries,
         physical_memory_offset,
         recursive_index,
@@ -404,8 +406,8 @@ where
 pub struct Mappings {
     /// The entry point address of the kernel.
     pub entry_point: VirtAddr,
-    /// The stack end page of the kernel.
-    pub stack_end: Page,
+    /// The (exclusive) end address of the kernel stack.
+    pub stack_top: VirtAddr,
     /// Keeps track of used entries in the level 4 page table, useful for finding a free
     /// virtual memory when needed.
     pub used_entries: UsedLevel4Entries,
@@ -556,7 +558,7 @@ pub fn switch_to_kernel(
     } = page_tables;
     let addresses = Addresses {
         page_table: kernel_level_4_frame,
-        stack_top: mappings.stack_end.start_address(),
+        stack_top: mappings.stack_top,
         entry_point: mappings.entry_point,
         boot_info,
     };
