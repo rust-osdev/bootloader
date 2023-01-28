@@ -52,7 +52,7 @@ pub struct FrameBuffer {
 /// An enum representing the available verbosity level filters of the logger.
 ///
 /// Based on
-/// https://github.com/rust-lang/log/blob/dc32ab999f52805d5ce579b526bd9d9684c38d1a/src/lib.rs#L552-565
+/// <https://github.com/rust-lang/log/blob/dc32ab999f52805d5ce579b526bd9d9684c38d1a/src/lib.rs#L552-565>
 #[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum LevelFilter {
     /// A level lower than all log levels.
