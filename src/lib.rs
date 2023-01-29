@@ -31,7 +31,7 @@ use std::{
 
 use anyhow::Context;
 
-use tempfile::{tempfile, NamedTempFile};
+use tempfile::NamedTempFile;
 
 pub use bootloader_boot_config::BootConfig;
 
@@ -71,7 +71,7 @@ impl DiskImageBuilder {
 
     /// Add or replace a ramdisk to be included in the final image.
     pub fn set_ramdisk(&mut self, path: &Path) -> &mut Self {
-        self.add_or_replace_file(&path, RAMDISK_FILE_NAME)
+        self.add_or_replace_file(path, RAMDISK_FILE_NAME)
     }
 
     /// Configures the runtime behavior of the bootloader.
@@ -106,7 +106,7 @@ impl DiskImageBuilder {
         self.files.insert(
             0,
             DiskImageFile {
-                source: path.clone().to_path_buf(),
+                source: path.to_path_buf(),
                 destination: target.to_string(),
             },
         );
@@ -123,7 +123,7 @@ impl DiskImageBuilder {
         }
 
         for f in self.files.as_slice() {
-            local_map.insert(&f.destination, &f.source.as_path());
+            local_map.insert(&f.destination, f.source.as_path());
         }
 
         let out_file = NamedTempFile::new().context("failed to create temp file")?;
@@ -200,10 +200,7 @@ impl DiskImageBuilder {
 
         for f in self.files.as_slice() {
             let to = tftp_path.join(f.destination.clone());
-            let result = std::fs::copy(f.source.clone(), to);
-            if result.is_err() {
-                return Err(anyhow::Error::from(result.unwrap_err()));
-            }
+            std::fs::copy(f.source.clone(), to)?;
         }
 
         Ok(())
