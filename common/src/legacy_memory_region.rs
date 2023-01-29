@@ -104,7 +104,7 @@ where
     /// Converts this type to a boot info memory map.
     ///
     /// The memory map is placed in the given `regions` slice. The length of the given slice
-    /// must be at least the value returned by [`len`] pluse 1.
+    /// must be at least the value returned by [`len`] plus 1.
     ///
     /// The return slice is a subslice of `regions`, shortened to the actual number of regions.
     pub fn construct_memory_map(

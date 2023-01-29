@@ -107,3 +107,9 @@ jobs:
         run: cargo semver-checks check-release -p bootloader_api
       - name: Check semver
         run: cargo semver-checks check-release
+
+  typos:
+      name: Check spelling
+      runs-on: ubuntu-latest
+      steps:
+        - uses: crate-ci/typos@v1.0.4

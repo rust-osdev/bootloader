@@ -202,7 +202,7 @@ See our [migration guides](docs/migration/README.md) for details.
 
 # 0.8.2
 
-- Change the way the kernel entry point is called to honor alignement ABI ([#81](https://github.com/rust-osdev/bootloader/pull/81))
+- Change the way the kernel entry point is called to honor alignment ABI ([#81](https://github.com/rust-osdev/bootloader/pull/81))
 
 # 0.8.1
 
@@ -276,7 +276,7 @@ See our [migration guides](docs/migration/README.md) for details.
 
 - The level 4 page table is only recursively mapped if the `recursive_page_table` feature is enabled.
 - Rename `BootInfo::p4_table_addr` to `BootInfo::recursive_page_table_addr` (only present if the cargo feature is enabled)
-- Remove `From<PhysFrameRange>` implemenations for x86_64 `FrameRange`
+- Remove `From<PhysFrameRange>` implementations for x86_64 `FrameRange`
   - This only works when the versions align, so it is not a good general solution.
 - Remove unimplemented `BootInfo::package` field.
 - Make `BootInfo` non-exhaustive so that we can add additional fields later.

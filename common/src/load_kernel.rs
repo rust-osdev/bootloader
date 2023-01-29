@@ -213,7 +213,7 @@ where
         let mem_size = segment.mem_size();
         let file_size = segment.file_size();
 
-        // calculate virual memory region that must be zeroed
+        // calculate virtual memory region that must be zeroed
         let zero_start = virt_start_addr + file_size;
         let zero_end = virt_start_addr + mem_size;
 
@@ -297,7 +297,7 @@ where
     ///
     /// Panics if a page is not mapped in `self.page_table`.
     fn copy_from(&self, addr: VirtAddr, buf: &mut [u8]) {
-        // We can't know for sure that contigous virtual address are contigous
+        // We can't know for sure that contiguous virtual address are contiguous
         // in physical memory, so we iterate of the pages spanning the
         // addresses, translate them to frames and copy the data.
 
@@ -334,7 +334,7 @@ where
             let start_phys_addr = phys_addr.start_address() + start_offset_in_frame;
 
             // These are the offsets from the start address. These correspond
-            // to the destionation indices in `buf`.
+            // to the destination indices in `buf`.
             let start_offset_in_buf = Step::steps_between(&addr, &start_copy_address).unwrap();
 
             // Calculate the source slice.
@@ -364,7 +364,7 @@ where
     ///
     /// Panics if a page is not mapped in `self.page_table`.
     unsafe fn copy_to(&mut self, addr: VirtAddr, buf: &[u8]) {
-        // We can't know for sure that contigous virtual address are contigous
+        // We can't know for sure that contiguous virtual address are contiguous
         // in physical memory, so we iterate of the pages spanning the
         // addresses, translate them to frames and copy the data.
 
@@ -401,7 +401,7 @@ where
             let start_phys_addr = phys_addr.start_address() + start_offset_in_frame;
 
             // These are the offsets from the start address. These correspond
-            // to the destionation indices in `buf`.
+            // to the destination indices in `buf`.
             let start_offset_in_buf = Step::steps_between(&addr, &start_copy_address).unwrap();
 
             // Calculate the source slice.
@@ -639,7 +639,7 @@ where
                 // by a Load segment.
                 check_is_in_load(elf_file, rela.get_offset())?;
 
-                // Calculate the destionation of the relocation.
+                // Calculate the destination of the relocation.
                 let addr = self.virtual_address_offset + rela.get_offset();
                 let addr = VirtAddr::new(addr);
 
