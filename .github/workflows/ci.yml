@@ -109,9 +109,7 @@ jobs:
         run: cargo semver-checks check-release
 
   typos:
-    name: Check typos
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - run: cargo install typos-cli --locked
-      - run: typos
+      name: Check spelling
+      runs-on: ubuntu-latest
+      steps:
+        - uses: crate-ci/typos@v1.0.4
