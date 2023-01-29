@@ -124,6 +124,7 @@ where
 
     run_cmd.stdout(Stdio::piped());
     run_cmd.stderr(Stdio::piped());
+    run_cmd.stdin(Stdio::null());
 
     let mut child = run_cmd.spawn().unwrap();
 
