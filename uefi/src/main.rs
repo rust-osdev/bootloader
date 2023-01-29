@@ -1,7 +1,6 @@
 #![no_std]
 #![no_main]
 #![deny(unsafe_op_in_unsafe_fn)]
-#![feature(abi_efiapi)]
 
 use crate::memory_descriptor::UefiMemoryDescriptor;
 use bootloader_api::info::FrameBufferInfo;
