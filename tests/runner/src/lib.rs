@@ -1,4 +1,5 @@
 use bootloader::BootConfig;
+use bootloader::DiskImageBuilder;
 use std::{io::Read, path::Path, process::Command};
 
 const QEMU_ARGS: &[&str] = &[
@@ -31,26 +32,20 @@ pub fn run_test_kernel_internal(
     config_file_path: Option<&BootConfig>,
 ) {
     let kernel_path = Path::new(kernel_binary_path);
+    let mut image_builder = DiskImageBuilder::new(kernel_path);
+    if let Some(rdp) = ramdisk_path {
+        image_builder.set_ramdisk(rdp);
+    }
+    if let Some(cfp) = config_file_path {
+        image_builder.set_boot_config(cfp);
+    }
 
     #[cfg(feature = "uefi")]
     {
-        // create a GPT disk image for UEFI booting
         let gpt_path = kernel_path.with_extension("gpt");
-        let mut uefi_builder = bootloader::UefiBoot::new(kernel_path);
-        // Set ramdisk for test, if supplied.
-        if let Some(rdp) = ramdisk_path {
-            uefi_builder.set_ramdisk(rdp);
-        }
-        if let Some(cfp) = config_file_path {
-            uefi_builder.set_boot_config(cfp);
-        }
-        uefi_builder.create_disk_image(&gpt_path).unwrap();
-
-        // create a TFTP folder with the kernel executable and UEFI bootloader for
-        // UEFI PXE booting
         let tftp_path = kernel_path.with_extension("tftp");
-        uefi_builder.create_pxe_tftp_folder(&tftp_path).unwrap();
-
+        image_builder.create_uefi_image(&gpt_path).unwrap();
+        image_builder.create_uefi_tftp_folder(&tftp_path).unwrap();
         run_test_kernel_on_uefi(&gpt_path);
         run_test_kernel_on_uefi_pxe(&tftp_path);
     }
@@ -59,32 +54,10 @@ pub fn run_test_kernel_internal(
     {
         // create an MBR disk image for legacy BIOS booting
         let mbr_path = kernel_path.with_extension("mbr");
-        let mut bios_builder = bootloader::BiosBoot::new(kernel_path);
-        // Set ramdisk for test, if supplied.
-        if let Some(rdp) = ramdisk_path {
-            bios_builder.set_ramdisk(rdp);
-        }
-        if let Some(cfp) = config_file_path {
-            bios_builder.set_boot_config(cfp);
-        }
-        bios_builder.create_disk_image(&mbr_path).unwrap();
+        image_builder.create_bios_image(mbr_path.as_path()).unwrap();
 
         run_test_kernel_on_bios(&mbr_path);
     }
-
-    #[cfg(feature = "uefi")]
-    {
-        let gpt_path = kernel_path_buf.with_extension("gpt");
-        let tftp_path = kernel_path_buf.with_extension("tftp");
-        image_builder.create_uefi_image(&gpt_path).unwrap();
-        image_builder.create_uefi_tftp_folder(&tftp_path).unwrap();
-        run_test_kernel_on_uefi(&gpt_path);
-        run_test_kernel_on_uefi_pxe(&tftp_path);
-    }
-}
-
-pub fn run_test_kernel(kernel_binary_path: &str) {
-    run_test_kernel_with_ramdisk(kernel_binary_path, None);
 }
 
 #[cfg(feature = "uefi")]

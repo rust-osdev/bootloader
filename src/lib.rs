@@ -13,16 +13,25 @@ mod mbr;
 #[cfg(feature = "uefi")]
 mod uefi;
 
+#[cfg(feature = "uefi")]
+pub use uefi::UefiBoot;
+
+#[cfg(feature = "bios")]
+pub use bios::BiosBoot;
+
 mod fat;
 
 use std::{
     collections::BTreeMap,
+    env::temp_dir,
+    fs,
+    io::Write,
     path::{Path, PathBuf},
 };
 
 use anyhow::Context;
 
-use tempfile::NamedTempFile;
+use tempfile::{tempfile, NamedTempFile};
 
 pub use bootloader_boot_config::BootConfig;
 
@@ -63,6 +72,31 @@ impl DiskImageBuilder {
     /// Add or replace a ramdisk to be included in the final image.
     pub fn set_ramdisk(&mut self, path: &Path) -> &mut Self {
         self.add_or_replace_file(&path, RAMDISK_FILE_NAME)
+    }
+
+    /// Configures the runtime behavior of the bootloader.
+    pub fn set_boot_config(&mut self, boot_config: &BootConfig) -> &mut Self {
+        let json =
+            serde_json::to_string_pretty(boot_config).expect("failed to serialize BootConfig");
+        let bytes = json.as_bytes();
+        self.add_or_replace_file_byte_content(bytes, CONFIG_FILE_NAME)
+    }
+
+    /// Add or replace a file from a byte array
+    pub fn add_or_replace_file_byte_content(&mut self, data: &[u8], target: &str) -> &mut Self {
+        let temp_path = temp_dir();
+        let file_name = temp_path.join("bytes.tmp");
+        fs::create_dir_all(temp_path).expect("Failed to create temp directory");
+        let mut temp_file =
+            fs::File::create(file_name.clone()).expect("Failed to create temp file");
+        temp_file
+            .write_all(data)
+            .expect("Failed to write data to temp file");
+        temp_file
+            .sync_all()
+            .expect("Failed to flush temp file to disk");
+
+        self.add_or_replace_file(&file_name, target)
     }
 
     /// Add or replace arbitrary files.

@@ -1,9 +1,8 @@
 use std::path::Path;
 
-use crate::DiskImageBuilder;
+use bootloader_boot_config::BootConfig;
 
-const BIOS_STAGE_3: &str = "boot-stage-3";
-const BIOS_STAGE_4: &str = "boot-stage-4";
+use crate::DiskImageBuilder;
 
 /// Create disk images for booting on legacy BIOS systems.
 pub struct BiosBoot {
@@ -18,9 +17,15 @@ impl BiosBoot {
         }
     }
 
-    /// Add a ramdisk file to the image
+    /// Add a ramdisk file to the image.
     pub fn set_ramdisk(&mut self, ramdisk_path: &Path) -> &mut Self {
         self.image_builder.set_ramdisk(ramdisk_path);
+        self
+    }
+
+    /// Creates a configuration file (boot.json) that configures the runtime behavior of the bootloader.
+    pub fn set_boot_config(&mut self, config: &BootConfig) -> &mut Self {
+        self.image_builder.set_boot_config(config);
         self
     }
 
