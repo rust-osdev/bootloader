@@ -26,20 +26,21 @@ const KERNEL_FILE_NAME: &str = "kernel-x86_64";
 const RAMDISK_FILE_NAME: &str = "ramdisk";
 const CONFIG_FILE_NAME: &str = "boot.json";
 
-struct DiskImageFile<'a> {
-    source: &'a PathBuf,
-    destination: &'a str,
+#[derive(Clone)]
+struct DiskImageFile {
+    source: PathBuf,
+    destination: String,
 }
 
 /// DiskImageBuilder helps create disk images for a specified set of files.
 /// It can currently create MBR (BIOS), GPT (UEFI), and TFTP (UEFI) images.
-pub struct DiskImageBuilder<'a> {
-    files: Vec<DiskImageFile<'a>>,
+pub struct DiskImageBuilder {
+    files: Vec<DiskImageFile>,
 }
 
-impl<'a> DiskImageBuilder<'a> {
+impl DiskImageBuilder {
     /// Create a new instance of DiskImageBuilder, with the specified kernel.
-    pub fn new(kernel: &'a PathBuf) -> Self {
+    pub fn new(kernel: &Path) -> Self {
         let mut obj = Self::empty();
         obj.set_kernel(kernel);
         obj
@@ -51,31 +52,31 @@ impl<'a> DiskImageBuilder<'a> {
     }
 
     /// Add or replace a kernel to be included in the final image.
-    pub fn set_kernel(&mut self, path: &'a PathBuf) -> &mut Self {
+    pub fn set_kernel(&mut self, path: &Path) -> &mut Self {
         self.add_or_replace_file(path, KERNEL_FILE_NAME)
     }
 
     /// Add or replace a ramdisk to be included in the final image.
-    pub fn set_ramdisk(&mut self, path: &'a PathBuf) -> &mut Self {
+    pub fn set_ramdisk(&mut self, path: &Path) -> &mut Self {
         self.add_or_replace_file(&path, RAMDISK_FILE_NAME)
     }
 
     /// Add or replace arbitrary files.
     /// NOTE: You can overwrite internal files if you choose, such as EFI/BOOT/BOOTX64.EFI
     /// This can be useful in situations where you want to generate an image, but not use the provided bootloader.
-    pub fn add_or_replace_file(&mut self, path: &'a PathBuf, target: &'a str) -> &mut Self {
+    pub fn add_or_replace_file(&mut self, path: &Path, target: &str) -> &mut Self {
         self.files.insert(
             0,
-            DiskImageFile::<'a> {
-                source: &path,
-                destination: &target,
+            DiskImageFile {
+                source: path.clone().to_path_buf(),
+                destination: target.to_string(),
             },
         );
         self
     }
     fn create_fat_filesystem_image(
         &self,
-        internal_files: BTreeMap<&'a str, &'a Path>,
+        internal_files: BTreeMap<&str, &Path>,
     ) -> anyhow::Result<NamedTempFile> {
         let mut local_map = BTreeMap::new();
 
@@ -84,7 +85,7 @@ impl<'a> DiskImageBuilder<'a> {
         }
 
         for f in self.files.as_slice() {
-            local_map.insert(f.destination, &f.source.as_path());
+            local_map.insert(&f.destination, &f.source.as_path());
         }
 
         let out_file = NamedTempFile::new().context("failed to create temp file")?;
@@ -160,8 +161,8 @@ impl<'a> DiskImageBuilder<'a> {
         })?;
 
         for f in self.files.as_slice() {
-            let to = tftp_path.join(f.destination);
-            let result = std::fs::copy(f.source, to);
+            let to = tftp_path.join(f.destination.clone());
+            let result = std::fs::copy(f.source.clone(), to);
             if result.is_err() {
                 return Err(anyhow::Error::from(result.unwrap_err()));
             }
