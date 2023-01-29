@@ -7,14 +7,14 @@ const BIOS_STAGE_4: &str = "boot-stage-4";
 
 /// Create disk images for booting on legacy BIOS systems.
 pub struct BiosBoot {
-    image_builder: DiskImageBuilder
+    image_builder: DiskImageBuilder,
 }
 
 impl BiosBoot {
     /// Start creating a disk image for the given bootloader ELF executable.
     pub fn new(kernel_path: &Path) -> Self {
         Self {
-            image_builder: DiskImageBuilder::new(kernel_path)
+            image_builder: DiskImageBuilder::new(kernel_path),
         }
     }
 

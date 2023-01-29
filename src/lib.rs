@@ -4,12 +4,12 @@ An experimental x86_64 bootloader that works on both BIOS and UEFI systems.
 
 #![warn(missing_docs)]
 
+#[cfg(feature = "bios")]
+mod bios;
 #[cfg(feature = "uefi")]
 mod gpt;
 #[cfg(feature = "bios")]
 mod mbr;
-#[cfg(feature = "bios")]
-mod bios;
 #[cfg(feature = "uefi")]
 mod uefi;
 

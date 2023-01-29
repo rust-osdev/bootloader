@@ -7,14 +7,14 @@ const BIOS_STAGE_4: &str = "boot-stage-4";
 
 /// Create disk images for booting on legacy BIOS systems.
 pub struct UefiBoot {
-    image_builder: DiskImageBuilder
+    image_builder: DiskImageBuilder,
 }
 
 impl UefiBoot {
     /// Start creating a disk image for the given bootloader ELF executable.
     pub fn new(kernel_path: &Path) -> Self {
         Self {
-            image_builder: DiskImageBuilder::new(kernel_path)
+            image_builder: DiskImageBuilder::new(kernel_path),
         }
     }
 
@@ -28,7 +28,7 @@ impl UefiBoot {
     pub fn create_disk_image(&self, out_path: &Path) -> anyhow::Result<()> {
         self.image_builder.create_uefi_image(out_path)
     }
-    
+
     /// Prepare a folder for use with booting over UEFI_PXE.
     ///
     /// This places the bootloader executable under the path "bootloader". The
