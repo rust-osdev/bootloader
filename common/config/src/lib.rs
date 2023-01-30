@@ -22,6 +22,8 @@ pub struct BootConfig {
     ///
     /// Enabled by default.
     pub serial_logging: bool,
+
+    pub _test_sentinel: u64,
 }
 
 impl Default for BootConfig {
@@ -31,6 +33,7 @@ impl Default for BootConfig {
             log_level: Default::default(),
             frame_buffer_logging: true,
             serial_logging: true,
+            _test_sentinel: 0,
         }
     }
 }

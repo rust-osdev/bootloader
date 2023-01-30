@@ -54,14 +54,7 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
         PhysAddr::new(info.kernel.start)
     };
     let kernel_size = info.kernel.len;
-    let next_free_frame = match info.ramdisk.len {
-        0 => PhysFrame::containing_address(kernel_start + kernel_size - 1u64) + 1,
-        _ => {
-            PhysFrame::containing_address(PhysAddr::new(
-                info.ramdisk.start + info.ramdisk.len - 1u64,
-            )) + 1
-        }
-    };
+    let next_free_frame = PhysFrame::containing_address(PhysAddr::new(info.last_used_addr)) + 1;
     let mut frame_allocator = LegacyFrameAllocator::new_starting_at(
         next_free_frame,
         memory_map.iter().copied().map(MemoryRegion),
@@ -173,7 +166,7 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
         ramdisk_len: info.ramdisk.len,
     };
 
-    load_and_switch_to_kernel(kernel, frame_allocator, page_tables, system_info);
+    load_and_switch_to_kernel(kernel, config, frame_allocator, page_tables, system_info);
 }
 
 fn init_logger(

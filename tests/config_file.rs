@@ -3,25 +3,25 @@ use bootloader_test_runner::run_test_kernel_internal;
 use bootloader::BootConfig;
 
 #[test]
-fn basic_boot() {
-    let config: BootConfig = Default::default();
+fn default_config() {
     run_test_kernel_internal(
-        env!("CARGO_BIN_FILE_TEST_KERNEL_CONFIG_FILE_basic_boot"),
+        env!("CARGO_BIN_FILE_TEST_KERNEL_CONFIG_FILE_no_config"),
         None,
-        Some(&config),
+        None,
     );
 }
 
 #[test]
-fn custom_options_boot() {
+fn custom_boot_config() {
     let config = BootConfig {
         frame_buffer: Default::default(),
         log_level: Default::default(),
         frame_buffer_logging: false,
         serial_logging: true,
+        _test_sentinel: 0xb001b001b001,
     };
     run_test_kernel_internal(
-        env!("CARGO_BIN_FILE_TEST_KERNEL_CONFIG_FILE_basic_boot_broken_config_file"),
+        env!("CARGO_BIN_FILE_TEST_KERNEL_CONFIG_FILE_custom_config"),
         None,
         Some(&config),
     );

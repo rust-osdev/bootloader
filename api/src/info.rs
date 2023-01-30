@@ -56,6 +56,9 @@ pub struct BootInfo {
     pub ramdisk_addr: Optional<u64>,
     /// Ramdisk image size, set to 0 if addr is None
     pub ramdisk_len: u64,
+
+    #[doc(hidden)]
+    pub _test_sentinel: u64,
 }
 
 impl BootInfo {
@@ -73,6 +76,7 @@ impl BootInfo {
             tls_template: Optional::None,
             ramdisk_addr: Optional::None,
             ramdisk_len: 0,
+            _test_sentinel: 0,
         }
     }
 }

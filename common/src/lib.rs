@@ -8,7 +8,7 @@ use bootloader_api::{
     info::{FrameBuffer, FrameBufferInfo, MemoryRegion, TlsTemplate},
     BootInfo, BootloaderConfig,
 };
-use bootloader_boot_config::LevelFilter;
+use bootloader_boot_config::{BootConfig, LevelFilter};
 use core::{alloc::Layout, arch::asm, mem::MaybeUninit, slice};
 use level_4_entries::UsedLevel4Entries;
 use usize_conversions::FromUsize;
@@ -125,6 +125,7 @@ impl<'a> Kernel<'a> {
 /// directly to these functions, so see their docs for more info.
 pub fn load_and_switch_to_kernel<I, D>(
     kernel: Kernel,
+    boot_config: BootConfig,
     mut frame_allocator: LegacyFrameAllocator<I, D>,
     mut page_tables: PageTables,
     system_info: SystemInfo,
@@ -144,6 +145,7 @@ where
     );
     let boot_info = create_boot_info(
         &config,
+        &boot_config,
         frame_allocator,
         &mut page_tables,
         &mut mappings,
@@ -435,6 +437,7 @@ pub struct Mappings {
 /// are taken from the given `frame_allocator`.
 pub fn create_boot_info<I, D>(
     config: &BootloaderConfig,
+    boot_config: &BootConfig,
     mut frame_allocator: LegacyFrameAllocator<I, D>,
     page_tables: &mut PageTables,
     mappings: &mut Mappings,
@@ -539,6 +542,7 @@ where
             .map(|addr| addr.as_u64())
             .into();
         info.ramdisk_len = mappings.ramdisk_slice_len;
+        info._test_sentinel = boot_config._test_sentinel;
         info
     });
 

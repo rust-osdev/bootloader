@@ -73,6 +73,15 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
     }
 
     let mut boot_mode = BootMode::Disk;
+
+    let mut kernel = load_kernel(image, &mut st, boot_mode);
+    if kernel.is_none() {
+        // Try TFTP boot
+        boot_mode = BootMode::Tftp;
+        kernel = load_kernel(image, &mut st, boot_mode);
+    }
+    let kernel = kernel.expect("Failed to load kernel");
+
     let config_file = load_config_file(image, &mut st, boot_mode);
     let mut error_loading_config: Option<serde_json_core::de::Error> = None;
     let mut config: BootConfig = match config_file
@@ -87,14 +96,6 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
         }
     };
 
-    let mut kernel = load_kernel(image, &mut st, boot_mode);
-    if kernel.is_none() {
-        // Try TFTP boot
-        boot_mode = BootMode::Tftp;
-        kernel = load_kernel(image, &mut st, boot_mode);
-    }
-    let kernel = kernel.expect("Failed to load kernel");
-
     #[allow(deprecated)]
     if config.frame_buffer.minimum_framebuffer_height.is_none() {
         config.frame_buffer.minimum_framebuffer_height =
@@ -105,7 +106,7 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
         config.frame_buffer.minimum_framebuffer_width =
             kernel.config.frame_buffer.minimum_framebuffer_width;
     }
-    let framebuffer = init_logger(image, &st, config);
+    let framebuffer = init_logger(image, &st, &config);
 
     unsafe {
         *SYSTEM_TABLE.get() = None;
@@ -193,6 +194,7 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
 
     bootloader_x86_64_common::load_and_switch_to_kernel(
         kernel,
+        config,
         frame_allocator,
         page_tables,
         system_info,
@@ -218,7 +220,7 @@ fn load_config_file(
     st: &mut SystemTable<Boot>,
     boot_mode: BootMode,
 ) -> Option<&'static mut [u8]> {
-    load_file_from_boot_method(image, st, "config.json\0", boot_mode)
+    load_file_from_boot_method(image, st, "boot.json\0", boot_mode)
 }
 
 fn load_kernel(
@@ -473,7 +475,7 @@ fn create_page_tables(
 fn init_logger(
     image_handle: Handle,
     st: &SystemTable<Boot>,
-    config: BootConfig,
+    config: &BootConfig,
 ) -> Option<RawFrameBufferInfo> {
     let gop_handle = st
         .boot_services()

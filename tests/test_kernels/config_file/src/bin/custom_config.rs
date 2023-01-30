@@ -9,6 +9,7 @@ entry_point!(kernel_main);
 
 fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     writeln!(serial(), "Entered kernel with boot info: {boot_info:?}").unwrap();
+    assert_eq!(boot_info._test_sentinel, 0xb001b001b001);
     exit_qemu(QemuExitCode::Success);
 }
 
