@@ -161,6 +161,7 @@ fn start(disk_number: u16, partition_table_start: *const u8) -> ! {
             start: config_file_start as u64,
             len: config_file_len,
         },
+        last_used_addr: config_file_start as u64 + config_file_len - 1,
         memory_map_addr: memory_map.as_mut_ptr() as u32,
         memory_map_len: memory_map.len().try_into().unwrap(),
         framebuffer: BiosFramebufferInfo {
