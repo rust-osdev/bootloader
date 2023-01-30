@@ -73,6 +73,15 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
     }
 
     let mut boot_mode = BootMode::Disk;
+
+    let mut kernel = load_kernel(image, &mut st, boot_mode);
+    if kernel.is_none() {
+        // Try TFTP boot
+        boot_mode = BootMode::Tftp;
+        kernel = load_kernel(image, &mut st, boot_mode);
+    }
+    let kernel = kernel.expect("Failed to load kernel");
+
     let config_file = load_config_file(image, &mut st, boot_mode);
     let mut error_loading_config: Option<serde_json_core::de::Error> = None;
     let mut config: BootConfig = match config_file
@@ -86,14 +95,6 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
             Default::default()
         }
     };
-
-    let mut kernel = load_kernel(image, &mut st, boot_mode);
-    if kernel.is_none() {
-        // Try TFTP boot
-        boot_mode = BootMode::Tftp;
-        kernel = load_kernel(image, &mut st, boot_mode);
-    }
-    let kernel = kernel.expect("Failed to load kernel");
 
     #[allow(deprecated)]
     if config.frame_buffer.minimum_framebuffer_height.is_none() {
