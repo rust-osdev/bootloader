@@ -219,7 +219,7 @@ fn load_config_file(
     st: &mut SystemTable<Boot>,
     boot_mode: BootMode,
 ) -> Option<&'static mut [u8]> {
-    load_file_from_boot_method(image, st, "config.json\0", boot_mode)
+    load_file_from_boot_method(image, st, "boot.json\0", boot_mode)
 }
 
 fn load_kernel(

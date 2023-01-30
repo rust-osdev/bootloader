@@ -115,7 +115,7 @@ fn start(disk_number: u16, partition_table_start: *const u8) -> ! {
     }
     let config_file_start = ramdisk_start.wrapping_add(ramdisk_len.try_into().unwrap());
     let config_file_len = try_load_file(
-        "config.json",
+        "boot.json",
         config_file_start,
         &mut fs,
         &mut disk,
