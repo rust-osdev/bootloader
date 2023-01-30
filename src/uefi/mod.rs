@@ -68,6 +68,7 @@ impl UefiBoot {
             bootloader_path,
             self.kernel.as_path(),
             self.ramdisk.as_deref(),
+            self.config.as_deref(),
             out_path,
         )
         .context("failed to create UEFI PXE tftp folder")?;
