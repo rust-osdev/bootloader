@@ -105,7 +105,7 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
         config.frame_buffer.minimum_framebuffer_width =
             kernel.config.frame_buffer.minimum_framebuffer_width;
     }
-    let framebuffer = init_logger(image, &st, config);
+    let framebuffer = init_logger(image, &st, &config);
 
     unsafe {
         *SYSTEM_TABLE.get() = None;
@@ -193,6 +193,7 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
 
     bootloader_x86_64_common::load_and_switch_to_kernel(
         kernel,
+        config,
         frame_allocator,
         page_tables,
         system_info,
@@ -473,7 +474,7 @@ fn create_page_tables(
 fn init_logger(
     image_handle: Handle,
     st: &SystemTable<Boot>,
-    config: BootConfig,
+    config: &BootConfig,
 ) -> Option<RawFrameBufferInfo> {
     let gop_handle = st
         .boot_services()
