@@ -207,17 +207,20 @@ where
     .expect("no entry point");
     log::info!("Entry point at: {:#x}", entry_point.as_u64());
     // create a stack
-    let stack_start_addr = mapping_addr(
-        config.mappings.kernel_stack,
-        config.kernel_stack_size,
-        16,
-        &mut used_entries,
-    );
-    let stack_start: Page = Page::containing_address(stack_start_addr);
-    let stack_end = {
-        let end_addr = stack_start_addr + config.kernel_stack_size;
-        Page::containing_address(end_addr - 1u64)
+    let stack_start = {
+        // we need page-alignment because we want a guard page directly below the stack
+        let guard_page = mapping_addr_page_aligned(
+            config.mappings.kernel_stack,
+            // allocate an additional page as a guard page
+            Size4KiB::SIZE + config.kernel_stack_size,
+            &mut used_entries,
+            "kernel stack start",
+        );
+        guard_page + 1
     };
+    let stack_end_addr = stack_start.start_address() + config.kernel_stack_size;
+
+    let stack_end = Page::containing_address(stack_end_addr - 1u64);
     for page in Page::range_inclusive(stack_start, stack_end) {
         let frame = frame_allocator
             .allocate_frame()
@@ -265,13 +268,12 @@ where
         let framebuffer_start_frame: PhysFrame = PhysFrame::containing_address(framebuffer.addr);
         let framebuffer_end_frame =
             PhysFrame::containing_address(framebuffer.addr + framebuffer.info.byte_len - 1u64);
-        let start_page = Page::from_start_address(mapping_addr(
+        let start_page = mapping_addr_page_aligned(
             config.mappings.framebuffer,
             u64::from_usize(framebuffer.info.byte_len),
-            Size4KiB::SIZE,
             &mut used_entries,
-        ))
-        .expect("the framebuffer address must be page aligned");
+            "framebuffer",
+        );
         for (i, frame) in
             PhysFrame::range_inclusive(framebuffer_start_frame, framebuffer_end_frame).enumerate()
         {
@@ -292,19 +294,17 @@ where
     };
     let ramdisk_slice_len = system_info.ramdisk_len;
     let ramdisk_slice_start = if let Some(ramdisk_address) = system_info.ramdisk_addr {
-        let ramdisk_address_start = mapping_addr(
+        let start_page = mapping_addr_page_aligned(
             config.mappings.ramdisk_memory,
             system_info.ramdisk_len,
-            Size4KiB::SIZE,
             &mut used_entries,
+            "ramdisk start",
         );
         let physical_address = PhysAddr::new(ramdisk_address);
         let ramdisk_physical_start_page: PhysFrame<Size4KiB> =
             PhysFrame::containing_address(physical_address);
         let ramdisk_page_count = (system_info.ramdisk_len - 1) / Size4KiB::SIZE;
         let ramdisk_physical_end_page = ramdisk_physical_start_page + ramdisk_page_count;
-        let start_page = Page::from_start_address(ramdisk_address_start)
-            .expect("the ramdisk start address must be page aligned");
 
         let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
         for (i, frame) in
@@ -320,7 +320,7 @@ where
                 ),
             };
         }
-        Some(ramdisk_address_start)
+        Some(start_page.start_address())
     } else {
         None
     };
@@ -334,7 +334,8 @@ where
 
         let size = max_phys.as_u64();
         let alignment = Size2MiB::SIZE;
-        let offset = mapping_addr(mapping, size, alignment, &mut used_entries);
+        let offset = mapping_addr(mapping, size, alignment, &mut used_entries)
+            .expect("start address for physical memory mapping must be 2MiB-page-aligned");
 
         for frame in PhysFrame::range_inclusive(start_frame, end_frame) {
             let page = Page::containing_address(offset + frame.start_address().as_u64());
@@ -390,7 +391,10 @@ where
     Mappings {
         framebuffer: framebuffer_virt_addr,
         entry_point,
-        stack_end,
+        // Use the configured stack size, even if it's not page-aligned. However, we
+        // need to align it down to the next 16-byte boundary because the System V
+        // ABI requires a 16-byte stack alignment.
+        stack_top: stack_end_addr.align_down(16u8),
         used_entries,
         physical_memory_offset,
         recursive_index,
@@ -407,8 +411,8 @@ where
 pub struct Mappings {
     /// The entry point address of the kernel.
     pub entry_point: VirtAddr,
-    /// The stack end page of the kernel.
-    pub stack_end: Page,
+    /// The (exclusive) end address of the kernel stack.
+    pub stack_top: VirtAddr,
     /// Keeps track of used entries in the level 4 page table, useful for finding a free
     /// virtual memory when needed.
     pub used_entries: UsedLevel4Entries,
@@ -462,11 +466,8 @@ where
             u64::from_usize(combined.size()),
             u64::from_usize(combined.align()),
             &mut mappings.used_entries,
-        );
-        assert!(
-            boot_info_addr.is_aligned(u64::from_usize(combined.align())),
-            "boot info addr is not properly aligned"
-        );
+        )
+        .expect("boot info addr is not properly aligned");
 
         let memory_map_regions_addr = boot_info_addr + memory_regions_offset;
         let memory_map_regions_end = boot_info_addr + combined.size();
@@ -561,7 +562,7 @@ pub fn switch_to_kernel(
     } = page_tables;
     let addresses = Addresses {
         page_table: kernel_level_4_frame,
-        stack_top: mappings.stack_end.start_address(),
+        stack_top: mappings.stack_top,
         entry_point: mappings.entry_point,
         boot_info,
     };
@@ -612,15 +613,32 @@ struct Addresses {
     boot_info: &'static mut BootInfo,
 }
 
+fn mapping_addr_page_aligned(
+    mapping: Mapping,
+    size: u64,
+    used_entries: &mut UsedLevel4Entries,
+    kind: &str,
+) -> Page {
+    match mapping_addr(mapping, size, Size4KiB::SIZE, used_entries) {
+        Ok(addr) => Page::from_start_address(addr).unwrap(),
+        Err(addr) => panic!("{kind} address must be page-aligned (is `{addr:?})`"),
+    }
+}
+
 fn mapping_addr(
     mapping: Mapping,
     size: u64,
     alignment: u64,
     used_entries: &mut UsedLevel4Entries,
-) -> VirtAddr {
-    match mapping {
+) -> Result<VirtAddr, VirtAddr> {
+    let addr = match mapping {
         Mapping::FixedAddress(addr) => VirtAddr::new(addr),
         Mapping::Dynamic => used_entries.get_free_address(size, alignment),
+    };
+    if addr.is_aligned(alignment) {
+        Ok(addr)
+    } else {
+        Err(addr)
     }
 }
 

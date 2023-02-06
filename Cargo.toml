@@ -25,6 +25,7 @@ members = [
     "tests/test_kernels/pie",
     "tests/test_kernels/lto",
     "tests/test_kernels/ramdisk",
+    "tests/test_kernels/min_stack",
 ]
 exclude = ["examples/basic", "examples/test_framework"]
 
@@ -65,6 +66,7 @@ test_kernel_map_phys_mem = { path = "tests/test_kernels/map_phys_mem", artifact 
 test_kernel_pie = { path = "tests/test_kernels/pie", artifact = "bin", target = "x86_64-unknown-none" }
 test_kernel_ramdisk = { path = "tests/test_kernels/ramdisk", artifact = "bin", target = "x86_64-unknown-none" }
 test_kernel_config_file = { path = "tests/test_kernels/config_file", artifact = "bin", target = "x86_64-unknown-none" }
+test_kernel_min_stack = { path = "tests/test_kernels/min_stack", artifact = "bin", target = "x86_64-unknown-none" }
 
 [profile.dev]
 panic = "abort"
@@ -117,6 +119,9 @@ rustflags = [
     "-C",
     "code-model=large",
 ]
+
+[profile.test.package.test_kernel_min_stack]
+opt-level = 2
 
 [build-dependencies]
 llvm-tools = "0.1.1"

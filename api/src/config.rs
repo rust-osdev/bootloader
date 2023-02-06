@@ -22,8 +22,10 @@ pub struct BootloaderConfig {
     /// The size of the stack that the bootloader should allocate for the kernel (in bytes).
     ///
     /// The bootloader starts the kernel with a valid stack pointer. This setting defines
-    /// the stack size that the bootloader should allocate and map. The stack is created
-    /// with a guard page, so a stack overflow will lead to a page fault.
+    /// the stack size that the bootloader should allocate and map.
+    ///
+    /// The stack is created with a additional guard page, so a stack overflow will lead to
+    /// a page fault.
     pub kernel_stack_size: u64,
 
     /// Configuration for the frame buffer that can be used by the kernel to display pixels
@@ -360,6 +362,14 @@ impl Default for ApiVersion {
 #[non_exhaustive]
 pub struct Mappings {
     /// Configures how the kernel stack should be mapped.
+    ///
+    /// If a fixed address is set, it must be page aligned.
+    ///
+    /// Note that the first page of the kernel stack is intentionally left unmapped
+    /// to act as a guard page. This ensures that a page fault occurs on a stack
+    /// overflow. For example, setting the kernel stack address to
+    /// `FixedAddress(0xf_0000_0000)` will result in a guard page at address
+    /// `0xf_0000_0000` and the kernel stack starting at address `0xf_0000_1000`.
     pub kernel_stack: Mapping,
     /// Specifies where the [`crate::BootInfo`] struct should be placed in virtual memory.
     pub boot_info: Mapping,
