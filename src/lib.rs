@@ -134,7 +134,7 @@ impl DiskImageBuilder {
     }
     #[cfg(feature = "bios")]
     /// Create an MBR disk image for booting on BIOS systems.
-    pub fn create_bios_image(&self, image_filename: &Path) -> anyhow::Result<()> {
+    pub fn create_bios_image(&self, image_path: &Path) -> anyhow::Result<()> {
         const BIOS_STAGE_3: &str = "boot-stage-3";
         const BIOS_STAGE_4: &str = "boot-stage-4";
         let bootsector_path = Path::new(env!("BIOS_BOOT_SECTOR_PATH"));
@@ -152,7 +152,7 @@ impl DiskImageBuilder {
             bootsector_path,
             stage_2_path,
             fat_partition.path(),
-            image_filename,
+            image_path,
         )
         .context("failed to create BIOS MBR disk image")?;
 
@@ -164,7 +164,7 @@ impl DiskImageBuilder {
 
     #[cfg(feature = "uefi")]
     /// Create a GPT disk image for booting on UEFI systems.
-    pub fn create_uefi_image(&self, image_filename: &Path) -> anyhow::Result<()> {
+    pub fn create_uefi_image(&self, image_path: &Path) -> anyhow::Result<()> {
         const UEFI_BOOT_FILENAME: &str = "efi/boot/bootx64.efi";
         let bootloader_path = Path::new(env!("UEFI_BOOTLOADER_PATH"));
         let mut internal_files = BTreeMap::new();
@@ -172,7 +172,7 @@ impl DiskImageBuilder {
         let fat_partition = self
             .create_fat_filesystem_image(internal_files)
             .context("failed to create FAT partition")?;
-        gpt::create_gpt_disk(fat_partition.path(), image_filename)
+        gpt::create_gpt_disk(fat_partition.path(), image_path)
             .context("failed to create UEFI GPT disk image")?;
         fat_partition
             .close()
