@@ -70,12 +70,12 @@ impl DiskImageBuilder {
 
     /// Add or replace a kernel to be included in the final image.
     pub fn set_kernel(&mut self, path: &Path) -> &mut Self {
-        self.set_file_source(FileDataSource::File(path.to_path_buf()), KERNEL_FILE_NAME)
+        self.set_file_source(KERNEL_FILE_NAME, FileDataSource::File(path.to_path_buf()))
     }
 
     /// Add or replace a ramdisk to be included in the final image.
     pub fn set_ramdisk(&mut self, path: &Path) -> &mut Self {
-        self.set_file_source(FileDataSource::File(path.to_path_buf()), RAMDISK_FILE_NAME)
+        self.set_file_source(RAMDISK_FILE_NAME, FileDataSource::File(path.to_path_buf()))
     }
 
     /// Configures the runtime behavior of the bootloader.
@@ -83,10 +83,10 @@ impl DiskImageBuilder {
         let json =
             serde_json::to_string_pretty(boot_config).expect("failed to serialize BootConfig");
         let bytes = json.as_bytes();
-        self.set_file_source(FileDataSource::Data(bytes.to_vec()), CONFIG_FILE_NAME)
+        self.set_file_source(CONFIG_FILE_NAME, FileDataSource::Data(bytes.to_vec()))
     }
 
-    pub fn set_file_source(&mut self, source: FileDataSource, destination: &str) -> &mut Self {
+    pub fn set_file_source(&mut self, destination: &str, source: FileDataSource) -> &mut Self {
         let destination = destination.to_string();
         self.files.insert(
             0,
@@ -98,12 +98,12 @@ impl DiskImageBuilder {
         self
     }
 
-    pub fn set_file_contents(&mut self, data: &[u8], destination: &str) -> &mut Self {
-        self.set_file_source(FileDataSource::Data(data.to_vec()), destination)
+    pub fn set_file_contents(&mut self, destination: &str, data: &[u8]) -> &mut Self {
+        self.set_file_source(destination, FileDataSource::Data(data.to_vec()))
     }
 
-    pub fn set_file(&mut self, file_path: &Path, destination: &str) -> &mut Self {
-        self.set_file_source(FileDataSource::File(file_path.to_path_buf()), destination)
+    pub fn set_file(&mut self, destination: &str, file_path: &Path) -> &mut Self {
+        self.set_file_source(destination, FileDataSource::File(file_path.to_path_buf()))
     }
 
     fn create_fat_filesystem_image(
