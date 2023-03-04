@@ -7,6 +7,7 @@ use std::path::PathBuf;
 use std::{fs, io};
 
 #[derive(Clone)]
+/// Defines a data source, either a source `std::path::PathBuf`, or a vector of bytes.
 pub enum FileDataSource {
     File(PathBuf),
     Data(Vec<u8>),
@@ -26,6 +27,7 @@ impl Debug for FileDataSource {
 }
 
 impl FileDataSource {
+    /// Get the length of the inner data source
     pub fn len(&self) -> anyhow::Result<u64> {
         Ok(match self {
             FileDataSource::File(path) => fs::metadata(path)
@@ -34,7 +36,18 @@ impl FileDataSource {
             FileDataSource::Data(v) => v.len() as u64,
         })
     }
-
+    /// Copy this data source to the specified target that implements io::Write
+    /// Example:
+    /// ```
+    ///             let mut new_file = std::io::fs::OpenOptions::new()
+    ///                 .read(true)
+    ///                 .write(true)
+    ///                 .create(true)
+    ///                 .truncate(true)
+    ///                 .open(to)?;
+    /// 
+    ///             f.source.copy_to(&mut new_file)?;
+    ///```
     pub fn copy_to(&self, target: &mut dyn io::Write) -> anyhow::Result<()> {
         match self {
             FileDataSource::File(file_path) => {
