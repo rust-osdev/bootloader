@@ -1,6 +1,6 @@
 use crate::file_data_source::FileDataSource;
 use anyhow::Context;
-use fatfs::{Dir};
+use fatfs::Dir;
 use std::fs::File;
 use std::{collections::BTreeMap, fs, path::Path};
 

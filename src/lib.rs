@@ -24,12 +24,7 @@ pub use bios::BiosBoot;
 mod fat;
 mod file_data_source;
 
-use std::{
-    collections::BTreeMap,
-    fs,
-    io::Write,
-    path::{Path},
-};
+use std::{collections::BTreeMap, fs, io::Write, path::Path};
 
 use anyhow::Context;
 
@@ -84,7 +79,7 @@ impl DiskImageBuilder {
         let bytes = json.as_bytes();
         self.set_file_source(CONFIG_FILE_NAME, FileDataSource::Data(bytes.to_vec()))
     }
-    
+
     /// Add a file source to the disk image
     pub fn set_file_source(&mut self, destination: &str, source: FileDataSource) -> &mut Self {
         let destination = destination.to_string();
