@@ -37,6 +37,7 @@ use anyhow::Context;
 use tempfile::NamedTempFile;
 
 pub use bootloader_boot_config::BootConfig;
+use crate::file_data_source::FileDataSource;
 
 const KERNEL_FILE_NAME: &str = "kernel-x86_64";
 const RAMDISK_FILE_NAME: &str = "ramdisk";
@@ -44,7 +45,7 @@ const CONFIG_FILE_NAME: &str = "boot.json";
 
 #[derive(Clone)]
 struct DiskImageFile {
-    source: PathBuf,
+    source: FileDataSource,
     destination: String,
 }
 
@@ -69,12 +70,12 @@ impl DiskImageBuilder {
 
     /// Add or replace a kernel to be included in the final image.
     pub fn set_kernel(&mut self, path: &Path) -> &mut Self {
-        self.add_or_replace_file(path, KERNEL_FILE_NAME)
+        self.add_or_replace_file(FileDataSource::File(path.to_path_buf()), KERNEL_FILE_NAME)
     }
 
     /// Add or replace a ramdisk to be included in the final image.
     pub fn set_ramdisk(&mut self, path: &Path) -> &mut Self {
-        self.add_or_replace_file(path, RAMDISK_FILE_NAME)
+        self.add_or_replace_file(FileDataSource::File(path.to_path_buf()), RAMDISK_FILE_NAME)
     }
 
     /// Configures the runtime behavior of the bootloader.
@@ -82,34 +83,15 @@ impl DiskImageBuilder {
         let json =
             serde_json::to_string_pretty(boot_config).expect("failed to serialize BootConfig");
         let bytes = json.as_bytes();
-        self.add_or_replace_file_byte_content(bytes, CONFIG_FILE_NAME)
+        self.add_or_replace_file(FileDataSource::Data(bytes.to_vec()), CONFIG_FILE_NAME)
     }
-
-    /// Add or replace a file from a byte array
-    pub fn add_or_replace_file_byte_content(&mut self, data: &[u8], target: &str) -> &mut Self {
-        let temp_path = temp_dir();
-        let file_name = temp_path.join("bytes.tmp");
-        fs::create_dir_all(temp_path).expect("Failed to create temp directory");
-        let mut temp_file =
-            fs::File::create(file_name.clone()).expect("Failed to create temp file");
-        temp_file
-            .write_all(data)
-            .expect("Failed to write data to temp file");
-        temp_file
-            .sync_all()
-            .expect("Failed to flush temp file to disk");
-
-        self.add_or_replace_file(&file_name, target)
-    }
-
+    
     /// Add or replace arbitrary files.
-    /// NOTE: You can overwrite internal files if you choose, such as EFI/BOOT/BOOTX64.EFI
-    /// This can be useful in situations where you want to generate an image, but not use the provided bootloader.
-    pub fn add_or_replace_file(&mut self, path: &Path, target: &str) -> &mut Self {
+    pub fn add_or_replace_file(&mut self, file_data_source: FileDataSource, target: &str) -> &mut Self {
         self.files.insert(
             0,
             DiskImageFile {
-                source: path.to_path_buf(),
+                source: file_data_source,
                 destination: target.to_string(),
             },
         );
@@ -117,16 +99,19 @@ impl DiskImageBuilder {
     }
     fn create_fat_filesystem_image(
         &self,
-        internal_files: BTreeMap<&str, &Path>,
+        internal_files: BTreeMap<&str, FileDataSource>,
     ) -> anyhow::Result<NamedTempFile> {
         let mut local_map = BTreeMap::new();
 
-        for k in internal_files {
-            local_map.insert(k.0, k.1);
+        for f in self.files.as_slice() {
+            local_map.insert(f.destination.as_str(), f.source.clone());
         }
 
-        for f in self.files.as_slice() {
-            local_map.insert(&f.destination, f.source.as_path());
+
+        for k in internal_files {
+            if let Some(_) = local_map.insert(k.0, k.1) {
+                return Err(anyhow::Error::msg(format!("Attempted to overwrite internal file: {}", k.0)));
+            }
         }
 
         let out_file = NamedTempFile::new().context("failed to create temp file")?;
@@ -145,8 +130,8 @@ impl DiskImageBuilder {
         let stage_3_path = Path::new(env!("BIOS_STAGE_3_PATH"));
         let stage_4_path = Path::new(env!("BIOS_STAGE_4_PATH"));
         let mut internal_files = BTreeMap::new();
-        internal_files.insert(BIOS_STAGE_3, stage_3_path);
-        internal_files.insert(BIOS_STAGE_4, stage_4_path);
+        internal_files.insert(BIOS_STAGE_3, FileDataSource::File(stage_3_path.to_path_buf()));
+        internal_files.insert(BIOS_STAGE_4, FileDataSource::File(stage_4_path.to_path_buf()));
 
         let fat_partition = self
             .create_fat_filesystem_image(internal_files)
@@ -171,7 +156,7 @@ impl DiskImageBuilder {
         const UEFI_BOOT_FILENAME: &str = "efi/boot/bootx64.efi";
         let bootloader_path = Path::new(env!("UEFI_BOOTLOADER_PATH"));
         let mut internal_files = BTreeMap::new();
-        internal_files.insert(UEFI_BOOT_FILENAME, bootloader_path);
+        internal_files.insert(UEFI_BOOT_FILENAME, FileDataSource::File(bootloader_path.to_path_buf()));
         let fat_partition = self
             .create_fat_filesystem_image(internal_files)
             .context("failed to create FAT partition")?;
@@ -189,11 +174,11 @@ impl DiskImageBuilder {
     pub fn create_uefi_tftp_folder(&self, tftp_path: &Path) -> anyhow::Result<()> {
         const UEFI_TFTP_BOOT_FILENAME: &str = "bootloader";
         let bootloader_path = Path::new(env!("UEFI_BOOTLOADER_PATH"));
-        std::fs::create_dir_all(tftp_path)
+        fs::create_dir_all(tftp_path)
             .with_context(|| format!("failed to create out dir at {}", tftp_path.display()))?;
 
         let to = tftp_path.join(UEFI_TFTP_BOOT_FILENAME);
-        std::fs::copy(bootloader_path, &to).with_context(|| {
+        fs::copy(bootloader_path, &to).with_context(|| {
             format!(
                 "failed to copy bootloader from {} to {}",
                 bootloader_path.display(),
@@ -203,7 +188,15 @@ impl DiskImageBuilder {
 
         for f in self.files.as_slice() {
             let to = tftp_path.join(f.destination.clone());
-            std::fs::copy(f.source.clone(), to)?;
+
+            let mut new_file = fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .open(to)?;
+            
+            f.source.copy_to(&mut new_file)?;
         }
 
         Ok(())
