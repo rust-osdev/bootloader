@@ -36,8 +36,8 @@ use anyhow::Context;
 
 use tempfile::NamedTempFile;
 
-pub use bootloader_boot_config::BootConfig;
 use crate::file_data_source::FileDataSource;
+pub use bootloader_boot_config::BootConfig;
 
 const KERNEL_FILE_NAME: &str = "kernel-x86_64";
 const RAMDISK_FILE_NAME: &str = "ramdisk";
@@ -85,9 +85,13 @@ impl DiskImageBuilder {
         let bytes = json.as_bytes();
         self.add_or_replace_file(FileDataSource::Data(bytes.to_vec()), CONFIG_FILE_NAME)
     }
-    
+
     /// Add or replace arbitrary files.
-    pub fn add_or_replace_file(&mut self, file_data_source: FileDataSource, target: &str) -> &mut Self {
+    pub fn add_or_replace_file(
+        &mut self,
+        file_data_source: FileDataSource,
+        target: &str,
+    ) -> &mut Self {
         self.files.insert(
             0,
             DiskImageFile {
@@ -107,10 +111,12 @@ impl DiskImageBuilder {
             local_map.insert(f.destination.as_str(), f.source.clone());
         }
 
-
         for k in internal_files {
             if let Some(_) = local_map.insert(k.0, k.1) {
-                return Err(anyhow::Error::msg(format!("Attempted to overwrite internal file: {}", k.0)));
+                return Err(anyhow::Error::msg(format!(
+                    "Attempted to overwrite internal file: {}",
+                    k.0
+                )));
             }
         }
 
@@ -130,8 +136,14 @@ impl DiskImageBuilder {
         let stage_3_path = Path::new(env!("BIOS_STAGE_3_PATH"));
         let stage_4_path = Path::new(env!("BIOS_STAGE_4_PATH"));
         let mut internal_files = BTreeMap::new();
-        internal_files.insert(BIOS_STAGE_3, FileDataSource::File(stage_3_path.to_path_buf()));
-        internal_files.insert(BIOS_STAGE_4, FileDataSource::File(stage_4_path.to_path_buf()));
+        internal_files.insert(
+            BIOS_STAGE_3,
+            FileDataSource::File(stage_3_path.to_path_buf()),
+        );
+        internal_files.insert(
+            BIOS_STAGE_4,
+            FileDataSource::File(stage_4_path.to_path_buf()),
+        );
 
         let fat_partition = self
             .create_fat_filesystem_image(internal_files)
@@ -156,7 +168,10 @@ impl DiskImageBuilder {
         const UEFI_BOOT_FILENAME: &str = "efi/boot/bootx64.efi";
         let bootloader_path = Path::new(env!("UEFI_BOOTLOADER_PATH"));
         let mut internal_files = BTreeMap::new();
-        internal_files.insert(UEFI_BOOT_FILENAME, FileDataSource::File(bootloader_path.to_path_buf()));
+        internal_files.insert(
+            UEFI_BOOT_FILENAME,
+            FileDataSource::File(bootloader_path.to_path_buf()),
+        );
         let fat_partition = self
             .create_fat_filesystem_image(internal_files)
             .context("failed to create FAT partition")?;
@@ -195,7 +210,7 @@ impl DiskImageBuilder {
                 .create(true)
                 .truncate(true)
                 .open(to)?;
-            
+
             f.source.copy_to(&mut new_file)?;
         }
 
