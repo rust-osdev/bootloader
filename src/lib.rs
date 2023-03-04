@@ -26,10 +26,9 @@ mod file_data_source;
 
 use std::{
     collections::BTreeMap,
-    env::temp_dir,
     fs,
     io::Write,
-    path::{Path, PathBuf},
+    path::{Path},
 };
 
 use anyhow::Context;

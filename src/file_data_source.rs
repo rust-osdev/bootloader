@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 use anyhow::Context;
 use core::fmt::{Debug, Formatter};
-use std::fs::File;
+
 use std::io::Cursor;
 use std::path::PathBuf;
 use std::{fs, io};

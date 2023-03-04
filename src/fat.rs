@@ -1,8 +1,8 @@
 use crate::file_data_source::FileDataSource;
 use anyhow::Context;
-use fatfs::{Dir, FileSystem};
+use fatfs::{Dir};
 use std::fs::File;
-use std::{collections::BTreeMap, fs, io, path::Path};
+use std::{collections::BTreeMap, fs, path::Path};
 
 use crate::KERNEL_FILE_NAME;
 
@@ -50,7 +50,7 @@ pub fn create_fat_filesystem(
     fatfs::format_volume(&fat_file, format_options).context("Failed to format FAT file")?;
     let filesystem = fatfs::FileSystem::new(&fat_file, fatfs::FsOptions::new())
         .context("Failed to open FAT file system of UEFI FAT file")?;
-    let mut root_dir = filesystem.root_dir();
+    let root_dir = filesystem.root_dir();
 
     // copy files to file system
     add_files_to_image(&root_dir, files)
