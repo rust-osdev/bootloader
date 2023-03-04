@@ -84,7 +84,13 @@ impl DiskImageBuilder {
         let bytes = json.as_bytes();
         self.set_file_source(CONFIG_FILE_NAME, FileDataSource::Data(bytes.to_vec()))
     }
-
+    
+    /// Add a file source to the disk image
+    /// Example:
+    /// ```
+    /// image_builder.set_file_source("/extra/README.md", FileDataSource::File(file_path.to_path_buf()))
+    ///     .set_file_source("/config/config.json", FileDataSource::Data(serialzed_configuration.to_vec()));
+    /// ```
     pub fn set_file_source(&mut self, destination: &str, source: FileDataSource) -> &mut Self {
         let destination = destination.to_string();
         self.files.insert(
@@ -97,10 +103,20 @@ impl DiskImageBuilder {
         self
     }
 
+    /// Add a file with the specified bytes to the disk image
+    /// NOTE: This is just a convenience wrapper around set_file_source
+    /// ```
+    /// image_builder.set_file_source(destination, FileDataSource::Data(data.to_vec()))
+    /// ```
     pub fn set_file_contents(&mut self, destination: &str, data: &[u8]) -> &mut Self {
         self.set_file_source(destination, FileDataSource::Data(data.to_vec()))
     }
 
+    /// Add a file with the specified source file to the disk image
+    /// NOTE: This is just a convenience wrapper around set_file_source
+    /// ```
+    /// image_builder.set_file_source(destination, FileDataSource::File(file_path.to_path_buf()))
+    /// ```
     pub fn set_file(&mut self, destination: &str, file_path: &Path) -> &mut Self {
         self.set_file_source(destination, FileDataSource::File(file_path.to_path_buf()))
     }
