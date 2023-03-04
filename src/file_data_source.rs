@@ -37,17 +37,6 @@ impl FileDataSource {
         })
     }
     /// Copy this data source to the specified target that implements io::Write
-    /// Example:
-    /// ```
-    ///             let mut new_file = std::io::fs::OpenOptions::new()
-    ///                 .read(true)
-    ///                 .write(true)
-    ///                 .create(true)
-    ///                 .truncate(true)
-    ///                 .open(to)?;
-    /// 
-    ///             f.source.copy_to(&mut new_file)?;
-    ///```
     pub fn copy_to(&self, target: &mut dyn io::Write) -> anyhow::Result<()> {
         match self {
             FileDataSource::File(file_path) => {
