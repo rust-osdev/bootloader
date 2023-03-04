@@ -85,25 +85,27 @@ impl DiskImageBuilder {
         let bytes = json.as_bytes();
         self.set_file_source(FileDataSource::Data(bytes.to_vec()), CONFIG_FILE_NAME)
     }
-    
-    pub fn set_file_source(&mut self, source: FileDataSource, destination: &str,) -> &mut Self {
+
+    pub fn set_file_source(&mut self, source: FileDataSource, destination: &str) -> &mut Self {
         let destination = destination.to_string();
-        self.files.insert(0, DiskImageFile { source, destination });
+        self.files.insert(
+            0,
+            DiskImageFile {
+                source,
+                destination,
+            },
+        );
         self
     }
 
-    pub fn set_file_contents(&mut self, data: &[u8], destination: &str,) -> &mut Self {
+    pub fn set_file_contents(&mut self, data: &[u8], destination: &str) -> &mut Self {
         self.set_file_source(FileDataSource::Data(data.to_vec()), destination)
     }
 
-    pub fn set_file(
-        &mut self,
-        file_path: &Path,
-        destination: &str,
-    ) -> &mut Self {
-        self.set_file_source(FileDataSource::File(file_path.to_path_buf()),destination)
+    pub fn set_file(&mut self, file_path: &Path, destination: &str) -> &mut Self {
+        self.set_file_source(FileDataSource::File(file_path.to_path_buf()), destination)
     }
-    
+
     fn create_fat_filesystem_image(
         &self,
         internal_files: BTreeMap<&str, FileDataSource>,
