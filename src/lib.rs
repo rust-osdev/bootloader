@@ -4,6 +4,8 @@ An experimental x86_64 bootloader that works on both BIOS and UEFI systems.
 
 #![warn(missing_docs)]
 
+extern crate alloc;
+
 #[cfg(feature = "bios")]
 mod bios;
 #[cfg(feature = "uefi")]
@@ -20,6 +22,7 @@ pub use uefi::UefiBoot;
 pub use bios::BiosBoot;
 
 mod fat;
+mod file_data_source;
 
 use std::{
     collections::BTreeMap,
