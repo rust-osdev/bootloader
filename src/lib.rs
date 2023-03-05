@@ -24,7 +24,7 @@ pub use bios::BiosBoot;
 mod fat;
 mod file_data_source;
 
-use std::{collections::BTreeMap, fs, io::Write, path::Path};
+use std::{collections::BTreeMap, fs, path::Path};
 
 use anyhow::Context;
 
@@ -37,16 +37,10 @@ const KERNEL_FILE_NAME: &str = "kernel-x86_64";
 const RAMDISK_FILE_NAME: &str = "ramdisk";
 const CONFIG_FILE_NAME: &str = "boot.json";
 
-#[derive(Clone)]
-struct DiskImageFile {
-    source: FileDataSource,
-    destination: String,
-}
-
 /// DiskImageBuilder helps create disk images for a specified set of files.
 /// It can currently create MBR (BIOS), GPT (UEFI), and TFTP (UEFI) images.
 pub struct DiskImageBuilder {
-    files: Vec<DiskImageFile>,
+    files: BTreeMap<String, FileDataSource>,
 }
 
 impl DiskImageBuilder {
@@ -59,7 +53,9 @@ impl DiskImageBuilder {
 
     /// Create a new, empty instance of DiskImageBuilder
     pub fn empty() -> Self {
-        Self { files: Vec::new() }
+        Self {
+            files: BTreeMap::new(),
+        }
     }
 
     /// Add or replace a kernel to be included in the final image.
@@ -83,13 +79,7 @@ impl DiskImageBuilder {
     /// Add a file source to the disk image
     pub fn set_file_source(&mut self, destination: &str, source: FileDataSource) -> &mut Self {
         let destination = destination.to_string();
-        self.files.insert(
-            0,
-            DiskImageFile {
-                source,
-                destination,
-            },
-        );
+        self.files.insert(destination, source);
         self
     }
 
@@ -111,8 +101,8 @@ impl DiskImageBuilder {
     ) -> anyhow::Result<NamedTempFile> {
         let mut local_map = BTreeMap::new();
 
-        for f in self.files.as_slice() {
-            local_map.insert(f.destination.as_str(), f.source.clone());
+        for f in &self.files {
+            local_map.insert(f.0.as_str(), f.1.clone());
         }
 
         for k in internal_files {
@@ -205,8 +195,8 @@ impl DiskImageBuilder {
             )
         })?;
 
-        for f in self.files.as_slice() {
-            let to = tftp_path.join(f.destination.clone());
+        for f in &self.files {
+            let to = tftp_path.join(f.0.clone());
 
             let mut new_file = fs::OpenOptions::new()
                 .read(true)
@@ -215,7 +205,7 @@ impl DiskImageBuilder {
                 .truncate(true)
                 .open(to)?;
 
-            f.source.copy_to(&mut new_file)?;
+            f.1.copy_to(&mut new_file)?;
         }
 
         Ok(())
