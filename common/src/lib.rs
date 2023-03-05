@@ -39,7 +39,7 @@ pub mod serial;
 
 const PAGE_SIZE: u64 = 4096;
 
-/// Initialize a text-based logger using the given pixel-based framebuffer as output.  
+/// Initialize a text-based logger using the given pixel-based framebuffer as output.
 pub fn init_logger(
     framebuffer: &'static mut [u8],
     info: FrameBufferInfo,
@@ -594,7 +594,7 @@ pub struct PageTables {
     ///
     /// Must be the page table that the `kernel` field of this struct refers to.
     ///
-    /// This frame is loaded into the `CR3` register on the final context switch to the kernel.  
+    /// This frame is loaded into the `CR3` register on the final context switch to the kernel.
     pub kernel_level_4_frame: PhysFrame,
 }
 
@@ -602,7 +602,13 @@ pub struct PageTables {
 unsafe fn context_switch(addresses: Addresses) -> ! {
     unsafe {
         asm!(
-            "mov cr3, {}; mov rsp, {}; push 0; jmp {}",
+            r#"
+            xor rbp, rbp
+            mov cr3, {}
+            mov rsp, {}
+            push 0
+            jmp {}
+            "#,
             in(reg) addresses.page_table.start_address().as_u64(),
             in(reg) addresses.stack_top.as_u64(),
             in(reg) addresses.entry_point.as_u64(),
