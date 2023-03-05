@@ -721,11 +721,15 @@ pub fn load_kernel(
     page_table: &mut (impl MapperAllSizes + Translate),
     frame_allocator: &mut impl FrameAllocator<Size4KiB>,
     used_entries: &mut UsedLevel4Entries,
-) -> Result<(VirtAddr, Option<TlsTemplate>), &'static str> {
+) -> Result<(VirtAddr, VirtAddr, Option<TlsTemplate>), &'static str> {
     let mut loader = Loader::new(kernel, page_table, frame_allocator, used_entries)?;
     let tls_template = loader.load_segments()?;
 
-    Ok((loader.entry_point(), tls_template))
+    Ok((
+        VirtAddr::new(loader.inner.virtual_address_offset.virtual_address_offset() as u64),
+        loader.entry_point(),
+        tls_template,
+    ))
 }
 
 /// A helper type used to offset virtual addresses for position independent

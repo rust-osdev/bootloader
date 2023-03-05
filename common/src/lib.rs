@@ -198,7 +198,7 @@ where
     let kernel_slice_start = kernel.start_address as u64;
     let kernel_slice_len = u64::try_from(kernel.len).unwrap();
 
-    let (entry_point, tls_template) = load_kernel::load_kernel(
+    let (kernel_image_offset, entry_point, tls_template) = load_kernel::load_kernel(
         kernel,
         kernel_page_table,
         frame_allocator,
@@ -402,6 +402,8 @@ where
 
         kernel_slice_start,
         kernel_slice_len,
+        kernel_image_offset: kernel_image_offset.as_u64(),
+
         ramdisk_slice_start,
         ramdisk_slice_len,
     }
@@ -429,6 +431,8 @@ pub struct Mappings {
     pub kernel_slice_start: u64,
     /// Size of the kernel slice allocation in memory.
     pub kernel_slice_len: u64,
+    /// Start address of the kernel image relocated in memory.
+    pub kernel_image_offset: u64,
     pub ramdisk_slice_start: Option<VirtAddr>,
     pub ramdisk_slice_len: u64,
 }
@@ -543,6 +547,9 @@ where
             .map(|addr| addr.as_u64())
             .into();
         info.ramdisk_len = mappings.ramdisk_slice_len;
+        info.kernel_addr = mappings.kernel_slice_start as _;
+        info.kernel_len = mappings.kernel_slice_len as _;
+        info.kernel_image_offset = mappings.kernel_image_offset;
         info._test_sentinel = boot_config._test_sentinel;
         info
     });
