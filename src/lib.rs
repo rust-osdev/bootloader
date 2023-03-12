@@ -24,7 +24,11 @@ pub use bios::BiosBoot;
 mod fat;
 mod file_data_source;
 
-use std::{collections::BTreeMap, fs, path::Path};
+use std::{
+    collections::BTreeMap,
+    fs,
+    path::{Path, PathBuf},
+};
 
 use anyhow::Context;
 
@@ -85,13 +89,13 @@ impl DiskImageBuilder {
     }
 
     /// Add a file with the specified bytes to the disk image
-    pub fn set_file_contents(&mut self, destination: &str, data: &[u8]) -> &mut Self {
-        self.set_file_source(destination, FileDataSource::Data(data.to_vec()))
+    pub fn set_file_contents(&mut self, destination: &str, data: Vec<u8>) -> &mut Self {
+        self.set_file_source(destination, FileDataSource::Data(data))
     }
 
     /// Add a file with the specified source file to the disk image
-    pub fn set_file(&mut self, destination: &str, file_path: &Path) -> &mut Self {
-        self.set_file_source(destination, FileDataSource::File(file_path.to_path_buf()))
+    pub fn set_file(&mut self, destination: &str, file_path: PathBuf) -> &mut Self {
+        self.set_file_source(destination, FileDataSource::File(file_path))
     }
 
     fn create_fat_filesystem_image(
