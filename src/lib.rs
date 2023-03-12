@@ -82,11 +82,17 @@ impl DiskImageBuilder {
     }
 
     /// Add a file with the specified bytes to the disk image
+    ///
+    /// Note that the bootloader only loads the kernel and ramdisk files into memory on boot.
+    /// Other files need to be loaded manually by the kernel.
     pub fn set_file_contents(&mut self, destination: &str, data: Vec<u8>) -> &mut Self {
         self.set_file_source(destination, FileDataSource::Data(data))
     }
 
     /// Add a file with the specified source file to the disk image
+    ///
+    /// Note that the bootloader only loads the kernel and ramdisk files into memory on boot.
+    /// Other files need to be loaded manually by the kernel.
     pub fn set_file(&mut self, destination: &str, file_path: PathBuf) -> &mut Self {
         self.set_file_source(destination, FileDataSource::File(file_path))
     }
