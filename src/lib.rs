@@ -25,6 +25,7 @@ mod fat;
 mod file_data_source;
 
 use std::{
+    borrow::Cow,
     collections::BTreeMap,
     fs,
     path::{Path, PathBuf},
@@ -45,12 +46,12 @@ const CONFIG_FILE_NAME: &str = "boot.json";
 ///
 /// It can currently create `MBR` (BIOS), `GPT` (UEFI), and `TFTP` (UEFI) images.
 pub struct DiskImageBuilder {
-    files: BTreeMap<String, FileDataSource>,
+    files: BTreeMap<Cow<'static, str>, FileDataSource>,
 }
 
 impl DiskImageBuilder {
     /// Create a new instance of DiskImageBuilder, with the specified kernel.
-    pub fn new(kernel: &Path) -> Self {
+    pub fn new(kernel: PathBuf) -> Self {
         let mut obj = Self::empty();
         obj.set_kernel(kernel);
         obj
@@ -64,13 +65,19 @@ impl DiskImageBuilder {
     }
 
     /// Add or replace a kernel to be included in the final image.
-    pub fn set_kernel(&mut self, path: &Path) -> &mut Self {
-        self.set_file_source(KERNEL_FILE_NAME, FileDataSource::File(path.to_path_buf()))
+    pub fn set_kernel(&mut self, path: PathBuf) -> &mut Self {
+        self.set_file_source(
+            KERNEL_FILE_NAME.into(),
+            FileDataSource::File(path.to_path_buf()),
+        )
     }
 
     /// Add or replace a ramdisk to be included in the final image.
-    pub fn set_ramdisk(&mut self, path: &Path) -> &mut Self {
-        self.set_file_source(RAMDISK_FILE_NAME, FileDataSource::File(path.to_path_buf()))
+    pub fn set_ramdisk(&mut self, path: PathBuf) -> &mut Self {
+        self.set_file_source(
+            RAMDISK_FILE_NAME.into(),
+            FileDataSource::File(path.to_path_buf()),
+        )
     }
 
     /// Configures the runtime behavior of the bootloader.
@@ -83,8 +90,8 @@ impl DiskImageBuilder {
     ///
     /// Note that the bootloader only loads the kernel and ramdisk files into memory on boot.
     /// Other files need to be loaded manually by the kernel.
-    pub fn set_file_contents(&mut self, destination: &str, data: Vec<u8>) -> &mut Self {
-        self.set_file_source(destination, FileDataSource::Data(data))
+    pub fn set_file_contents(&mut self, destination: String, data: Vec<u8>) -> &mut Self {
+        self.set_file_source(destination.into(), FileDataSource::Data(data))
     }
 
     /// Add a file with the specified source file to the disk image
@@ -92,7 +99,7 @@ impl DiskImageBuilder {
     /// Note that the bootloader only loads the kernel and ramdisk files into memory on boot.
     /// Other files need to be loaded manually by the kernel.
     pub fn set_file(&mut self, destination: &str, file_path: PathBuf) -> &mut Self {
-        self.set_file_source(destination, FileDataSource::File(file_path))
+        self.set_file_source(destination.into(), FileDataSource::File(file_path))
     }
 
     #[cfg(feature = "bios")]
@@ -156,6 +163,8 @@ impl DiskImageBuilder {
     #[cfg(feature = "uefi")]
     /// Create a folder containing the needed files for UEFI TFTP/PXE booting.
     pub fn create_uefi_tftp_folder(&self, tftp_path: &Path) -> anyhow::Result<()> {
+        use std::ops::Deref;
+
         const UEFI_TFTP_BOOT_FILENAME: &str = "bootloader";
         let bootloader_path = Path::new(env!("UEFI_BOOTLOADER_PATH"));
         fs::create_dir_all(tftp_path)
@@ -171,7 +180,7 @@ impl DiskImageBuilder {
         })?;
 
         for f in &self.files {
-            let to = tftp_path.join(f.0.clone());
+            let to = tftp_path.join(f.0.deref());
 
             let mut new_file = fs::OpenOptions::new()
                 .read(true)
@@ -187,8 +196,11 @@ impl DiskImageBuilder {
     }
 
     /// Add a file source to the disk image
-    fn set_file_source(&mut self, destination: &str, source: FileDataSource) -> &mut Self {
-        let destination = destination.to_string();
+    fn set_file_source(
+        &mut self,
+        destination: Cow<'static, str>,
+        source: FileDataSource,
+    ) -> &mut Self {
         self.files.insert(destination, source);
         self
     }
