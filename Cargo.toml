@@ -31,15 +31,15 @@ exclude = ["examples/basic", "examples/test_framework"]
 
 [workspace.package]
 # don't forget to update `workspace.dependencies` below
-version = "0.11.0"
+version = "0.11.1"
 license = "MIT/Apache-2.0"
 repository = "https://github.com/rust-osdev/bootloader"
 
 [workspace.dependencies]
-bootloader_api = { version = "0.11.0", path = "api" }
-bootloader-x86_64-common = { version = "0.11.0", path = "common" }
-bootloader-boot-config = { version = "0.11.0", path = "common/config" }
-bootloader-x86_64-bios-common = { version = "0.11.0", path = "bios/common" }
+bootloader_api = { version = "0.11.1", path = "api" }
+bootloader-x86_64-common = { version = "0.11.1", path = "common" }
+bootloader-boot-config = { version = "0.11.1", path = "common/config" }
+bootloader-x86_64-bios-common = { version = "0.11.1", path = "bios/common" }
 
 [features]
 default = ["bios", "uefi"]
@@ -55,7 +55,7 @@ fatfs = { version = "0.3.4", default-features = false, features = [
 tempfile = "3.3.0"
 mbrman = { version = "0.5.1", optional = true }
 gpt = { version = "3.0.0", optional = true }
-bootloader-boot-config = { version = "0.11.0", path = "common/config" }
+bootloader-boot-config = { workspace = true }
 serde_json = "1.0.91"
 
 [dev-dependencies]
