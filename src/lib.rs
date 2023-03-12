@@ -81,13 +81,6 @@ impl DiskImageBuilder {
         self.set_file_source(CONFIG_FILE_NAME, FileDataSource::Data(bytes.to_vec()))
     }
 
-    /// Add a file source to the disk image
-    fn set_file_source(&mut self, destination: &str, source: FileDataSource) -> &mut Self {
-        let destination = destination.to_string();
-        self.files.insert(destination, source);
-        self
-    }
-
     /// Add a file with the specified bytes to the disk image
     pub fn set_file_contents(&mut self, destination: &str, data: Vec<u8>) -> &mut Self {
         self.set_file_source(destination, FileDataSource::Data(data))
@@ -98,31 +91,6 @@ impl DiskImageBuilder {
         self.set_file_source(destination, FileDataSource::File(file_path))
     }
 
-    fn create_fat_filesystem_image(
-        &self,
-        internal_files: BTreeMap<&str, FileDataSource>,
-    ) -> anyhow::Result<NamedTempFile> {
-        let mut local_map = BTreeMap::new();
-
-        for f in &self.files {
-            local_map.insert(f.0.as_str(), f.1.clone());
-        }
-
-        for k in internal_files {
-            if let Some(_) = local_map.insert(k.0, k.1) {
-                return Err(anyhow::Error::msg(format!(
-                    "Attempted to overwrite internal file: {}",
-                    k.0
-                )));
-            }
-        }
-
-        let out_file = NamedTempFile::new().context("failed to create temp file")?;
-        fat::create_fat_filesystem(local_map, out_file.path())
-            .context("failed to create BIOS FAT filesystem")?;
-
-        Ok(out_file)
-    }
     #[cfg(feature = "bios")]
     /// Create an MBR disk image for booting on BIOS systems.
     pub fn create_bios_image(&self, image_path: &Path) -> anyhow::Result<()> {
@@ -212,5 +180,38 @@ impl DiskImageBuilder {
         }
 
         Ok(())
+    }
+
+    /// Add a file source to the disk image
+    fn set_file_source(&mut self, destination: &str, source: FileDataSource) -> &mut Self {
+        let destination = destination.to_string();
+        self.files.insert(destination, source);
+        self
+    }
+
+    fn create_fat_filesystem_image(
+        &self,
+        internal_files: BTreeMap<&str, FileDataSource>,
+    ) -> anyhow::Result<NamedTempFile> {
+        let mut local_map = BTreeMap::new();
+
+        for f in &self.files {
+            local_map.insert(f.0.as_str(), f.1.clone());
+        }
+
+        for k in internal_files {
+            if let Some(_) = local_map.insert(k.0, k.1) {
+                return Err(anyhow::Error::msg(format!(
+                    "Attempted to overwrite internal file: {}",
+                    k.0
+                )));
+            }
+        }
+
+        let out_file = NamedTempFile::new().context("failed to create temp file")?;
+        fat::create_fat_filesystem(local_map, out_file.path())
+            .context("failed to create BIOS FAT filesystem")?;
+
+        Ok(out_file)
     }
 }
