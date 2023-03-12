@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.11.1 – 2023-03-12
+
 ## Features
 
 * [Load ramdisk feature](https://github.com/rust-osdev/bootloader/pull/302)
