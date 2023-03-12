@@ -75,10 +75,8 @@ impl DiskImageBuilder {
 
     /// Configures the runtime behavior of the bootloader.
     pub fn set_boot_config(&mut self, boot_config: &BootConfig) -> &mut Self {
-        let json =
-            serde_json::to_string_pretty(boot_config).expect("failed to serialize BootConfig");
-        let bytes = json.as_bytes();
-        self.set_file_source(CONFIG_FILE_NAME, FileDataSource::Data(bytes.to_vec()))
+        let json = serde_json::to_vec_pretty(boot_config).expect("failed to serialize BootConfig");
+        self.set_file_source(CONFIG_FILE_NAME.into(), FileDataSource::Data(json))
     }
 
     /// Add a file with the specified bytes to the disk image
