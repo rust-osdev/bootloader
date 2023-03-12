@@ -1,5 +1,34 @@
 # Unreleased
 
+## Features
+
+* [Load ramdisk feature](https://github.com/rust-osdev/bootloader/pull/302)
+* [Support higher half position independent kernels](https://github.com/rust-osdev/bootloader/pull/289)
+- New `set_boot_config` method to configure the boot process (frame buffer dimensions and log output). This is the result of a set of PRs:
+  - [Log level feature](https://github.com/rust-osdev/bootloader/pull/303)
+  - [Improve Logging](https://github.com/rust-osdev/bootloader/pull/314)
+  - [Add support for a configuration file](https://github.com/rust-osdev/bootloader/pull/326)
+  - [Fix loading of boot configuration](https://github.com/rust-osdev/bootloader/pull/342)
+  - [Minor improvements to `BootConfig`](https://github.com/rust-osdev/bootloader/pull/349)
+- [Add `bios` and `uefi` cargo features](https://github.com/rust-osdev/bootloader/pull/304)
+- Boot Info: [Add a `FrameBuffer::into_buffer` method for taking ownership](https://github.com/rust-osdev/bootloader/pull/319)
+* [Simplified disk builder](https://github.com/rust-osdev/bootloader/pull/320)
+
+## Fixes
+- [Correctly allocate last frame in memory descriptor](https://github.com/rust-osdev/bootloader/pull/316)
+- [Correctness fixes for stage2](https://github.com/rust-osdev/bootloader/pull/328)
+- [Fix: treat `kernel_slice_end` as an exclusive bound when checking for overlaps](https://github.com/rust-osdev/bootloader/pull/334)
+* [Map BIOS stage-4 at lower address to avoid conflicts with the kernel](https://github.com/rust-osdev/bootloader/pull/337)
+* [Create kernel stack with correct size and set up a guard page](https://github.com/rust-osdev/bootloader/pull/335)
+
+## Other improvements
+- [Implement faster bios builds](https://github.com/rust-osdev/bootloader/pull/324)
+- [Remove dependency on `time` crate](https://github.com/rust-osdev/bootloader/pull/332)
+- [Fix warnings from Clippy](https://github.com/rust-osdev/bootloader/pull/336)
+* [Make a link in the documentation clickable](https://github.com/rust-osdev/bootloader/pull/341)
+* [Fix spelling and add a check](https://github.com/rust-osdev/bootloader/pull/340)
+* [Run cargo update](https://github.com/rust-osdev/bootloader/pull/347)
+
 # 0.11.0 – 2022-12-01
 
 Major rewrite of the `bootloader` crate with various breaking changes:
