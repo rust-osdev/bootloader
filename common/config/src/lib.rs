@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 /// Configures the boot behavior of the bootloader.
 #[derive(Serialize, Deserialize)]
 #[serde(default)]
+#[non_exhaustive]
 pub struct BootConfig {
     /// Configuration for the frame buffer setup.
     pub frame_buffer: FrameBuffer,
