@@ -66,18 +66,12 @@ impl DiskImageBuilder {
 
     /// Add or replace a kernel to be included in the final image.
     pub fn set_kernel(&mut self, path: PathBuf) -> &mut Self {
-        self.set_file_source(
-            KERNEL_FILE_NAME.into(),
-            FileDataSource::File(path.to_path_buf()),
-        )
+        self.set_file_source(KERNEL_FILE_NAME.into(), FileDataSource::File(path))
     }
 
     /// Add or replace a ramdisk to be included in the final image.
     pub fn set_ramdisk(&mut self, path: PathBuf) -> &mut Self {
-        self.set_file_source(
-            RAMDISK_FILE_NAME.into(),
-            FileDataSource::File(path.to_path_buf()),
-        )
+        self.set_file_source(RAMDISK_FILE_NAME.into(), FileDataSource::File(path))
     }
 
     /// Configures the runtime behavior of the bootloader.
@@ -98,7 +92,7 @@ impl DiskImageBuilder {
     ///
     /// Note that the bootloader only loads the kernel and ramdisk files into memory on boot.
     /// Other files need to be loaded manually by the kernel.
-    pub fn set_file(&mut self, destination: &str, file_path: PathBuf) -> &mut Self {
+    pub fn set_file(&mut self, destination: String, file_path: PathBuf) -> &mut Self {
         self.set_file_source(destination.into(), FileDataSource::File(file_path))
     }
 
@@ -212,11 +206,11 @@ impl DiskImageBuilder {
         let mut local_map: BTreeMap<&str, _> = BTreeMap::new();
 
         for (name, source) in &self.files {
-            local_map.insert(&name, source);
+            local_map.insert(name, source);
         }
 
-        for k in internal_files {
-            if local_map.insert(k.0, &k.1).is_some() {
+        for k in &internal_files {
+            if local_map.insert(k.0, k.1).is_some() {
                 return Err(anyhow::Error::msg(format!(
                     "Attempted to overwrite internal file: {}",
                     k.0

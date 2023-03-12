@@ -13,13 +13,13 @@ impl BiosBoot {
     /// Start creating a disk image for the given bootloader ELF executable.
     pub fn new(kernel_path: &Path) -> Self {
         Self {
-            image_builder: DiskImageBuilder::new(kernel_path),
+            image_builder: DiskImageBuilder::new(kernel_path.to_owned()),
         }
     }
 
     /// Add a ramdisk file to the image.
     pub fn set_ramdisk(&mut self, ramdisk_path: &Path) -> &mut Self {
-        self.image_builder.set_ramdisk(ramdisk_path);
+        self.image_builder.set_ramdisk(ramdisk_path.to_owned());
         self
     }
 
