@@ -32,9 +32,9 @@ pub fn run_test_kernel_internal(
     config_file_path: Option<&BootConfig>,
 ) {
     let kernel_path = Path::new(kernel_binary_path);
-    let mut image_builder = DiskImageBuilder::new(kernel_path);
+    let mut image_builder = DiskImageBuilder::new(kernel_path.to_owned());
     if let Some(rdp) = ramdisk_path {
-        image_builder.set_ramdisk(rdp);
+        image_builder.set_ramdisk(rdp.to_owned());
     }
     if let Some(cfp) = config_file_path {
         image_builder.set_boot_config(cfp);
