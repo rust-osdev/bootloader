@@ -199,14 +199,14 @@ impl DiskImageBuilder {
         &self,
         internal_files: BTreeMap<&str, FileDataSource>,
     ) -> anyhow::Result<NamedTempFile> {
-        let mut local_map = BTreeMap::new();
+        let mut local_map: BTreeMap<&str, _> = BTreeMap::new();
 
-        for f in &self.files {
-            local_map.insert(f.0.as_str(), f.1.clone());
+        for (name, source) in &self.files {
+            local_map.insert(&name, source);
         }
 
         for k in internal_files {
-            if local_map.insert(k.0, k.1).is_some() {
+            if local_map.insert(k.0, &k.1).is_some() {
                 return Err(anyhow::Error::msg(format!(
                     "Attempted to overwrite internal file: {}",
                     k.0

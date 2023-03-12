@@ -7,7 +7,7 @@ use std::{collections::BTreeMap, fs, path::Path};
 use crate::KERNEL_FILE_NAME;
 
 pub fn create_fat_filesystem(
-    files: BTreeMap<&str, FileDataSource>,
+    files: BTreeMap<&str, &FileDataSource>,
     out_fat_path: &Path,
 ) -> anyhow::Result<()> {
     const MB: u64 = 1024 * 1024;
@@ -58,7 +58,7 @@ pub fn create_fat_filesystem(
 
 pub fn add_files_to_image(
     root_dir: &Dir<&File>,
-    files: BTreeMap<&str, FileDataSource>,
+    files: BTreeMap<&str, &FileDataSource>,
 ) -> anyhow::Result<()> {
     for (target_path_raw, source) in files {
         let target_path = Path::new(target_path_raw);
