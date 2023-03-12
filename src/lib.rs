@@ -27,7 +27,6 @@ mod file_data_source;
 use std::{
     borrow::Cow,
     collections::BTreeMap,
-    fs,
     path::{Path, PathBuf},
 };
 
@@ -157,7 +156,7 @@ impl DiskImageBuilder {
     #[cfg(feature = "uefi")]
     /// Create a folder containing the needed files for UEFI TFTP/PXE booting.
     pub fn create_uefi_tftp_folder(&self, tftp_path: &Path) -> anyhow::Result<()> {
-        use std::ops::Deref;
+        use std::{fs, ops::Deref};
 
         const UEFI_TFTP_BOOT_FILENAME: &str = "bootloader";
         let bootloader_path = Path::new(env!("UEFI_BOOTLOADER_PATH"));
