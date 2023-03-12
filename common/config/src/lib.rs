@@ -2,27 +2,30 @@
 
 use serde::{Deserialize, Serialize};
 
+/// Configures the boot behavior of the bootloader.
 #[derive(Serialize, Deserialize)]
 #[serde(default)]
+#[non_exhaustive]
 pub struct BootConfig {
-    /// Configuration for the frame buffer that can be used by the kernel to display pixels
-    /// on the screen.
+    /// Configuration for the frame buffer setup.
     pub frame_buffer: FrameBuffer,
 
-    /// Configuration for changing the level of the filter of the messages that are shown in the
-    /// screen when booting. The default is 'Trace'.
+    /// The minimum log level that is printed to the screen during boot.
+    ///
+    /// The default is [`LevelFilter::Trace`].
     pub log_level: LevelFilter,
 
-    /// Whether the bootloader should print log messages to the framebuffer when booting.
+    /// Whether the bootloader should print log messages to the framebuffer during boot.
     ///
     /// Enabled by default.
     pub frame_buffer_logging: bool,
 
-    /// Whether the bootloader should print log messages to the serial port when booting.
+    /// Whether the bootloader should print log messages to the serial port during boot.
     ///
     /// Enabled by default.
     pub serial_logging: bool,
 
+    #[doc(hidden)]
     pub _test_sentinel: u64,
 }
 

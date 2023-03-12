@@ -13,13 +13,10 @@ fn default_config() {
 
 #[test]
 fn custom_boot_config() {
-    let config = BootConfig {
-        frame_buffer: Default::default(),
-        log_level: Default::default(),
-        frame_buffer_logging: false,
-        serial_logging: true,
-        _test_sentinel: 0xb001b001b001,
-    };
+    let mut config = BootConfig::default();
+    config.frame_buffer_logging = false;
+    config.serial_logging = true;
+    config._test_sentinel = 0xb001b001b001;
     run_test_kernel_internal(
         env!("CARGO_BIN_FILE_TEST_KERNEL_CONFIG_FILE_custom_config"),
         None,
