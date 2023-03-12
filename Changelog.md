@@ -1,5 +1,9 @@
 # Unreleased
 
+# 0.11.2 – 2023-03-12
+
+- Fix internal error in Cargo.toml setup that prevented publishing 0.11.1
+
 # 0.11.1 – 2023-03-12
 
 ## Features
