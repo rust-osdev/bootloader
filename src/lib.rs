@@ -206,7 +206,7 @@ impl DiskImageBuilder {
         }
 
         for k in internal_files {
-            if let Some(_) = local_map.insert(k.0, k.1) {
+            if local_map.insert(k.0, k.1).is_some() {
                 return Err(anyhow::Error::msg(format!(
                     "Attempted to overwrite internal file: {}",
                     k.0
