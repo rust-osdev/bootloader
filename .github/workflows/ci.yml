@@ -25,6 +25,10 @@ jobs:
       - uses: r7kamura/rust-problem-matchers@v1.1.0
       - name: "Run `cargo check`"
         run: cargo check --all-targets --all
+      - name: "Check docs.rs build"
+        run: cargo check
+        env:
+          RUSTFLAGS: "--cfg docsrs_dummy_build"
 
   test:
     name: Test
@@ -109,7 +113,7 @@ jobs:
         run: cargo semver-checks check-release
 
   typos:
-      name: Check spelling
-      runs-on: ubuntu-latest
-      steps:
-        - uses: crate-ci/typos@v1.0.4
+    name: Check spelling
+    runs-on: ubuntu-latest
+    steps:
+      - uses: crate-ci/typos@v1.0.4
