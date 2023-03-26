@@ -5,6 +5,11 @@ use std::path::{Path, PathBuf};
 const BOOTLOADER_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() {
+    #[cfg(not(feature = "uefi"))]
+    async fn uefi_main() {}
+    #[cfg(not(feature = "bios"))]
+    async fn bios_main() {}
+
     block_on((uefi_main(), bios_main()).join());
 }
 
