@@ -8,7 +8,6 @@ fn main() {
     block_on((uefi_main(), bios_main()).join());
 }
 
-#[cfg(not(docsrs_dummy_build))]
 #[cfg(feature = "bios")]
 async fn bios_main() {
     let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
@@ -17,6 +16,7 @@ async fn bios_main() {
     // BIOS crates don't have enough dependencies to utilize all cores on modern
     // CPUs. So by running the build commands in parallel, we increase the number
     // of utilized cores.)
+    #[cfg(not(docsrs_dummy_build))]
     let (bios_boot_sector_path, bios_stage_2_path, bios_stage_3_path, bios_stage_4_path) = (
         build_bios_boot_sector(&out_dir),
         build_bios_stage_2(&out_dir),
@@ -25,6 +25,14 @@ async fn bios_main() {
     )
         .join()
         .await;
+    // dummy implementations because docsrs builds have no network access
+    #[cfg(docsrs_dummy_build)]
+    let (bios_boot_sector_path, bios_stage_2_path, bios_stage_3_path, bios_stage_4_path) = (
+        PathBuf::new(),
+        PathBuf::new(),
+        PathBuf::new(),
+        PathBuf::new(),
+    );
     println!(
         "cargo:rustc-env=BIOS_BOOT_SECTOR_PATH={}",
         bios_boot_sector_path.display()
@@ -43,11 +51,16 @@ async fn bios_main() {
     );
 }
 
-#[cfg(not(docsrs_dummy_build))]
 #[cfg(feature = "uefi")]
 async fn uefi_main() {
     let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
+
+    #[cfg(not(docsrs_dummy_build))]
     let uefi_path = build_uefi_bootloader(&out_dir).await;
+    // dummy implementation because docsrs builds have no network access
+    #[cfg(docsrs_dummy_build)]
+    let uefi_path = PathBuf::new();
+
     println!(
         "cargo:rustc-env=UEFI_BOOTLOADER_PATH={}",
         uefi_path.display()
@@ -295,9 +308,3 @@ async fn convert_elf_to_bin(elf_path: PathBuf) -> PathBuf {
     }
     flat_binary_path
 }
-
-// dummy implementations because docsrs builds have no network access
-#[cfg(any(not(feature = "bios"), docsrs_dummy_build))]
-async fn bios_main() {}
-#[cfg(any(not(feature = "uefi"), docsrs_dummy_build))]
-async fn uefi_main() {}
