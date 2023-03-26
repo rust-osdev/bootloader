@@ -1,5 +1,9 @@
 # Unreleased
 
+# 0.11.3 – 2023-03-26
+
+- [Fix docs.rs build](https://github.com/rust-osdev/bootloader/pull/358)
+
 # 0.11.2 – 2023-03-12
 
 - Fix internal error in Cargo.toml setup that prevented publishing 0.11.1
