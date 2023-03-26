@@ -25,6 +25,10 @@ jobs:
       - uses: r7kamura/rust-problem-matchers@v1.1.0
       - name: "Run `cargo check`"
         run: cargo check --all-targets --all
+      - name: "Check docs.rs build"
+        run: cargo check
+        env:
+          RUSTFLAGS: "--cfg docsrs_dummy_build"
 
   test:
     name: Test
