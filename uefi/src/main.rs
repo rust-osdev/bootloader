@@ -161,8 +161,7 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
     };
 
     log::trace!("exiting boot services");
-    let (system_table, memory_map) = st
-        .exit_boot_services();
+    let (system_table, memory_map) = st.exit_boot_services();
 
     let mut frame_allocator =
         LegacyFrameAllocator::new(memory_map.entries().copied().map(UefiMemoryDescriptor));
