@@ -136,7 +136,7 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
         }
     );
 
-    let mmap_storage = {
+    let _mmap_storage = {
         let mut memory_map_size = st.boot_services().memory_map_size();
         loop {
             let ptr = st
@@ -162,11 +162,10 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
 
     log::trace!("exiting boot services");
     let (system_table, memory_map) = st
-        .exit_boot_services(image, mmap_storage)
-        .expect("Failed to exit boot services");
+        .exit_boot_services();
 
     let mut frame_allocator =
-        LegacyFrameAllocator::new(memory_map.copied().map(UefiMemoryDescriptor));
+        LegacyFrameAllocator::new(memory_map.entries().copied().map(UefiMemoryDescriptor));
 
     let page_tables = create_page_tables(&mut frame_allocator);
     let mut ramdisk_len = 0u64;
