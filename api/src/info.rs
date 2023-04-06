@@ -56,11 +56,11 @@ pub struct BootInfo {
     pub ramdisk_addr: Optional<u64>,
     /// Ramdisk image size, set to 0 if addr is None
     pub ramdisk_len: u64,
-    /// Kernel image address
+    /// Physical address of the kernel ELF in memory.
     pub kernel_addr: u64,
-    /// Kernel image size
+    /// Size of the kernel ELF in memory.
     pub kernel_len: u64,
-    /// Kernel image relocation address
+    /// Virtual address of the loaded kernel image.
     pub kernel_image_offset: u64,
 
     #[doc(hidden)]
