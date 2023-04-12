@@ -136,30 +136,6 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
         }
     );
 
-    let _mmap_storage = {
-        let mut memory_map_size = st.boot_services().memory_map_size();
-        loop {
-            let ptr = st
-                .boot_services()
-                .allocate_pool(MemoryType::LOADER_DATA, memory_map_size.map_size)
-                .expect("Failed to allocate memory for mmap storage");
-
-            let storage = unsafe { slice::from_raw_parts_mut(ptr, memory_map_size.map_size) };
-
-            if st.boot_services().memory_map(storage).is_ok() {
-                break storage;
-            }
-
-            // By measuring the size here, we can find out exactly how much we need.
-            // We may hit this code twice, if the map allocation ends up spanning more pages.
-            memory_map_size = st.boot_services().memory_map_size();
-            // allocated memory region was not big enough -> free it again
-            st.boot_services()
-                .free_pool(ptr)
-                .expect("Failed to free temporary memory for memory map!");
-        }
-    };
-
     log::trace!("exiting boot services");
     let (system_table, memory_map) = st.exit_boot_services();
 
