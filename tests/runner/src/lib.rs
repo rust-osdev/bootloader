@@ -87,7 +87,7 @@ pub fn run_test_kernel_on_uefi_pxe(out_tftp_path: &Path) {
     run_qemu(args);
 }
 
-#[allow(dead_code)]
+#[cfg(any(feature = "uefi", feature = "bios"))]
 fn run_qemu<'a, A>(args: A)
 where
     A: IntoIterator<Item = &'a str>,
