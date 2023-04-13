@@ -1,17 +1,6 @@
 use bootloader::BootConfig;
 use bootloader::DiskImageBuilder;
-use std::{io::Read, path::Path, process::Command};
-
-const QEMU_ARGS: &[&str] = &[
-    "-device",
-    "isa-debug-exit,iobase=0xf4,iosize=0x04",
-    "-serial",
-    "stdio",
-    "-display",
-    "none",
-    "--no-reboot",
-];
-const SEPARATOR: &str = "\n____________________________________\n";
+use std::path::Path;
 
 pub fn run_test_kernel(kernel_binary_path: &str) {
     run_test_kernel_internal(kernel_binary_path, None, None)
@@ -98,11 +87,27 @@ pub fn run_test_kernel_on_uefi_pxe(out_tftp_path: &Path) {
     run_qemu(args);
 }
 
+#[cfg(any(feature = "uefi", feature = "bios"))]
 fn run_qemu<'a, A>(args: A)
 where
     A: IntoIterator<Item = &'a str>,
 {
-    use std::process::Stdio;
+    use std::{
+        io::Read,
+        process::{Command, Stdio},
+    };
+
+    const QEMU_ARGS: &[&str] = &[
+        "-device",
+        "isa-debug-exit,iobase=0xf4,iosize=0x04",
+        "-serial",
+        "stdio",
+        "-display",
+        "none",
+        "--no-reboot",
+    ];
+
+    const SEPARATOR: &str = "\n____________________________________\n";
 
     let mut run_cmd = Command::new("qemu-system-x86_64");
     run_cmd.args(args);
