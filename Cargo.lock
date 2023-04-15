@@ -245,6 +245,7 @@ dependencies = [
  "bootloader-x86_64-common",
  "bootloader_api",
  "log",
+ "raw-cpuid",
  "serde-json-core",
  "uefi",
  "x86_64",

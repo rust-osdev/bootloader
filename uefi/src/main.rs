@@ -8,6 +8,7 @@ use bootloader_boot_config::BootConfig;
 use bootloader_x86_64_common::{
     legacy_memory_region::LegacyFrameAllocator, Kernel, RawFrameBufferInfo, SystemInfo,
 };
+use raw_cpuid::CpuId;
 use core::{
     cell::UnsafeCell,
     ops::{Deref, DerefMut},
@@ -469,26 +470,35 @@ fn init_logger(
     };
 
     let mode = {
-        let modes = gop.modes();
-        match (
-            config
-                .frame_buffer
-                .minimum_framebuffer_height
-                .map(|v| usize::try_from(v).unwrap()),
-            config
-                .frame_buffer
-                .minimum_framebuffer_width
-                .map(|v| usize::try_from(v).unwrap()),
-        ) {
-            (Some(height), Some(width)) => modes
-                .filter(|m| {
-                    let res = m.info().resolution();
-                    res.1 >= height && res.0 >= width
-                })
-                .last(),
-            (Some(height), None) => modes.filter(|m| m.info().resolution().1 >= height).last(),
-            (None, Some(width)) => modes.filter(|m| m.info().resolution().0 >= width).last(),
-            _ => None,
+        let mut modes = gop.modes();
+
+        if let Some(_) = CpuId::new().get_hypervisor_info() {
+            match (
+                config
+                    .frame_buffer
+                    .minimum_framebuffer_height
+                    .map(|v| usize::try_from(v).unwrap()),
+                config
+                    .frame_buffer
+                    .minimum_framebuffer_width
+                    .map(|v| usize::try_from(v).unwrap()),
+            ) {
+                (Some(height), Some(width)) => modes
+                    .filter(|m| {
+                        let res = m.info().resolution();
+                        res.1 >= height && res.0 >= width
+                    })
+                    .last(),
+                (Some(height), None) => modes.filter(|m| m.info().resolution().1 >= height).last(),
+                (None, Some(width)) => modes.filter(|m| m.info().resolution().0 >= width).last(),
+                _ => None,
+            }
+        } else {
+            // Default to using the highest resolution available on real hardware
+            let x = gop.modes().map(|m| m.info().resolution().0).max().unwrap();
+            let y = gop.modes().map(|m| m.info().resolution().1).max().unwrap();
+
+            modes.find(|m| m.info().resolution().0 == x && m.info().resolution().1 == y)
         }
     };
     if let Some(mode) = mode {
