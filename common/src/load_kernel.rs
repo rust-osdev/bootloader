@@ -269,7 +269,7 @@ where
         // map additional frames for `.bss` memory that is not present in source file
         let start_page: Page =
             Page::containing_address(VirtAddr::new(align_up(zero_start.as_u64(), Size4KiB::SIZE)));
-        let end_page = Page::containing_address(zero_end);
+        let end_page = Page::containing_address(zero_end - 1u64);
         for page in Page::range_inclusive(start_page, end_page) {
             // allocate a new unused frame
             let frame = self.frame_allocator.allocate_frame().unwrap();
