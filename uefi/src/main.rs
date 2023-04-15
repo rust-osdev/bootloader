@@ -8,12 +8,12 @@ use bootloader_boot_config::BootConfig;
 use bootloader_x86_64_common::{
     legacy_memory_region::LegacyFrameAllocator, Kernel, RawFrameBufferInfo, SystemInfo,
 };
-use raw_cpuid::CpuId;
 use core::{
     cell::UnsafeCell,
     ops::{Deref, DerefMut},
     ptr, slice,
 };
+use raw_cpuid::CpuId;
 use uefi::{
     prelude::{entry, Boot, Handle, Status, SystemTable},
     proto::{
