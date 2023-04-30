@@ -98,12 +98,20 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
     };
 
     #[allow(deprecated)]
-    if config.frame_buffer_physical.minimum_framebuffer_height.is_none() {
+    if config
+        .frame_buffer_physical
+        .minimum_framebuffer_height
+        .is_none()
+    {
         config.frame_buffer_physical.minimum_framebuffer_height =
             kernel.config.frame_buffer.minimum_framebuffer_height;
     }
     #[allow(deprecated)]
-    if config.frame_buffer_physical.minimum_framebuffer_width.is_none() {
+    if config
+        .frame_buffer_physical
+        .minimum_framebuffer_width
+        .is_none()
+    {
         config.frame_buffer_physical.minimum_framebuffer_width =
             kernel.config.frame_buffer.minimum_framebuffer_width;
     }
@@ -493,8 +501,12 @@ fn init_logger(
                             res.1 >= height && res.0 >= width
                         })
                         .last(),
-                    (Some(height), None) => modes.filter(|m| m.info().resolution().1 >= height).last(),
-                    (None, Some(width)) => modes.filter(|m| m.info().resolution().0 >= width).last(),
+                    (Some(height), None) => {
+                        modes.filter(|m| m.info().resolution().1 >= height).last()
+                    }
+                    (None, Some(width)) => {
+                        modes.filter(|m| m.info().resolution().0 >= width).last()
+                    }
                     _ => None,
                 }
             } else {
@@ -514,8 +526,12 @@ fn init_logger(
                             res.1 >= height && res.0 >= width
                         })
                         .last(),
-                    (Some(height), None) => modes.filter(|m| m.info().resolution().1 >= height).last(),
-                    (None, Some(width)) => modes.filter(|m| m.info().resolution().0 >= width).last(),
+                    (Some(height), None) => {
+                        modes.filter(|m| m.info().resolution().1 >= height).last()
+                    }
+                    (None, Some(width)) => {
+                        modes.filter(|m| m.info().resolution().0 >= width).last()
+                    }
                     _ => None,
                 }
             }
