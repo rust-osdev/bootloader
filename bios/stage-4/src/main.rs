@@ -129,13 +129,13 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
     };
 
     #[allow(deprecated)]
-    if config.frame_buffer.minimum_framebuffer_height.is_none() {
-        config.frame_buffer.minimum_framebuffer_height =
+    if config.frame_buffer_physical.minimum_framebuffer_height.is_none() {
+        config.frame_buffer_physical.minimum_framebuffer_height =
             kernel.config.frame_buffer.minimum_framebuffer_height;
     }
     #[allow(deprecated)]
-    if config.frame_buffer.minimum_framebuffer_width.is_none() {
-        config.frame_buffer.minimum_framebuffer_width =
+    if config.frame_buffer_physical.minimum_framebuffer_width.is_none() {
+        config.frame_buffer_physical.minimum_framebuffer_width =
             kernel.config.frame_buffer.minimum_framebuffer_width;
     }
     let framebuffer_info = init_logger(
