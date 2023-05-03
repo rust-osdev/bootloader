@@ -106,11 +106,16 @@ jobs:
         with:
           shared-key: "semver-checks"
           cache-targets: false
-      - run: cargo install cargo-semver-checks --locked
       - name: Check semver (API)
-        run: cargo semver-checks check-release -p bootloader_api
+        uses: obi1kenobi/cargo-semver-checks-action@v2
+        with:
+          package: bootloader_api
+          prefix-key: api
+          rust-toolchain: manual
       - name: Check semver
-        run: cargo semver-checks check-release
+        uses: obi1kenobi/cargo-semver-checks-action@v2
+        with:
+          rust-toolchain: manual
 
   typos:
     name: Check spelling
