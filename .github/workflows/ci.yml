@@ -110,7 +110,6 @@ jobs:
         uses: obi1kenobi/cargo-semver-checks-action@v2
         with:
           package: bootloader_api
-          prefix-key: api
           rust-toolchain: manual
       - name: Check semver
         uses: obi1kenobi/cargo-semver-checks-action@v2
