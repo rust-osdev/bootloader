@@ -15,4 +15,4 @@ bootloader-boot-config = { workspace = true }
 log = "0.4.14"
 x86_64 = "0.14.8"
 serde-json-core = "0.5.0"
-uefi = "0.20.0"
+uefi = { version = "0.21.0", features = [ "alloc", "global_allocator" ] }

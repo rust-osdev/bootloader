@@ -2,6 +2,9 @@
 #![no_main]
 #![deny(unsafe_op_in_unsafe_fn)]
 
+#[macro_use]
+extern crate alloc;
+
 use crate::memory_descriptor::UefiMemoryDescriptor;
 use bootloader_api::info::FrameBufferInfo;
 use bootloader_boot_config::BootConfig;
@@ -11,7 +14,7 @@ use bootloader_x86_64_common::{
 use core::{
     cell::UnsafeCell,
     ops::{Deref, DerefMut},
-    ptr, slice,
+    slice,
 };
 use uefi::{
     prelude::{entry, Boot, Handle, Status, SystemTable},
@@ -19,10 +22,7 @@ use uefi::{
         console::gop::{GraphicsOutput, PixelFormat},
         device_path::DevicePath,
         loaded_image::LoadedImage,
-        media::{
-            file::{File, FileAttribute, FileInfo, FileMode},
-            fs::SimpleFileSystem,
-        },
+        media::fs::SimpleFileSystem,
         network::{
             pxe::{BaseCode, DhcpV4Packet},
             IpAddress,
@@ -32,7 +32,7 @@ use uefi::{
     table::boot::{
         AllocateType, MemoryType, OpenProtocolAttributes, OpenProtocolParams, ScopedProtocol,
     },
-    CStr16, CStr8,
+    CStr8, CString16,
 };
 use x86_64::{
     structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB},
@@ -302,43 +302,14 @@ fn load_file_from_disk(
     st: &SystemTable<Boot>,
 ) -> Option<&'static mut [u8]> {
     let mut file_system_raw = locate_and_open_protocol::<SimpleFileSystem>(image, st)?;
-    let file_system = file_system_raw.deref_mut();
+    let mut file_system = uefi::fs::FileSystem::new(file_system_raw);
 
-    let mut root = file_system.open_volume().unwrap();
-    let mut buf = [0u16; 256];
-    assert!(name.len() < 256);
-    let filename = CStr16::from_str_with_buf(name.trim_end_matches('\0'), &mut buf)
-        .expect("Failed to convert string to utf16");
+    let filename = CString16::try_from(name).expect("Failed to convert string to ucs-2");
+    let filename = uefi::fs::Path::new(&filename);
 
-    let file_handle_result = root.open(filename, FileMode::Read, FileAttribute::empty());
-
-    let file_handle = match file_handle_result {
-        Err(_) => return None,
-        Ok(handle) => handle,
-    };
-
-    let mut file = match file_handle.into_type().unwrap() {
-        uefi::proto::media::file::FileType::Regular(f) => f,
-        uefi::proto::media::file::FileType::Dir(_) => panic!(),
-    };
-
-    let mut buf = [0; 500];
-    let file_info: &mut FileInfo = file.get_info(&mut buf).unwrap();
-    let file_size = usize::try_from(file_info.file_size()).unwrap();
-
-    let file_ptr = st
-        .boot_services()
-        .allocate_pages(
-            AllocateType::AnyPages,
-            MemoryType::LOADER_DATA,
-            ((file_size - 1) / 4096) + 1,
-        )
-        .unwrap() as *mut u8;
-    unsafe { ptr::write_bytes(file_ptr, 0, file_size) };
-    let file_slice = unsafe { slice::from_raw_parts_mut(file_ptr, file_size) };
-    file.read(file_slice).unwrap();
-
-    Some(file_slice)
+    // SAFETY: leak is fine as the allocated memory is in the UEFI memory app and the memory
+    // management of the bootloader takes care of it.
+    file_system.read(filename).ok().map(|vec| vec.leak())
 }
 
 /// Try to load a kernel from a TFTP boot server.
