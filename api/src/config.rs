@@ -11,21 +11,27 @@ use crate::{concat::*, version_info};
 ///
 /// - Modifying the stack size the bootloader allocates.
 ///
-///  ```no_run
-///  use bootloader_api::{entry_point, BootloaderConfig};
+///   ```no_run
+///   #![no_std]
+///   #![no_main]
 ///
-///  static BOOTLOADER_CONFIG: BootloaderConfig = {
-///      let mut config = BootloaderConfig::new_default();
-///      config.kernel_stack_size = 100 * 1024; // 100 KiB
-///      config
-///  };
+///   static BOOTLOADER_CONFIG: bootloader_api::BootloaderConfig = {
+///       let mut config = bootloader_api::BootloaderConfig::new_default();
+///       config.kernel_stack_size = 100 * 1024; // 100 KiB
+///       config
+///   };
 ///
-///  entry_point!(main, config = &BOOTLOADER_CONFIG);
+///   bootloader_api::entry_point!(main, config = &BOOTLOADER_CONFIG);
 ///
-///  fn main(bootinfo: &'static mut bootloader_api::BootInfo) -> ! {
-///      loop {}
-///  }
-///  ```
+///   fn main(bootinfo: &'static mut bootloader_api::BootInfo) -> ! {
+///       loop {}
+///   }
+///
+///   #[panic_handler]
+///   fn panic(_info: &core::panic::PanicInfo) -> ! {
+///       loop {}
+///   }
+///   ```
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[non_exhaustive]
 pub struct BootloaderConfig {
