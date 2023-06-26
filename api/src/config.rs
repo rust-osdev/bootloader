@@ -2,10 +2,30 @@
 
 use crate::{concat::*, version_info};
 
-/// Allows configuring the bootloader behavior.
+/// Allows configuring the bootloader's behavior.
 ///
-/// TODO: describe use together with `entry_point` macro
-/// TODO: example
+/// The [`crate::entry_point`] macro provides a second, optional parameter for bootloader configuration.
+/// This parameter takes a value of type `&BootloaderConfig`, defaulting to [`BootloaderConfig::new_default`] if left empty.
+///
+/// ## Examples
+///
+/// - Modifying the stack size the bootloader allocates.
+///
+///  ```no_run
+///  use bootloader_api::{entry_point, BootloaderConfig};
+///
+///  static BOOTLOADER_CONFIG: BootloaderConfig = {
+///      let mut config = BootloaderConfig::new_default();
+///      config.kernel_stack_size = 100 * 1024; // 100 KiB
+///      config
+///  };
+///
+///  entry_point!(main, config = &BOOTLOADER_CONFIG);
+///
+///  fn main(bootinfo: &'static mut bootloader_api::BootInfo) -> ! {
+///      loop {}
+///  }
+///  ```
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[non_exhaustive]
 pub struct BootloaderConfig {
