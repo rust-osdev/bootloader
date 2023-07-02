@@ -54,7 +54,7 @@ fatfs = { version = "0.3.4", default-features = false, features = [
 ] }
 tempfile = "3.3.0"
 mbrman = { version = "0.5.1", optional = true }
-gpt = { git = "https://github.com/Quyzi/gpt.git", optional = true }
+gpt = { git = "https://github.com/Quyzi/gpt.git", branch = "3.0.1", optional = true }
 bootloader-boot-config = { workspace = true }
 serde_json = "1.0.91"
 
