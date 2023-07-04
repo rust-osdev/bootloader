@@ -168,7 +168,7 @@ pub enum MemoryRegionKind {
 }
 
 /// A pixel-based framebuffer that controls the screen output.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 #[repr(C)]
 pub struct FrameBuffer {
     pub(crate) buffer_start: u64,
@@ -196,7 +196,7 @@ impl FrameBuffer {
         unsafe { self.create_buffer_mut() }
     }
 
-    /// Converts the frame buffer to a raw byte slice.
+    /// Converts the framebuffer to a raw byte slice.
     ///
     /// The same as `buffer_mut()` but takes the ownership and returns the
     /// mutable buffer with a `'static` lifetime.
