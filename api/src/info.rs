@@ -186,19 +186,14 @@ impl FrameBuffer {
         Self { buffer_start, info }
     }
 
-    /// Returns the starting address of the framebuffer as a pointer.
-    pub fn buffer_ptr(&self) -> *const u8 {
-        self.buffer_start as *const _
-    }
-
-    /// Returns the starting address of the framebuffer as a mutable pointer.
-    pub fn buffer_mut_ptr(&mut self) -> *mut u8 {
-        self.buffer_start as *mut _
+    /// Returns the starting address of the framebuffer, represented as an integer.
+    pub fn buffer_start(&self) -> u64 {
+        self.buffer_start
     }
 
     /// Returns the raw bytes of the framebuffer as a slice.
     pub fn buffer(&self) -> &[u8] {
-        unsafe { self.create_buffer() }
+        unsafe { slice::from_raw_parts(self.buffer_start as *const u8, self.info.byte_len) }
     }
 
     /// Returns the raw bytes of the framebuffer as a mutable slice.
@@ -214,17 +209,14 @@ impl FrameBuffer {
         unsafe { self.create_buffer_mut() }
     }
 
-    unsafe fn create_buffer<'a>(&self) -> &'a [u8] {
-        unsafe { slice::from_raw_parts(self.buffer_start as *const u8, self.info.byte_len) }
-    }
-
-    unsafe fn create_buffer_mut<'a>(&self) -> &'a mut [u8] {
-        unsafe { slice::from_raw_parts_mut(self.buffer_start as *mut u8, self.info.byte_len) }
-    }
-
     /// Returns the layout and pixel format information of the framebuffer.
     pub fn info(&self) -> FrameBufferInfo {
         self.info
+    }
+
+    #[inline]
+    unsafe fn create_buffer_mut<'a>(&self) -> &'a mut [u8] {
+        unsafe { slice::from_raw_parts_mut(self.buffer_start as *mut u8, self.info.byte_len) }
     }
 }
 
