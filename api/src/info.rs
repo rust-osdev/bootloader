@@ -186,6 +186,16 @@ impl FrameBuffer {
         Self { buffer_start, info }
     }
 
+    /// Returns the starting address of the framebuffer as a pointer.
+    pub fn buffer_ptr(&self) -> *const u8 {
+        self.buffer_start as *const _
+    }
+
+    /// Returns the starting address of the framebuffer as a mutable pointer.
+    pub fn buffer_mut_ptr(&mut self) -> *mut u8 {
+        self.buffer_start as *mut _
+    }
+
     /// Returns the raw bytes of the framebuffer as a slice.
     pub fn buffer(&self) -> &[u8] {
         unsafe { self.create_buffer() }
