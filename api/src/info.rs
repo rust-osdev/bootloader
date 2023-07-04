@@ -186,12 +186,12 @@ impl FrameBuffer {
         Self { buffer_start, info }
     }
 
-    /// Returns the raw bytes of the framebuffer as slice.
+    /// Returns the raw bytes of the framebuffer as a slice.
     pub fn buffer(&self) -> &[u8] {
         unsafe { self.create_buffer() }
     }
 
-    /// Returns the raw bytes of the framebuffer as mutable slice.
+    /// Returns the raw bytes of the framebuffer as a mutable slice.
     pub fn buffer_mut(&mut self) -> &mut [u8] {
         unsafe { self.create_buffer_mut() }
     }
@@ -212,7 +212,7 @@ impl FrameBuffer {
         unsafe { slice::from_raw_parts_mut(self.buffer_start as *mut u8, self.info.byte_len) }
     }
 
-    /// Returns layout and pixel format information of the framebuffer.
+    /// Returns the layout and pixel format information of the framebuffer.
     pub fn info(&self) -> FrameBufferInfo {
         self.info
     }
