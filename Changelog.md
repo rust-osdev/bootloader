@@ -1,5 +1,10 @@
 # Unreleased
 
+- [Fix bug stemming from treating an exclusive range as an inclusive ranges](https://github.com/rust-osdev/bootloader/pull/362)
+- [Update `uefi` dependency to `v0.20`](https://github.com/rust-osdev/bootloader/pull/360)
+- [Implemented sorting of uefi memory maps](https://github.com/rust-osdev/bootloader/pull/365)
+- [Run `cargo update` to fix build on nightly](https://github.com/rust-osdev/bootloader/pull/385)
+
 # 0.11.3 – 2023-03-26
 
 - [Fix docs.rs build](https://github.com/rust-osdev/bootloader/pull/358)
