@@ -18,4 +18,4 @@ impl<T> RacyCell<T> {
 }
 
 unsafe impl<T> Send for RacyCell<T> where T: Send {}
-unsafe impl<T> Sync for RacyCell<T> {}
+unsafe impl<T: Sync> Sync for RacyCell<T> {}
