@@ -32,7 +32,7 @@ exclude = ["examples/basic", "examples/test_framework"]
 [workspace.package]
 # don't forget to update `workspace.dependencies` below
 version = "0.11.4"
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/rust-osdev/bootloader"
 
 [workspace.dependencies]
