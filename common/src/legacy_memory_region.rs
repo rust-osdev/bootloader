@@ -110,10 +110,11 @@ where
     pub fn construct_memory_map(
         self,
         regions: &mut [MaybeUninit<MemoryRegion>],
-        kernel_slice_start: u64,
+        kernel_slice_start: PhysAddr,
         kernel_slice_len: u64,
     ) -> &mut [MemoryRegion] {
         let mut next_index = 0;
+        let kernel_slice_start = kernel_slice_start.as_u64();
 
         for descriptor in self.original {
             let mut start = descriptor.start();
