@@ -158,7 +158,9 @@ impl UsedLevel4Entries {
             // Choose the first index.
             free_entries.next()
         };
-        let Some(idx) = idx_opt else { panic!("no usable level 4 entries found ({num} entries requested)"); };
+        let Some(idx) = idx_opt else {
+            panic!("no usable level 4 entries found ({num} entries requested)");
+        };
 
         // Mark the entries as used.
         for i in 0..num.into_usize() {

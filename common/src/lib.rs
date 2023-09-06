@@ -39,7 +39,7 @@ pub mod serial;
 
 const PAGE_SIZE: u64 = 4096;
 
-/// Initialize a text-based logger using the given pixel-based framebuffer as output.  
+/// Initialize a text-based logger using the given pixel-based framebuffer as output.
 pub fn init_logger(
     framebuffer: &'static mut [u8],
     info: FrameBufferInfo,
@@ -195,10 +195,10 @@ where
     enable_write_protect_bit();
 
     let config = kernel.config;
-    let kernel_slice_start = kernel.start_address as u64;
+    let kernel_slice_start = PhysAddr::new(kernel.start_address as _);
     let kernel_slice_len = u64::try_from(kernel.len).unwrap();
 
-    let (entry_point, tls_template) = load_kernel::load_kernel(
+    let (kernel_image_offset, entry_point, tls_template) = load_kernel::load_kernel(
         kernel,
         kernel_page_table,
         frame_allocator,
@@ -402,6 +402,8 @@ where
 
         kernel_slice_start,
         kernel_slice_len,
+        kernel_image_offset,
+
         ramdisk_slice_start,
         ramdisk_slice_len,
     }
@@ -426,9 +428,11 @@ pub struct Mappings {
     pub tls_template: Option<TlsTemplate>,
 
     /// Start address of the kernel slice allocation in memory.
-    pub kernel_slice_start: u64,
+    pub kernel_slice_start: PhysAddr,
     /// Size of the kernel slice allocation in memory.
     pub kernel_slice_len: u64,
+    /// Relocation offset of the kernel image in virtual memory.
+    pub kernel_image_offset: VirtAddr,
     pub ramdisk_slice_start: Option<VirtAddr>,
     pub ramdisk_slice_len: u64,
 }
@@ -543,6 +547,9 @@ where
             .map(|addr| addr.as_u64())
             .into();
         info.ramdisk_len = mappings.ramdisk_slice_len;
+        info.kernel_addr = mappings.kernel_slice_start.as_u64();
+        info.kernel_len = mappings.kernel_slice_len as _;
+        info.kernel_image_offset = mappings.kernel_image_offset.as_u64();
         info._test_sentinel = boot_config._test_sentinel;
         info
     });
@@ -587,7 +594,7 @@ pub struct PageTables {
     ///
     /// Must be the page table that the `kernel` field of this struct refers to.
     ///
-    /// This frame is loaded into the `CR3` register on the final context switch to the kernel.  
+    /// This frame is loaded into the `CR3` register on the final context switch to the kernel.
     pub kernel_level_4_frame: PhysFrame,
 }
 
@@ -595,7 +602,13 @@ pub struct PageTables {
 unsafe fn context_switch(addresses: Addresses) -> ! {
     unsafe {
         asm!(
-            "mov cr3, {}; mov rsp, {}; push 0; jmp {}",
+            r#"
+            xor rbp, rbp
+            mov cr3, {}
+            mov rsp, {}
+            push 0
+            jmp {}
+            "#,
             in(reg) addresses.page_table.start_address().as_u64(),
             in(reg) addresses.stack_top.as_u64(),
             in(reg) addresses.entry_point.as_u64(),
