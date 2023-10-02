@@ -164,6 +164,7 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
             _ => Some(info.ramdisk.start),
         },
         ramdisk_len: info.ramdisk.len,
+        rt_table_addr: None,
     };
 
     load_and_switch_to_kernel(kernel, config, frame_allocator, page_tables, system_info);
