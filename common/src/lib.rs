@@ -5,7 +5,7 @@
 use crate::legacy_memory_region::{LegacyFrameAllocator, LegacyMemoryRegion};
 use bootloader_api::{
     config::Mapping,
-    info::{FrameBuffer, FrameBufferInfo, MemoryRegion, TlsTemplate, Optional},
+    info::{FrameBuffer, FrameBufferInfo, MemoryRegion, Optional, TlsTemplate},
     BootInfo, BootloaderConfig,
 };
 use bootloader_boot_config::{BootConfig, LevelFilter};
