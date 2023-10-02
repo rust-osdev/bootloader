@@ -72,7 +72,7 @@ fn convert_level(level: LevelFilter) -> log::LevelFilter {
 }
 
 /// Required system information that should be queried from the BIOS or UEFI firmware.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct SystemInfo {
     /// Information about the (still unmapped) framebuffer.
     pub framebuffer: Option<RawFrameBufferInfo>,
