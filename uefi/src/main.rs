@@ -175,6 +175,7 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
         },
         ramdisk_addr,
         ramdisk_len,
+        rt_table_addr: Some(system_table.get_current_system_table_addr()),
     };
 
     bootloader_x86_64_common::load_and_switch_to_kernel(
