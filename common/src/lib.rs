@@ -81,8 +81,9 @@ pub struct SystemInfo {
     pub ramdisk_addr: Option<u64>,
     pub ramdisk_len: u64,
 
-    /// UEFI runtime table address (on a UEFI system)
-    // #[cfg(target_os = "uefi")]
+    /// UEFI runtime table address (if running on UEFI).
+    /// 
+    /// Use a raw pointer from your kernel to this address to access UEFI Runtime Services.
     pub rt_table_addr: Option<u64>,
 }
 
