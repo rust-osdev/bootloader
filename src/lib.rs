@@ -41,6 +41,18 @@ const KERNEL_FILE_NAME: &str = "kernel-x86_64";
 const RAMDISK_FILE_NAME: &str = "ramdisk";
 const CONFIG_FILE_NAME: &str = "boot.json";
 
+#[cfg(all(feature = "embedded_binaries", feature = "uefi"))]
+static UEFI_BOOTLOADER: &'static [u8] = include_bytes!(env!("UEFI_BOOTLOADER_PATH"));
+
+#[cfg(all(feature = "embedded_binaries", feature = "bios"))]
+static BIOS_BOOT_SECTOR: &'static [u8] = include_bytes!(env!("BIOS_BOOT_SECTOR_PATH"));
+#[cfg(all(feature = "embedded_binaries", feature = "bios"))]
+static BIOS_STAGE_2: &'static [u8] = include_bytes!(env!("BIOS_STAGE_2_PATH"));
+#[cfg(all(feature = "embedded_binaries", feature = "bios"))]
+static BIOS_STAGE_3: &'static [u8] = include_bytes!(env!("BIOS_STAGE_3_PATH"));
+#[cfg(all(feature = "embedded_binaries", feature = "bios"))]
+static BIOS_STAGE_4: &'static [u8] = include_bytes!(env!("BIOS_STAGE_4_PATH"));
+
 /// Allows creating disk images for a specified set of files.
 ///
 /// It can currently create `MBR` (BIOS), `GPT` (UEFI), and `TFTP` (UEFI) images.
@@ -95,22 +107,22 @@ impl DiskImageBuilder {
         self.set_file_source(destination.into(), FileDataSource::File(file_path))
     }
 
-    #[cfg(feature = "bios")]
+    #[cfg(all(feature = "bios", not(feature = "embedded_binaries")))]
     /// Create an MBR disk image for booting on BIOS systems.
     pub fn create_bios_image(&self, image_path: &Path) -> anyhow::Result<()> {
-        const BIOS_STAGE_3: &str = "boot-stage-3";
-        const BIOS_STAGE_4: &str = "boot-stage-4";
+        const BIOS_STAGE_3_NAME: &str = "boot-stage-3";
+        const BIOS_STAGE_4_NAME: &str = "boot-stage-4";
         let bootsector_path = Path::new(env!("BIOS_BOOT_SECTOR_PATH"));
         let stage_2_path = Path::new(env!("BIOS_STAGE_2_PATH"));
         let stage_3_path = Path::new(env!("BIOS_STAGE_3_PATH"));
         let stage_4_path = Path::new(env!("BIOS_STAGE_4_PATH"));
         let mut internal_files = BTreeMap::new();
         internal_files.insert(
-            BIOS_STAGE_3,
+            BIOS_STAGE_3_NAME,
             FileDataSource::File(stage_3_path.to_path_buf()),
         );
         internal_files.insert(
-            BIOS_STAGE_4,
+            BIOS_STAGE_4_NAME,
             FileDataSource::File(stage_4_path.to_path_buf()),
         );
 
@@ -131,15 +143,58 @@ impl DiskImageBuilder {
         Ok(())
     }
 
+    #[cfg(all(feature = "bios", feature = "embedded_binaries"))]
+    /// Create an MBR disk image for booting on BIOS systems.
+    pub fn create_bios_image(&self, image_path: &Path) -> anyhow::Result<()> {
+        const BIOS_STAGE_3_NAME: &str = "boot-stage-3";
+        const BIOS_STAGE_4_NAME: &str = "boot-stage-4";
+        let stage_3 = FileDataSource::Data(BIOS_STAGE_3.to_vec());
+        let stage_4 = FileDataSource::Data(BIOS_STAGE_4.to_vec());
+        let mut internal_files = BTreeMap::new();
+        internal_files.insert(
+            BIOS_STAGE_3_NAME,
+            stage_3,
+        );
+        internal_files.insert(
+            BIOS_STAGE_4_NAME,
+            stage_4,
+        );
+        let fat_partition = self
+            .create_fat_filesystem_image(internal_files)
+            .context("failed to create FAT partition")?;
+        mbr::create_mbr_disk(
+            BIOS_BOOT_SECTOR,
+            BIOS_STAGE_2,
+            fat_partition.path(),
+            image_path,
+        )
+        .context("failed to create BIOS MBR disk image")?;
+
+        fat_partition
+            .close()
+            .context("failed to delete FAT partition after disk image creation")?;
+        Ok(())
+    }
+
     #[cfg(feature = "uefi")]
     /// Create a GPT disk image for booting on UEFI systems.
     pub fn create_uefi_image(&self, image_path: &Path) -> anyhow::Result<()> {
         const UEFI_BOOT_FILENAME: &str = "efi/boot/bootx64.efi";
-        let bootloader_path = Path::new(env!("UEFI_BOOTLOADER_PATH"));
+
+        #[cfg(feature = "embedded_binaries")]
+        fn get_uefi_bootloader() -> FileDataSource {
+            FileDataSource::Data(UEFI_BOOTLOADER.to_vec())
+        }
+        #[cfg(not(feature = "embedded_binaries"))]
+        fn get_uefi_bootloader() -> FileDataSource {
+            let bootloader_path = Path::new(env!("UEFI_BOOTLOADER_PATH"));
+            FileDataSource::File(bootloader_path.to_path_buf())
+        }
+
         let mut internal_files = BTreeMap::new();
         internal_files.insert(
             UEFI_BOOT_FILENAME,
-            FileDataSource::File(bootloader_path.to_path_buf()),
+            get_uefi_bootloader(),
         );
         let fat_partition = self
             .create_fat_filesystem_image(internal_files)
@@ -158,19 +213,34 @@ impl DiskImageBuilder {
     pub fn create_uefi_tftp_folder(&self, tftp_path: &Path) -> anyhow::Result<()> {
         use std::{fs, ops::Deref};
 
+        #[cfg(feature = "embedded_binaries")]
+        fn write_uefi_bootloader(to: &PathBuf) -> anyhow::Result<()> {
+            fs::write(to, UEFI_BOOTLOADER).with_context(|| {
+                format!(
+                    "failed to copy bootloader from the embedded binary to {}",
+                    to.display()
+                )
+            })
+        }
+        #[cfg(not(feature = "embedded_binaries"))]
+        fn write_uefi_bootloader(to: &PathBuf) -> anyhow::Result<()> {
+            let bootloader_path = Path::new(env!("UEFI_BOOTLOADER_PATH"));
+            fs::copy(bootloader_path, &to).map(|_| ()).with_context(|| {
+                format!(
+                    "failed to copy bootloader from {} to {}",
+                    bootloader_path.display(),
+                    to.display()
+                )
+            })
+        }
+
         const UEFI_TFTP_BOOT_FILENAME: &str = "bootloader";
-        let bootloader_path = Path::new(env!("UEFI_BOOTLOADER_PATH"));
         fs::create_dir_all(tftp_path)
             .with_context(|| format!("failed to create out dir at {}", tftp_path.display()))?;
 
         let to = tftp_path.join(UEFI_TFTP_BOOT_FILENAME);
-        fs::copy(bootloader_path, &to).with_context(|| {
-            format!(
-                "failed to copy bootloader from {} to {}",
-                bootloader_path.display(),
-                to.display()
-            )
-        })?;
+        write_uefi_bootloader(&to)?;
+        
 
         for f in &self.files {
             let to = tftp_path.join(f.0.deref());

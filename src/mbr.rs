@@ -2,18 +2,65 @@ use anyhow::Context;
 use mbrman::BOOT_ACTIVE;
 use std::{
     fs::{self, File},
-    io::{self, Seek, SeekFrom},
+    io::{self, Read, Seek, SeekFrom},
     path::Path,
 };
+
 const SECTOR_SIZE: u32 = 512;
 
+#[cfg(not(feature = "embedded_binaries"))]
 pub fn create_mbr_disk(
     bootsector_path: &Path,
     second_stage_path: &Path,
     boot_partition_path: &Path,
     out_mbr_path: &Path,
 ) -> anyhow::Result<()> {
-    let mut boot_sector = File::open(bootsector_path).context("failed to open boot sector")?;
+    let second_stage = File::open(second_stage_path).context("failed to open second stage binary")?;
+    create_mbr_disk_with_readers(
+        File::open(bootsector_path).context("failed to open boot sector")?,
+        SecondStageData {
+            size: second_stage.metadata()
+            .context("failed to read file metadata of second stage")?
+            .len(),
+            reader: second_stage
+        },
+        boot_partition_path,
+        out_mbr_path
+    )
+}
+
+#[cfg(feature = "embedded_binaries")]
+pub fn create_mbr_disk(
+    bootsector_binary: &[u8],
+    second_stage_binary: &[u8],
+    boot_partition_path: &Path,
+    out_mbr_path: &Path,
+) -> anyhow::Result<()> {
+    use std::io::Cursor;
+    create_mbr_disk_with_readers(
+        Cursor::new(bootsector_binary),
+        SecondStageData {
+            size: second_stage_binary.len() as u64,
+            reader: Cursor::new(second_stage_binary),
+        },
+        boot_partition_path,
+        out_mbr_path
+    )
+}
+
+struct SecondStageData<R> {
+    size: u64,
+    reader: R,
+}
+
+fn create_mbr_disk_with_readers<R: Read + Seek>(
+    bootsector_reader: R,
+    second_stage_data: SecondStageData<R>,
+    boot_partition_path: &Path,
+    out_mbr_path: &Path,
+) -> anyhow::Result<()> {
+    // let mut boot_sector = File::open(bootsector_path).context("failed to open boot sector")?;
+    let mut boot_sector = bootsector_reader;
     let mut mbr =
         mbrman::MBR::read_from(&mut boot_sector, SECTOR_SIZE).context("failed to read MBR")?;
 
@@ -23,12 +70,9 @@ pub fn create_mbr_disk(
         }
     }
 
-    let mut second_stage =
-        File::open(second_stage_path).context("failed to open second stage binary")?;
-    let second_stage_size = second_stage
-        .metadata()
-        .context("failed to read file metadata of second stage")?
-        .len();
+    let mut second_stage = second_stage_data.reader;
+    let second_stage_size = second_stage_data.size;
+
     let second_stage_start_sector = 1;
     let second_stage_sectors = ((second_stage_size - 1) / u64::from(SECTOR_SIZE) + 1)
         .try_into()
