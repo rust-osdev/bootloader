@@ -15,17 +15,19 @@ pub fn create_mbr_disk(
     boot_partition_path: &Path,
     out_mbr_path: &Path,
 ) -> anyhow::Result<()> {
-    let second_stage = File::open(second_stage_path).context("failed to open second stage binary")?;
+    let second_stage =
+        File::open(second_stage_path).context("failed to open second stage binary")?;
     create_mbr_disk_with_readers(
         File::open(bootsector_path).context("failed to open boot sector")?,
         SecondStageData {
-            size: second_stage.metadata()
-            .context("failed to read file metadata of second stage")?
-            .len(),
-            reader: second_stage
+            size: second_stage
+                .metadata()
+                .context("failed to read file metadata of second stage")?
+                .len(),
+            reader: second_stage,
         },
         boot_partition_path,
-        out_mbr_path
+        out_mbr_path,
     )
 }
 
@@ -44,7 +46,7 @@ pub fn create_mbr_disk(
             reader: Cursor::new(second_stage_binary),
         },
         boot_partition_path,
-        out_mbr_path
+        out_mbr_path,
     )
 }
 

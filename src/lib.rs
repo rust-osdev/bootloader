@@ -151,14 +151,8 @@ impl DiskImageBuilder {
         let stage_3 = FileDataSource::Data(BIOS_STAGE_3.to_vec());
         let stage_4 = FileDataSource::Data(BIOS_STAGE_4.to_vec());
         let mut internal_files = BTreeMap::new();
-        internal_files.insert(
-            BIOS_STAGE_3_NAME,
-            stage_3,
-        );
-        internal_files.insert(
-            BIOS_STAGE_4_NAME,
-            stage_4,
-        );
+        internal_files.insert(BIOS_STAGE_3_NAME, stage_3);
+        internal_files.insert(BIOS_STAGE_4_NAME, stage_4);
         let fat_partition = self
             .create_fat_filesystem_image(internal_files)
             .context("failed to create FAT partition")?;
@@ -192,10 +186,7 @@ impl DiskImageBuilder {
         }
 
         let mut internal_files = BTreeMap::new();
-        internal_files.insert(
-            UEFI_BOOT_FILENAME,
-            get_uefi_bootloader(),
-        );
+        internal_files.insert(UEFI_BOOT_FILENAME, get_uefi_bootloader());
         let fat_partition = self
             .create_fat_filesystem_image(internal_files)
             .context("failed to create FAT partition")?;
@@ -240,7 +231,6 @@ impl DiskImageBuilder {
 
         let to = tftp_path.join(UEFI_TFTP_BOOT_FILENAME);
         write_uefi_bootloader(&to)?;
-        
 
         for f in &self.files {
             let to = tftp_path.join(f.0.deref());
