@@ -216,7 +216,7 @@ impl DiskImageBuilder {
         #[cfg(not(feature = "embedded_binaries"))]
         fn write_uefi_bootloader(to: &PathBuf) -> anyhow::Result<()> {
             let bootloader_path = Path::new(env!("UEFI_BOOTLOADER_PATH"));
-            fs::copy(bootloader_path, &to).map(|_| ()).with_context(|| {
+            fs::copy(bootloader_path, to).map(|_| ()).with_context(|| {
                 format!(
                     "failed to copy bootloader from {} to {}",
                     bootloader_path.display(),
