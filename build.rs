@@ -21,7 +21,6 @@ async fn bios_main() {
     // BIOS crates don't have enough dependencies to utilize all cores on modern
     // CPUs. So by running the build commands in parallel, we increase the number
     // of utilized cores.)
-    #[cfg(not(docsrs_dummy_build))]
     let (bios_boot_sector_path, bios_stage_2_path, bios_stage_3_path, bios_stage_4_path) = (
         build_bios_boot_sector(&out_dir),
         build_bios_stage_2(&out_dir),
@@ -30,14 +29,6 @@ async fn bios_main() {
     )
         .join()
         .await;
-    // dummy implementations because docsrs builds have no network access
-    #[cfg(docsrs_dummy_build)]
-    let (bios_boot_sector_path, bios_stage_2_path, bios_stage_3_path, bios_stage_4_path) = (
-        PathBuf::new(),
-        PathBuf::new(),
-        PathBuf::new(),
-        PathBuf::new(),
-    );
     println!(
         "cargo:rustc-env=BIOS_BOOT_SECTOR_PATH={}",
         bios_boot_sector_path.display()
@@ -60,11 +51,7 @@ async fn bios_main() {
 async fn uefi_main() {
     let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
 
-    #[cfg(not(docsrs_dummy_build))]
     let uefi_path = build_uefi_bootloader(&out_dir).await;
-    // dummy implementation because docsrs builds have no network access
-    #[cfg(docsrs_dummy_build)]
-    let uefi_path = PathBuf::new();
 
     println!(
         "cargo:rustc-env=UEFI_BOOTLOADER_PATH={}",
@@ -109,6 +96,26 @@ async fn build_uefi_bootloader(out_dir: &Path) -> PathBuf {
     }
 }
 
+// dummy implementation because docsrs builds have no network access.
+// This will put an empty file in out_dir and return its path.
+#[cfg(docsrs_dummy_build)]
+#[cfg(feature = "uefi")]
+async fn build_uefi_bootloader(out_dir: &Path) -> PathBuf {
+    use std::fs::File;
+
+    let path = out_dir.join("bootloader-dummy-bootloader-uefi");
+
+    if File::create(&path).is_err() {
+        panic!("Failed to create dummy uefi bootloader");
+    }
+    assert!(
+        path.exists(),
+        "uefi bootloader dummy file does not exist after file creation"
+    );
+
+    path
+}
+
 #[cfg(not(docsrs_dummy_build))]
 #[cfg(feature = "bios")]
 async fn build_bios_boot_sector(out_dir: &Path) -> PathBuf {
@@ -151,6 +158,26 @@ async fn build_bios_boot_sector(out_dir: &Path) -> PathBuf {
         panic!("failed to build bios boot sector");
     };
     convert_elf_to_bin(elf_path).await
+}
+
+// dummy implementation because docsrs builds have no network access.
+// This will put an empty file in out_dir and return its path.
+#[cfg(docsrs_dummy_build)]
+#[cfg(feature = "bios")]
+async fn build_bios_boot_sector(out_dir: &Path) -> PathBuf {
+    use std::fs::File;
+
+    let path = out_dir.join("bootloader-dummy-bios-boot-sector");
+
+    if File::create(&path).is_err() {
+        panic!("Failed to create dummy bios boot sector");
+    }
+    assert!(
+        path.exists(),
+        "bios boot sector dummy file does not exist after file creation"
+    );
+
+    path
 }
 
 #[cfg(not(docsrs_dummy_build))]
@@ -199,6 +226,26 @@ async fn build_bios_stage_2(out_dir: &Path) -> PathBuf {
     convert_elf_to_bin(elf_path).await
 }
 
+// dummy implementation because docsrs builds have no network access.
+// This will put an empty file in out_dir and return its path.
+#[cfg(docsrs_dummy_build)]
+#[cfg(feature = "bios")]
+async fn build_bios_stage_2(out_dir: &Path) -> PathBuf {
+    use std::fs::File;
+
+    let path = out_dir.join("bootloader-dummy-bios-stage-2");
+
+    if File::create(&path).is_err() {
+        panic!("Failed to create dummy bios second stage");
+    }
+    assert!(
+        path.exists(),
+        "bios second stage dummy file does not exist after file creation"
+    );
+
+    path
+}
+
 #[cfg(not(docsrs_dummy_build))]
 #[cfg(feature = "bios")]
 async fn build_bios_stage_3(out_dir: &Path) -> PathBuf {
@@ -239,6 +286,26 @@ async fn build_bios_stage_3(out_dir: &Path) -> PathBuf {
         panic!("failed to build bios stage-3");
     };
     convert_elf_to_bin(elf_path).await
+}
+
+// dummy implementation because docsrs builds have no network access.
+// This will put an empty file in out_dir and return its path.
+#[cfg(docsrs_dummy_build)]
+#[cfg(feature = "bios")]
+async fn build_bios_stage_3(out_dir: &Path) -> PathBuf {
+    use std::fs::File;
+
+    let path = out_dir.join("bootloader-dummy-bios-stage-3");
+
+    if File::create(&path).is_err() {
+        panic!("Failed to create dummy bios stage-3");
+    }
+    assert!(
+        path.exists(),
+        "bios stage-3 dummy file does not exist after file creation"
+    );
+
+    path
 }
 
 #[cfg(not(docsrs_dummy_build))]
@@ -282,6 +349,26 @@ async fn build_bios_stage_4(out_dir: &Path) -> PathBuf {
     };
 
     convert_elf_to_bin(elf_path).await
+}
+
+// dummy implementation because docsrs builds have no network access.
+// This will put an empty file in out_dir and return its path.
+#[cfg(docsrs_dummy_build)]
+#[cfg(feature = "bios")]
+async fn build_bios_stage_4(out_dir: &Path) -> PathBuf {
+    use std::fs::File;
+
+    let path = out_dir.join("bootloader-dummy-bios-stage-4");
+
+    if File::create(&path).is_err() {
+        panic!("Failed to create dummy bios stage-4");
+    }
+    assert!(
+        path.exists(),
+        "bios stage-4 dummy file does not exist after file creation"
+    );
+
+    path
 }
 
 #[cfg(not(docsrs_dummy_build))]
