@@ -105,8 +105,8 @@ impl DiskImageBuilder {
     pub fn create_bios_image(&self, image_path: &Path) -> anyhow::Result<()> {
         const BIOS_STAGE_3_NAME: &str = "boot-stage-3";
         const BIOS_STAGE_4_NAME: &str = "boot-stage-4";
-        let stage_3 = FileDataSource::Data(BIOS_STAGE_3.to_vec());
-        let stage_4 = FileDataSource::Data(BIOS_STAGE_4.to_vec());
+        let stage_3 = FileDataSource::Bytes(BIOS_STAGE_3);
+        let stage_4 = FileDataSource::Bytes(BIOS_STAGE_4);
         let mut internal_files = BTreeMap::new();
         internal_files.insert(BIOS_STAGE_3_NAME, stage_3);
         internal_files.insert(BIOS_STAGE_4_NAME, stage_4);
@@ -132,12 +132,8 @@ impl DiskImageBuilder {
     pub fn create_uefi_image(&self, image_path: &Path) -> anyhow::Result<()> {
         const UEFI_BOOT_FILENAME: &str = "efi/boot/bootx64.efi";
 
-        fn get_uefi_bootloader() -> FileDataSource {
-            FileDataSource::Data(UEFI_BOOTLOADER.to_vec())
-        }
-
         let mut internal_files = BTreeMap::new();
-        internal_files.insert(UEFI_BOOT_FILENAME, get_uefi_bootloader());
+        internal_files.insert(UEFI_BOOT_FILENAME, FileDataSource::Bytes(UEFI_BOOTLOADER));
         let fat_partition = self
             .create_fat_filesystem_image(internal_files)
             .context("failed to create FAT partition")?;
@@ -155,21 +151,17 @@ impl DiskImageBuilder {
     pub fn create_uefi_tftp_folder(&self, tftp_path: &Path) -> anyhow::Result<()> {
         use std::{fs, ops::Deref};
 
-        fn write_uefi_bootloader(to: &PathBuf) -> anyhow::Result<()> {
-            fs::write(to, UEFI_BOOTLOADER).with_context(|| {
-                format!(
-                    "failed to copy bootloader from the embedded binary to {}",
-                    to.display()
-                )
-            })
-        }
-
         const UEFI_TFTP_BOOT_FILENAME: &str = "bootloader";
         fs::create_dir_all(tftp_path)
             .with_context(|| format!("failed to create out dir at {}", tftp_path.display()))?;
 
         let to = tftp_path.join(UEFI_TFTP_BOOT_FILENAME);
-        write_uefi_bootloader(&to)?;
+        fs::write(&to, UEFI_BOOTLOADER).with_context(|| {
+            format!(
+                "failed to copy bootloader from the embedded binary to {}",
+                to.display()
+            )
+        })?;
 
         for f in &self.files {
             let to = tftp_path.join(f.0.deref());
