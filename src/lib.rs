@@ -41,10 +41,15 @@ const KERNEL_FILE_NAME: &str = "kernel-x86_64";
 const RAMDISK_FILE_NAME: &str = "ramdisk";
 const CONFIG_FILE_NAME: &str = "boot.json";
 
+#[cfg(feature = "uefi")]
 const UEFI_BOOTLOADER: &[u8] = include_bytes!(env!("UEFI_BOOTLOADER_PATH"));
+#[cfg(feature = "bios")]
 const BIOS_BOOT_SECTOR: &[u8] = include_bytes!(env!("BIOS_BOOT_SECTOR_PATH"));
+#[cfg(feature = "bios")]
 const BIOS_STAGE_2: &[u8] = include_bytes!(env!("BIOS_STAGE_2_PATH"));
+#[cfg(feature = "bios")]
 const BIOS_STAGE_3: &[u8] = include_bytes!(env!("BIOS_STAGE_3_PATH"));
+#[cfg(feature = "bios")]
 const BIOS_STAGE_4: &[u8] = include_bytes!(env!("BIOS_STAGE_4_PATH"));
 
 /// Allows creating disk images for a specified set of files.
@@ -101,6 +106,7 @@ impl DiskImageBuilder {
         self.set_file_source(destination.into(), FileDataSource::File(file_path))
     }
 
+    #[cfg(feature = "bios")]
     /// Create an MBR disk image for booting on BIOS systems.
     pub fn create_bios_image(&self, image_path: &Path) -> anyhow::Result<()> {
         const BIOS_STAGE_3_NAME: &str = "boot-stage-3";
