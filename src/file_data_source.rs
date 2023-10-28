@@ -59,7 +59,7 @@ impl FileDataSource {
             FileDataSource::Bytes(contents) => {
                 let mut cursor = Cursor::new(contents);
                 io::copy(&mut cursor, target)?;
-            },
+            }
         };
 
         Ok(())
