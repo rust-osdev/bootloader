@@ -41,11 +41,11 @@ const KERNEL_FILE_NAME: &str = "kernel-x86_64";
 const RAMDISK_FILE_NAME: &str = "ramdisk";
 const CONFIG_FILE_NAME: &str = "boot.json";
 
-static UEFI_BOOTLOADER: &'static [u8] = include_bytes!(env!("UEFI_BOOTLOADER_PATH"));
-static BIOS_BOOT_SECTOR: &'static [u8] = include_bytes!(env!("BIOS_BOOT_SECTOR_PATH"));
-static BIOS_STAGE_2: &'static [u8] = include_bytes!(env!("BIOS_STAGE_2_PATH"));
-static BIOS_STAGE_3: &'static [u8] = include_bytes!(env!("BIOS_STAGE_3_PATH"));
-static BIOS_STAGE_4: &'static [u8] = include_bytes!(env!("BIOS_STAGE_4_PATH"));
+const UEFI_BOOTLOADER: &[u8] = include_bytes!(env!("UEFI_BOOTLOADER_PATH"));
+const BIOS_BOOT_SECTOR: &[u8] = include_bytes!(env!("BIOS_BOOT_SECTOR_PATH"));
+const BIOS_STAGE_2: &[u8] = include_bytes!(env!("BIOS_STAGE_2_PATH"));
+const BIOS_STAGE_3: &[u8] = include_bytes!(env!("BIOS_STAGE_3_PATH"));
+const BIOS_STAGE_4: &[u8] = include_bytes!(env!("BIOS_STAGE_4_PATH"));
 
 /// Allows creating disk images for a specified set of files.
 ///
