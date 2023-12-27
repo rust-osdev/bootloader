@@ -7,6 +7,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
+default = ["bios", "uefi"]
 bios = ["bootloader/bios"]
 uefi = ["bootloader/uefi", "dep:ovmf-prebuilt"]
 
