@@ -18,3 +18,11 @@ fn check_ramdisk() {
         Some(Path::new(RAMDISK_PATH)),
     );
 }
+
+#[test]
+fn memory_map() {
+    run_test_kernel_with_ramdisk(
+        env!("CARGO_BIN_FILE_TEST_KERNEL_RAMDISK_memory_map"),
+        Some(Path::new(RAMDISK_PATH)),
+    );
+}

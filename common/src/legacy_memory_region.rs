@@ -112,9 +112,12 @@ where
         regions: &mut [MaybeUninit<MemoryRegion>],
         kernel_slice_start: PhysAddr,
         kernel_slice_len: u64,
+        ramdisk_slice_start: Option<PhysAddr>,
+        ramdisk_slice_len: u64,
     ) -> &mut [MemoryRegion] {
         let mut next_index = 0;
         let kernel_slice_start = kernel_slice_start.as_u64();
+        let ramdisk_slice_start = ramdisk_slice_start.map(|a| a.as_u64());
 
         for descriptor in self.original {
             let mut start = descriptor.start();
@@ -157,8 +160,9 @@ where
                 kind,
             };
 
-            // check if region overlaps with kernel
+            // check if region overlaps with kernel or ramdisk
             let kernel_slice_end = kernel_slice_start + kernel_slice_len;
+            let ramdisk_slice_end = ramdisk_slice_start.map(|s| s + ramdisk_slice_len);
             if region.kind == MemoryRegionKind::Usable
                 && kernel_slice_start < region.end
                 && kernel_slice_end > region.start
@@ -198,6 +202,47 @@ where
                 Self::add_region(before_kernel, regions, &mut next_index);
                 Self::add_region(kernel, regions, &mut next_index);
                 Self::add_region(after_kernel, regions, &mut next_index);
+            } else if region.kind == MemoryRegionKind::Usable
+                && ramdisk_slice_start.map(|s| s < region.end).unwrap_or(false)
+                && ramdisk_slice_end.map(|e| e > region.start).unwrap_or(false)
+            {
+                // region overlaps with ramdisk -> we might need to split it
+                let ramdisk_slice_start = ramdisk_slice_start.unwrap();
+                let ramdisk_slice_end = ramdisk_slice_end.unwrap();
+
+                // ensure that the ramdisk allocation does not span multiple regions
+                assert!(
+                    ramdisk_slice_start >= region.start,
+                    "region overlaps with ramdisk, but ramdisk begins before region \
+                (ramdisk_start: {ramdisk_slice_start:#x}, region_start: {:#x})",
+                    region.start
+                );
+                assert!(
+                    ramdisk_slice_end <= region.end,
+                    "region overlaps with ramdisk, but region ends before ramdisk \
+                (ramdisk_end: {ramdisk_slice_end:#x}, region_end: {:#x})",
+                    region.end,
+                );
+
+                // split the region into three parts
+                let before_ramdisk = MemoryRegion {
+                    end: ramdisk_slice_start,
+                    ..region
+                };
+                let ramdisk = MemoryRegion {
+                    start: ramdisk_slice_start,
+                    end: ramdisk_slice_end,
+                    kind: MemoryRegionKind::Bootloader,
+                };
+                let after_ramdisk = MemoryRegion {
+                    start: ramdisk_slice_end,
+                    ..region
+                };
+
+                // add the three regions (empty regions are ignored in `add_region`)
+                Self::add_region(before_ramdisk, regions, &mut next_index);
+                Self::add_region(ramdisk, regions, &mut next_index);
+                Self::add_region(after_ramdisk, regions, &mut next_index);
             } else {
                 // add the region normally
                 Self::add_region(region, regions, &mut next_index);
