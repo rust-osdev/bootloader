@@ -293,14 +293,14 @@ where
         None
     };
     let ramdisk_slice_len = system_info.ramdisk_len;
-    let ramdisk_slice_start = if let Some(ramdisk_address) = system_info.ramdisk_addr {
+    let ramdisk_slice_phys_start = system_info.ramdisk_addr.map(PhysAddr::new);
+    let ramdisk_slice_start = if let Some(physical_address) = ramdisk_slice_phys_start {
         let start_page = mapping_addr_page_aligned(
             config.mappings.ramdisk_memory,
             system_info.ramdisk_len,
             &mut used_entries,
             "ramdisk start",
         );
-        let physical_address = PhysAddr::new(ramdisk_address);
         let ramdisk_physical_start_page: PhysFrame<Size4KiB> =
             PhysFrame::containing_address(physical_address);
         let ramdisk_page_count = (system_info.ramdisk_len - 1) / Size4KiB::SIZE;
@@ -404,6 +404,7 @@ where
         kernel_slice_len,
         kernel_image_offset,
 
+        ramdisk_slice_phys_start,
         ramdisk_slice_start,
         ramdisk_slice_len,
     }
@@ -433,6 +434,7 @@ pub struct Mappings {
     pub kernel_slice_len: u64,
     /// Relocation offset of the kernel image in virtual memory.
     pub kernel_image_offset: VirtAddr,
+    pub ramdisk_slice_phys_start: Option<PhysAddr>,
     pub ramdisk_slice_start: Option<VirtAddr>,
     pub ramdisk_slice_len: u64,
 }
@@ -516,6 +518,8 @@ where
         memory_regions,
         mappings.kernel_slice_start,
         mappings.kernel_slice_len,
+        mappings.ramdisk_slice_phys_start,
+        mappings.ramdisk_slice_len,
     );
 
     log::info!("Create bootinfo");
