@@ -225,7 +225,7 @@ where
         let frame = frame_allocator
             .allocate_frame()
             .expect("frame allocation failed when mapping a kernel stack");
-        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
         match unsafe { kernel_page_table.map_to(page, frame, flags, frame_allocator) } {
             Ok(tlb) => tlb.flush(),
             Err(err) => panic!("failed to map page {:?}: {:?}", page, err),
@@ -278,7 +278,8 @@ where
             PhysFrame::range_inclusive(framebuffer_start_frame, framebuffer_end_frame).enumerate()
         {
             let page = start_page + u64::from_usize(i);
-            let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+            let flags =
+                PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
             match unsafe { kernel_page_table.map_to(page, frame, flags, frame_allocator) } {
                 Ok(tlb) => tlb.flush(),
                 Err(err) => panic!(
@@ -306,7 +307,7 @@ where
         let ramdisk_page_count = (system_info.ramdisk_len - 1) / Size4KiB::SIZE;
         let ramdisk_physical_end_page = ramdisk_physical_start_page + ramdisk_page_count;
 
-        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
         for (i, frame) in
             PhysFrame::range_inclusive(ramdisk_physical_start_page, ramdisk_physical_end_page)
                 .enumerate()
@@ -339,7 +340,8 @@ where
 
         for frame in PhysFrame::range_inclusive(start_frame, end_frame) {
             let page = Page::containing_address(offset + frame.start_address().as_u64());
-            let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+            let flags =
+                PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
             match unsafe { kernel_page_table.map_to(page, frame, flags, frame_allocator) } {
                 Ok(tlb) => tlb.ignore(),
                 Err(err) => panic!(
@@ -380,7 +382,7 @@ where
                 u16::from(index)
             );
         }
-        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
         entry.set_frame(page_tables.kernel_level_4_frame, flags);
 
         Some(index)
@@ -479,7 +481,8 @@ where
         let start_page = Page::containing_address(boot_info_addr);
         let end_page = Page::containing_address(memory_map_regions_end - 1u64);
         for page in Page::range_inclusive(start_page, end_page) {
-            let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+            let flags =
+                PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
             let frame = frame_allocator
                 .allocate_frame()
                 .expect("frame allocation for boot info failed");

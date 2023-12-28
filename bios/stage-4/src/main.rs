@@ -78,7 +78,9 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
                 bootloader_page_table
                     .identity_map(
                         frame,
-                        PageTableFlags::PRESENT | PageTableFlags::WRITABLE,
+                        PageTableFlags::PRESENT
+                            | PageTableFlags::WRITABLE
+                            | PageTableFlags::NO_EXECUTE,
                         &mut frame_allocator,
                     )
                     .unwrap()
