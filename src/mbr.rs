@@ -5,15 +5,17 @@ use std::{
     io::{self, Seek, SeekFrom},
     path::Path,
 };
+
 const SECTOR_SIZE: u32 = 512;
 
 pub fn create_mbr_disk(
-    bootsector_path: &Path,
-    second_stage_path: &Path,
+    bootsector_binary: &[u8],
+    second_stage_binary: &[u8],
     boot_partition_path: &Path,
     out_mbr_path: &Path,
 ) -> anyhow::Result<()> {
-    let mut boot_sector = File::open(bootsector_path).context("failed to open boot sector")?;
+    use std::io::Cursor;
+    let mut boot_sector = Cursor::new(bootsector_binary);
     let mut mbr =
         mbrman::MBR::read_from(&mut boot_sector, SECTOR_SIZE).context("failed to read MBR")?;
 
@@ -23,12 +25,9 @@ pub fn create_mbr_disk(
         }
     }
 
-    let mut second_stage =
-        File::open(second_stage_path).context("failed to open second stage binary")?;
-    let second_stage_size = second_stage
-        .metadata()
-        .context("failed to read file metadata of second stage")?
-        .len();
+    let mut second_stage = Cursor::new(second_stage_binary);
+    let second_stage_size = second_stage_binary.len() as u64;
+
     let second_stage_start_sector = 1;
     let second_stage_sectors = ((second_stage_size - 1) / u64::from(SECTOR_SIZE) + 1)
         .try_into()

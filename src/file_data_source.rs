@@ -11,6 +11,7 @@ use std::{fs, io};
 pub enum FileDataSource {
     File(PathBuf),
     Data(Vec<u8>),
+    Bytes(&'static [u8]),
 }
 
 impl Debug for FileDataSource {
@@ -21,6 +22,9 @@ impl Debug for FileDataSource {
             }
             FileDataSource::Data(d) => {
                 f.write_fmt(format_args!("data source: {} raw bytes ", d.len()))
+            }
+            FileDataSource::Bytes(b) => {
+                f.write_fmt(format_args!("data source: {} raw bytes ", b.len()))
             }
         }
     }
@@ -34,6 +38,7 @@ impl FileDataSource {
                 .with_context(|| format!("failed to read metadata of file `{}`", path.display()))?
                 .len(),
             FileDataSource::Data(v) => v.len() as u64,
+            FileDataSource::Bytes(s) => s.len() as u64,
         })
     }
     /// Copy this data source to the specified target that implements io::Write
@@ -48,6 +53,10 @@ impl FileDataSource {
                 )?;
             }
             FileDataSource::Data(contents) => {
+                let mut cursor = Cursor::new(contents);
+                io::copy(&mut cursor, target)?;
+            }
+            FileDataSource::Bytes(contents) => {
                 let mut cursor = Cursor::new(contents);
                 io::copy(&mut cursor, target)?;
             }
