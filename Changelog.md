@@ -1,5 +1,17 @@
 # Unreleased
 
+# 0.11.5 – 2023-12-28
+
+* [RacyCell<T>: Data race allowed on `T`](https://github.com/rust-osdev/bootloader/pull/390)
+* [Update license field following SPDX 2.1 license expression standard](https://github.com/rust-osdev/bootloader/pull/391)
+* [kernel image fields & zero out rbp](https://github.com/rust-osdev/bootloader/pull/346)
+* [Update `rustix` dependency](https://github.com/rust-osdev/bootloader/pull/398)
+* [Add an additional MB of space to the generated FAT partition](https://github.com/rust-osdev/bootloader/pull/397)
+* [Fix: Enable test runner again](https://github.com/rust-osdev/bootloader/pull/407)
+* [Fix: Mark `ramdisk` as used in memory map](https://github.com/rust-osdev/bootloader/pull/408)
+
+**Full Changelog**: https://github.com/rust-osdev/bootloader/compare/v0.11.4...v0.11.5
+
 # 0.11.4 – 2023-07-05
 
 - [Fix bug stemming from treating an exclusive range as an inclusive ranges](https://github.com/rust-osdev/bootloader/pull/362)
