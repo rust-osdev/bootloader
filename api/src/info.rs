@@ -341,6 +341,11 @@ impl<T> Optional<T> {
             Self::None => None,
         }
     }
+
+    /// Takes the value out of the `Optional`, leaving a `None` in its place.
+    pub fn take(&mut self) -> Option<T> {
+        core::mem::replace(self, Optional::None).into_option()
+    }
 }
 
 impl<T> From<Option<T>> for Optional<T> {
