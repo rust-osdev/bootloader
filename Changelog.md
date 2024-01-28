@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.9.24 – 2024-01-28
+
 - Fix data layout for `x86_64-bootloader` target ([#415](https://github.com/rust-osdev/bootloader/pull/415))
   - Fixes build on latest Rust nightly
 
