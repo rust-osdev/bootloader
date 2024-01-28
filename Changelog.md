@@ -1,5 +1,8 @@
 # Unreleased
 
+- Fix data layout for `x86_64-bootloader` target ([#415](https://github.com/rust-osdev/bootloader/pull/415))
+  - Fixes build on latest Rust nightly
+
 # 0.9.23 – 2022-09-25
 
 - Fix boot for machines that report memory regions at high physical addresses (see #259)
