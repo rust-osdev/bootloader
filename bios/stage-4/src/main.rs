@@ -262,6 +262,7 @@ fn detect_rsdp() -> Option<PhysAddr> {
     #[derive(Clone)]
     struct IdentityMapped;
     impl AcpiHandler for IdentityMapped {
+        #[inline(never)]
         unsafe fn map_physical_region<T>(
             &self,
             physical_address: usize,
