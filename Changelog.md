@@ -1,5 +1,12 @@
 # Unreleased
 
+# 0.11.7 – 2024-02-16
+
+* Set `NO_EXECUTE` flag for all writable memory regions by @phil-opp in https://github.com/rust-osdev/bootloader/pull/409
+* adapt data layout to match LLVM's by @tsatke in https://github.com/rust-osdev/bootloader/pull/420
+
+**Full Changelog**: https://github.com/rust-osdev/bootloader/compare/v0.11.6...v0.11.7
+
 # 0.11.6 – 2024-01-28
 
 * [Embed bios and uefi binaries](https://github.com/rust-osdev/bootloader/pull/395)
