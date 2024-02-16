@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.9.26 – 2024-02-16
+
 
 - [Fix map errors during kernel loading](https://github.com/rust-osdev/bootloader/pull/422)
     - Don't error if a kernel page is already mapped to the correct frame
