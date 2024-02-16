@@ -124,7 +124,7 @@ pub(crate) fn map_segment(
                     unsafe {
                         map_page(
                             temp_page.clone(),
-                            new_frame.clone(),
+                            new_frame,
                             page_table_flags,
                             page_table,
                             frame_allocator,
@@ -152,6 +152,11 @@ pub(crate) fn map_segment(
                         });
                     }
 
+                    // unmap temp page again
+                    let (new_frame, flusher) = page_table.unmap(temp_page).unwrap();
+                    flusher.flush();
+
+                    // map last page to new frame
                     unsafe {
                         map_page(
                             last_page,
