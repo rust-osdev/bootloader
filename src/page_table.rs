@@ -97,27 +97,14 @@ pub(crate) fn map_segment(
             for frame in PhysFrame::range_inclusive(start_frame, end_frame) {
                 let offset = frame - start_frame;
                 let page = start_page + offset;
-                match unsafe {
-                    map_page(page, frame, page_table_flags, page_table, frame_allocator)
-                } {
-                    Ok(flusher) => flusher.flush(),
-                    Err(MapToError::PageAlreadyMapped(to)) if to == frame => {
-                        let flags = match page_table.translate(page.start_address()) {
-                            TranslateResult::Mapped { flags, .. } => flags,
-                            _ => unreachable!(),
-                        };
-                        if flags != page_table_flags {
-                            unsafe {
-                                page_table
-                                    .update_flags(page, flags | page_table_flags)
-                                    .unwrap()
-                                    .flush()
-                            };
-                        }
-                        // nothing to do, page is already mapped to the correct frame
-                    }
-                    Err(err) => return Err(err),
-                }
+                unsafe { map_page(page, frame, page_table_flags, page_table, frame_allocator) }
+                    .unwrap_or_else(|err| {
+                        panic!(
+                            "failed to map segment starting at {:?}: failed to map page {:?} to frame {:?}: {:?}",
+                            start_page, page, frame, err
+                        )
+                    })
+                    .flush();
             }
 
             if mem_size > file_size {
@@ -187,7 +174,7 @@ pub(crate) fn map_segment(
                     zero_start.as_u64(),
                     Size4KiB::SIZE,
                 )));
-                let end_page = Page::containing_address(zero_end);
+                let end_page = Page::containing_address(zero_end - 1usize);
                 for page in Page::range_inclusive(start_page, end_page) {
                     let frame = frame_allocator
                         .allocate_frame(MemoryRegionType::Kernel)
