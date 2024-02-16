@@ -1,5 +1,10 @@
 # Unreleased
 
+
+- [Fix map errors during kernel loading](https://github.com/rust-osdev/bootloader/pull/422)
+    - Don't error if a kernel page is already mapped to the correct frame
+    - Fix: unmap temp page again to enable multiple bss-like sections
+
 # 0.9.25 – 2024-02-16
 
 - [Fix data layout for custom targets for LLVM 18](https://github.com/rust-osdev/bootloader/pull/421)
