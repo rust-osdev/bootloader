@@ -1,6 +1,6 @@
 # Unreleased
 
-- [Fix: unify flags if multiple segments are mapped to same frame with different flags](https://github.com/rust-osdev/bootloader/pull/423)
+- [Fix invalid mapping to zero page caused by off-by-one bug](https://github.com/rust-osdev/bootloader/pull/424)
 
 # 0.9.26 – 2024-02-16
 
