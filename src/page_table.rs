@@ -2,9 +2,10 @@ use crate::frame_allocator::FrameAllocator;
 use bootloader::bootinfo::MemoryRegionType;
 use bootloader::bootinfo::TlsTemplate;
 use fixedvec::FixedVec;
-use x86_64::structures::paging::mapper::{MapToError, MapperFlush, UnmapError};
+use x86_64::structures::paging::mapper::{MapToError, MapperFlush, TranslateResult, UnmapError};
 use x86_64::structures::paging::{
     self, Mapper, Page, PageSize, PageTableFlags, PhysFrame, RecursivePageTable, Size4KiB,
+    Translate,
 };
 use x86_64::{align_up, PhysAddr, VirtAddr};
 use xmas_elf::program::{self, ProgramHeader64};
@@ -101,6 +102,18 @@ pub(crate) fn map_segment(
                 } {
                     Ok(flusher) => flusher.flush(),
                     Err(MapToError::PageAlreadyMapped(to)) if to == frame => {
+                        let flags = match page_table.translate(page.start_address()) {
+                            TranslateResult::Mapped { flags, .. } => flags,
+                            _ => unreachable!(),
+                        };
+                        if flags != page_table_flags {
+                            unsafe {
+                                page_table
+                                    .update_flags(page, flags | page_table_flags)
+                                    .unwrap()
+                                    .flush()
+                            };
+                        }
                         // nothing to do, page is already mapped to the correct frame
                     }
                     Err(err) => return Err(err),
