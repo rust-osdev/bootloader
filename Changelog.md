@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.9.25 – 2024-02-16
+
 - [Fix data layout for custom targets for LLVM 18](https://github.com/rust-osdev/bootloader/pull/421)
   - Fixes build on latest Rust nightly
 
