@@ -96,8 +96,15 @@ pub(crate) fn map_segment(
             for frame in PhysFrame::range_inclusive(start_frame, end_frame) {
                 let offset = frame - start_frame;
                 let page = start_page + offset;
-                unsafe { map_page(page, frame, page_table_flags, page_table, frame_allocator)? }
-                    .flush();
+                match unsafe {
+                    map_page(page, frame, page_table_flags, page_table, frame_allocator)
+                } {
+                    Ok(flusher) => flusher.flush(),
+                    Err(MapToError::PageAlreadyMapped(to)) if to == frame => {
+                        // nothing to do, page is already mapped to the correct frame
+                    }
+                    Err(err) => return Err(err),
+                }
             }
 
             if mem_size > file_size {
