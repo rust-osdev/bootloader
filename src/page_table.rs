@@ -187,7 +187,7 @@ pub(crate) fn map_segment(
                     zero_start.as_u64(),
                     Size4KiB::SIZE,
                 )));
-                let end_page = Page::containing_address(zero_end);
+                let end_page = Page::containing_address(zero_end - 1usize);
                 for page in Page::range_inclusive(start_page, end_page) {
                     let frame = frame_allocator
                         .allocate_frame(MemoryRegionType::Kernel)
