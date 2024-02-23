@@ -130,7 +130,7 @@ macro_rules! entry_point {
                 let f: fn(&'static mut $crate::BootInfo) -> ! = $path;
 
                 // ensure that the config is used so that the linker keeps it
-                $crate::__force_use(__BOOTLOADER_CONFIG_REF);
+                $crate::__force_use(&__BOOTLOADER_CONFIG_REF);
 
                 f(boot_info)
             }
@@ -139,7 +139,7 @@ macro_rules! entry_point {
 }
 
 #[doc(hidden)]
-pub fn __force_use(slice: &[u8]) {
+pub fn __force_use(slice: &&[u8; BootloaderConfig::SERIALIZED_LEN]) {
     let force_use = slice.as_ptr() as usize;
     unsafe { core::arch::asm!("add {0}, 0", in(reg) force_use, options(nomem, nostack)) };
 }
