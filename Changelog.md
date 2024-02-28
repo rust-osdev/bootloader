@@ -1,5 +1,7 @@
 # Unreleased
 
+- Fix warnings: [Remove unused paging imports](https://github.com/rust-osdev/bootloader/pull/430)
+
 # 0.9.27 – 2024-02-16
 
 - [Fix invalid mapping to zero page caused by off-by-one bug](https://github.com/rust-osdev/bootloader/pull/424)
