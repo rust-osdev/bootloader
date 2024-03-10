@@ -2,7 +2,7 @@
 
 [![Docs](https://docs.rs/bootloader/badge.svg)](https://docs.rs/bootloader)
 [![Build Status](https://github.com/rust-osdev/bootloader/actions/workflows/build.yml/badge.svg)](https://github.com/rust-osdev/bootloader/actions/workflows/build.yml)
-[![Join the chat at https://gitter.im/rust-osdev/bootloader](https://badges.gitter.im/rust-osdev/bootloader.svg)](https://gitter.im/rust-osdev/bootloader?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Join the chat at https://rust-osdev.zulipchat.com](https://img.shields.io/badge/zulip-join_chat-brightgreen.svg)](https://rust-osdev.zulipchat.com)
 
 An experimental x86_64 bootloader that works on both BIOS and UEFI systems. Written in Rust and some inline assembly, buildable on all platforms without additional build-time dependencies (just some `rustup` components).
 
