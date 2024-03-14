@@ -120,13 +120,17 @@ macro_rules! entry_point {
                 config.serialize()
             };
 
+            // Workaround for https://github.com/rust-osdev/bootloader/issues/427
+            static __BOOTLOADER_CONFIG_REF: &[u8; $crate::BootloaderConfig::SERIALIZED_LEN] =
+                &__BOOTLOADER_CONFIG;
+
             #[export_name = "_start"]
             pub extern "C" fn __impl_start(boot_info: &'static mut $crate::BootInfo) -> ! {
                 // validate the signature of the program entry point
                 let f: fn(&'static mut $crate::BootInfo) -> ! = $path;
 
                 // ensure that the config is used so that the linker keeps it
-                $crate::__force_use(&__BOOTLOADER_CONFIG);
+                $crate::__force_use(&__BOOTLOADER_CONFIG_REF);
 
                 f(boot_info)
             }
@@ -135,7 +139,7 @@ macro_rules! entry_point {
 }
 
 #[doc(hidden)]
-pub fn __force_use(slice: &[u8]) {
-    let force_use = slice.as_ptr() as usize;
+pub fn __force_use(slice: &&[u8; BootloaderConfig::SERIALIZED_LEN]) {
+    let force_use = slice as *const _ as usize;
     unsafe { core::arch::asm!("add {0}, 0", in(reg) force_use, options(nomem, nostack)) };
 }
