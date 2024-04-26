@@ -106,6 +106,7 @@ mod version_info {
 ///   `#[link_section = ".bootloader-config"]`, which instructs the Rust compiler to store it
 ///   in a special section of the resulting ELF executable. From there, the bootloader will
 ///   automatically read it when loading the kernel.
+#[cfg(target_arch = "x86_64")]
 #[macro_export]
 macro_rules! entry_point {
     ($path:path) => {
@@ -139,6 +140,7 @@ macro_rules! entry_point {
 }
 
 #[doc(hidden)]
+#[cfg(target_arch = "x86_64")]
 pub fn __force_use(slice: &&[u8; BootloaderConfig::SERIALIZED_LEN]) {
     let force_use = slice as *const _ as usize;
     unsafe { core::arch::asm!("add {0}, 0", in(reg) force_use, options(nomem, nostack)) };
