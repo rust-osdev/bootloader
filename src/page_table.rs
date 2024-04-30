@@ -17,7 +17,11 @@ pub struct MemoryInfo {
 
 #[derive(Debug)]
 pub enum MapKernelError {
-    Mapping(MapToError<Size4KiB>),
+    Mapping(
+        /// This field is never read, but still printed as part of the Debug output on error.
+        #[allow(dead_code)]
+        MapToError<Size4KiB>,
+    ),
     MultipleTlsSegments,
 }
 
