@@ -1,5 +1,7 @@
 # Unreleased
 
+- Fix warnings ([#436](https://github.com/rust-osdev/bootloader/pull/436) and [#437](https://github.com/rust-osdev/bootloader/pull/437))
+
 # 0.9.28 – 2024-02-28
 
 - Fix warnings: [Remove unused paging imports](https://github.com/rust-osdev/bootloader/pull/430)
