@@ -36,17 +36,16 @@ jobs:
 
     - name: "Install Rustup Components"
       run: rustup component add rust-src llvm-tools-preview
-    - name: "Install cargo-xbuild"
-      run: cargo install cargo-xbuild --debug
+
     - name: "Install cargo-binutils"
       run: cargo install cargo-binutils --version 0.1.7 --debug
 
-    - run: cargo xbuild
+    - run: cargo build -Zbuild-std=core
       working-directory: test-kernel
       name: 'Build Test Kernel'
 
     - name: 'Build Bootloader'
-      run: cargo xbuild --bin bootloader --features binary --release
+      run: cargo build -Zbuild-std=core --bin bootloader --features binary --release
       env:
         KERNEL: "test-kernel/target/x86_64-test-kernel/debug/test-kernel"
         KERNEL_MANIFEST: "test-kernel/Cargo.toml"
@@ -96,10 +95,8 @@ jobs:
     - uses: actions/checkout@v1
     - name: "Install Rustup Components"
       run: rustup component add rust-src llvm-tools-preview
-    - name: "Install cargo-xbuild"
-      run: cargo install cargo-xbuild --debug
     - name: 'Build Example Kernel'
-      run: cargo xbuild
+      run: cargo build -Zbuild-std=core
       working-directory: example-kernel
 
 
