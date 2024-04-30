@@ -108,28 +108,28 @@ Note that the addresses **must** be given as strings (in either hex or decimal f
 
 ## Requirements
 
-You need a nightly [Rust](https://www.rust-lang.org) compiler and [cargo xbuild](https://github.com/rust-osdev/cargo-xbuild). You also need the `llvm-tools-preview` component, which can be installed through `rustup component add llvm-tools-preview`.
+You need a nightly [Rust](https://www.rust-lang.org) compiler. You also need the `llvm-tools-preview` component, which can be installed through `rustup component add llvm-tools-preview`.
 
 ## Build
 
 The simplest way to use the bootloader is in combination with the [bootimage](https://github.com/rust-osdev/bootimage) tool. This crate **requires at least bootimage 0.7.7**. With the tool installed, you can add a normal cargo dependency on the `bootloader` crate to your kernel and then run `bootimage build` to create a bootable disk image. You can also execute `bootimage run` to run your kernel in [QEMU](https://www.qemu.org/) (needs to be installed).
 
-To compile the bootloader manually, you need to invoke `cargo xbuild` with two environment variables:
+To compile the bootloader manually, you need to invoke `cargo build -Zbuild-std=core` with two environment variables:
 * `KERNEL`: points to your kernel executable (in the ELF format)
 * `KERNEL_MANIFEST`: points to the `Cargo.toml` describing your kernel
 
 For example: 
 ```
-KERNEL=/path/to/your/kernel/target/debug/your_kernel KERNEL_MANIFEST=/path/to/your/kernel/Cargo.toml cargo xbuild
+KERNEL=/path/to/your/kernel/target/debug/your_kernel KERNEL_MANIFEST=/path/to/your/kernel/Cargo.toml cargo build -Zbuild-std=core
 ```
 
 As an example, you can build the bootloader with example kernel from the `example-kernel` directory with the following commands:
 
 ```
 cd example-kernel
-cargo xbuild
+cargo build -Zbuild-std=core
 cd ..
-KERNEL=example-kernel/target/x86_64-example-kernel/debug/example-kernel KERNEL_MANIFEST=example-kernel/Cargo.toml cargo xbuild --release --features binary
+KERNEL=example-kernel/target/x86_64-example-kernel/debug/example-kernel KERNEL_MANIFEST=example-kernel/Cargo.toml cargo build -Zbuild-std=core --release --features binary
 ```
 
 The `binary` feature is required to enable the dependencies required for compiling the bootloader executable. The command results in a bootloader executable at `target/x86_64-bootloader.json/release/bootloader`. This executable is still an ELF file, which can't be run directly.
