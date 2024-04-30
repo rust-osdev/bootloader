@@ -4,7 +4,7 @@ use bootloader_boot_config::BootConfig;
 
 use crate::DiskImageBuilder;
 
-/// Create disk images for booting on legacy BIOS systems.
+/// Create disk images for booting on UEFI systems.
 pub struct UefiBoot {
     image_builder: DiskImageBuilder,
 }
