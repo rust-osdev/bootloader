@@ -216,7 +216,7 @@ impl DiskImageBuilder {
 
         let out_file = NamedTempFile::new().context("failed to create temp file")?;
         fat::create_fat_filesystem(local_map, out_file.path())
-            .context("failed to create BIOS FAT filesystem")?;
+            .context("failed to create FAT filesystem")?;
 
         Ok(out_file)
     }
