@@ -241,8 +241,18 @@ where
         context_switch_function_start_frame,
         context_switch_function_start_frame + 1,
     ) {
+        let page = Page::containing_address(VirtAddr::new(frame.start_address().as_u64()));
         match unsafe {
-            kernel_page_table.identity_map(frame, PageTableFlags::PRESENT, frame_allocator)
+            // The parent table flags need to be both readable and writable to
+            // support recursive page tables.
+            // See https://github.com/rust-osdev/bootloader/issues/443#issuecomment-2130010621
+            kernel_page_table.map_to_with_table_flags(
+                page,
+                frame,
+                PageTableFlags::PRESENT,
+                PageTableFlags::PRESENT | PageTableFlags::WRITABLE,
+                frame_allocator,
+            )
         } {
             Ok(tlb) => tlb.flush(),
             Err(err) => panic!("failed to identity map frame {:?}: {:?}", frame, err),
@@ -254,8 +264,17 @@ where
         .allocate_frame()
         .expect("failed to allocate GDT frame");
     gdt::create_and_load(gdt_frame);
+    let gdt_page = Page::containing_address(VirtAddr::new(gdt_frame.start_address().as_u64()));
     match unsafe {
-        kernel_page_table.identity_map(gdt_frame, PageTableFlags::PRESENT, frame_allocator)
+        // The parent table flags need to be both readable and writable to
+        // support recursive page tables.
+        kernel_page_table.map_to_with_table_flags(
+            gdt_page,
+            gdt_frame,
+            PageTableFlags::PRESENT,
+            PageTableFlags::PRESENT | PageTableFlags::WRITABLE,
+            frame_allocator,
+        )
     } {
         Ok(tlb) => tlb.flush(),
         Err(err) => panic!("failed to identity map frame {:?}: {:?}", gdt_frame, err),

@@ -1,5 +1,7 @@
 # Unreleased
 
+* Fix bug leading to page table frames that are not mapped as writable
+
 # 0.11.7 – 2024-02-16
 
 * Set `NO_EXECUTE` flag for all writable memory regions by @phil-opp in https://github.com/rust-osdev/bootloader/pull/409

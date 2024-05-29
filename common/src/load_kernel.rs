@@ -185,8 +185,17 @@ where
             let offset = frame - start_frame;
             let page = start_page + offset;
             let flusher = unsafe {
+                // The parent table flags need to be both readable and writable to
+                // support recursive page tables.
+                // See https://github.com/rust-osdev/bootloader/issues/443#issuecomment-2130010621
                 self.page_table
-                    .map_to(page, frame, segment_flags, self.frame_allocator)
+                    .map_to_with_table_flags(
+                        page,
+                        frame,
+                        segment_flags,
+                        Flags::PRESENT | Flags::WRITABLE,
+                        self.frame_allocator,
+                    )
                     .map_err(|_err| "map_to failed")?
             };
             // we operate on an inactive page table, so there's no need to flush anything
@@ -280,8 +289,17 @@ where
 
             // map frame
             let flusher = unsafe {
+                // The parent table flags need to be both readable and writable to
+                // support recursive page tables.
+                // See https://github.com/rust-osdev/bootloader/issues/443#issuecomment-2130010621
                 self.page_table
-                    .map_to(page, frame, segment_flags, self.frame_allocator)
+                    .map_to_with_table_flags(
+                        page,
+                        frame,
+                        segment_flags,
+                        Flags::PRESENT | Flags::WRITABLE,
+                        self.frame_allocator,
+                    )
                     .map_err(|_err| "Failed to map new frame for bss memory")?
             };
             // we operate on an inactive page table, so we don't need to flush our changes
