@@ -28,7 +28,11 @@ pub struct LegacyFrameAllocator<I, D> {
     memory_map: I,
     current_descriptor: Option<D>,
     next_frame: PhysFrame,
+    min_frame: PhysFrame,
 }
+
+/// Start address of the first frame that is not part of the lower 1MB of frames
+const LOWER_MEMORY_END_PAGE: u64 = 0x100_000;
 
 impl<I, D> LegacyFrameAllocator<I, D>
 where
@@ -40,20 +44,26 @@ where
     /// Skips the frame at physical address zero to avoid potential problems. For example
     /// identity-mapping the frame at address zero is not valid in Rust, because Rust's `core`
     /// library assumes that references can never point to virtual address `0`.  
+    /// Also skips the lower 1MB of frames, there are use cases that require lower conventional memory access (Such as SMP SIPI).
     pub fn new(memory_map: I) -> Self {
         // skip frame 0 because the rust core library does not see 0 as a valid address
-        let start_frame = PhysFrame::containing_address(PhysAddr::new(0x1000));
+        // Also skip at least the lower 1MB of frames, there are use cases that require lower conventional memory access (Such as SMP SIPI).
+        let start_frame = PhysFrame::containing_address(PhysAddr::new(LOWER_MEMORY_END_PAGE));
         Self::new_starting_at(start_frame, memory_map)
     }
 
     /// Creates a new frame allocator based on the given legacy memory regions. Skips any frames
-    /// before the given `frame`.
+    /// before the given `frame` or `0x10000`(1MB) whichever is higher, there are use cases that require
+    /// lower conventional memory access (Such as SMP SIPI).
     pub fn new_starting_at(frame: PhysFrame, memory_map: I) -> Self {
+        let lower_mem_end = PhysFrame::containing_address(PhysAddr::new(LOWER_MEMORY_END_PAGE));
+        let frame = core::cmp::max(frame, lower_mem_end);
         Self {
             original: memory_map.clone(),
             memory_map,
             current_descriptor: None,
             next_frame: frame,
+            min_frame: frame,
         }
     }
 
@@ -71,6 +81,7 @@ where
         if self.next_frame <= end_frame {
             let ret = self.next_frame;
             self.next_frame += 1;
+
             Some(ret)
         } else {
             None
@@ -125,14 +136,44 @@ where
             let next_free = self.next_frame.start_address();
             let kind = match descriptor.kind() {
                 MemoryRegionKind::Usable => {
-                    if end <= next_free {
+                    if end <= next_free && start >= self.min_frame.start_address() {
                         MemoryRegionKind::Bootloader
                     } else if descriptor.start() >= next_free {
                         MemoryRegionKind::Usable
-                    } else {
+                    } else if end <= self.min_frame.start_address() {
+                        // treat regions before min_frame as usable
+                        // this allows for access to the lower 1MB of frames
+                        MemoryRegionKind::Usable
+                    } else if end <= next_free {
                         // part of the region is used -> add it separately
-                        let used_region = MemoryRegion {
+                        // first part of the region is in lower 1MB, later part is used
+                        let free_region = MemoryRegion {
                             start: descriptor.start().as_u64(),
+                            end: self.min_frame.start_address().as_u64(),
+                            kind: MemoryRegionKind::Usable,
+                        };
+                        Self::add_region(free_region, regions, &mut next_index);
+
+                        // add bootloader part normally
+                        start = self.min_frame.start_address();
+                        MemoryRegionKind::Bootloader
+                    } else {
+                        if start < self.min_frame.start_address() {
+                            // part of the region is in lower memory
+                            let lower_region = MemoryRegion {
+                                start: start.as_u64(),
+                                end: self.min_frame.start_address().as_u64(),
+                                kind: MemoryRegionKind::Usable,
+                            };
+                            Self::add_region(lower_region, regions, &mut next_index);
+
+                            start = self.min_frame.start_address();
+                        }
+
+                        // part of the region is used -> add it separately
+                        // first part of the region is used, later part is free
+                        let used_region = MemoryRegion {
+                            start: start.as_u64(),
                             end: next_free.as_u64(),
                             kind: MemoryRegionKind::Bootloader,
                         };

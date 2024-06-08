@@ -26,6 +26,7 @@ members = [
     "tests/test_kernels/lto",
     "tests/test_kernels/ramdisk",
     "tests/test_kernels/min_stack",
+    "tests/test_kernels/lower_memory_free",
 ]
 exclude = ["examples/basic", "examples/test_framework"]
 
@@ -67,6 +68,7 @@ test_kernel_pie = { path = "tests/test_kernels/pie", artifact = "bin", target = 
 test_kernel_ramdisk = { path = "tests/test_kernels/ramdisk", artifact = "bin", target = "x86_64-unknown-none" }
 test_kernel_config_file = { path = "tests/test_kernels/config_file", artifact = "bin", target = "x86_64-unknown-none" }
 test_kernel_min_stack = { path = "tests/test_kernels/min_stack", artifact = "bin", target = "x86_64-unknown-none" }
+test_kernel_lower_memory_free = { path = "tests/test_kernels/lower_memory_free", artifact = "bin", target = "x86_64-unknown-none" }
 
 [profile.dev]
 panic = "abort"
