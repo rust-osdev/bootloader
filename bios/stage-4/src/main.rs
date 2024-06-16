@@ -4,7 +4,8 @@
 use crate::memory_descriptor::MemoryRegion;
 use bootloader_api::info::{FrameBufferInfo, PixelFormat};
 use bootloader_boot_config::{BootConfig, LevelFilter};
-use bootloader_x86_64_bios_common::{BiosFramebufferInfo, BiosInfo, E820MemoryRegion};
+use bootloader_x86_64_bios_common::{BiosFramebufferInfo, BiosInfo, E820MemoryRegion, Region};
+use bootloader_x86_64_common::legacy_memory_region::UsedMemorySlice;
 use bootloader_x86_64_common::RawFrameBufferInfo;
 use bootloader_x86_64_common::{
     legacy_memory_region::LegacyFrameAllocator, load_and_switch_to_kernel, Kernel, PageTables,
@@ -55,9 +56,10 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
     };
     let kernel_size = info.kernel.len;
     let next_free_frame = PhysFrame::containing_address(PhysAddr::new(info.last_used_addr)) + 1;
-    let mut frame_allocator = LegacyFrameAllocator::new_starting_at(
+    let mut frame_allocator = LegacyFrameAllocator::new_with_used_slices(
         next_free_frame,
         memory_map.iter().copied().map(MemoryRegion),
+        used_memory_slices(info),
     );
 
     // We identity-mapped all memory, so the offset between physical and virtual addresses is 0
@@ -214,6 +216,17 @@ fn init_logger(
     );
 
     framebuffer_info
+}
+
+fn used_memory_slices(info: &BiosInfo) -> impl Iterator<Item = UsedMemorySlice> + Clone {
+    // skip kernel and ramdisk because they are handled individually by the
+    // uefi/bios common code
+    [info.stage_3, info.stage_4, info.config_file]
+        .into_iter()
+        .map(|region| UsedMemorySlice {
+            start: PhysAddr::new(region.start).as_u64(),
+            len: region.len,
+        })
 }
 
 /// Creates page table abstraction types for both the bootloader and kernel page tables.

@@ -1,9 +1,22 @@
 use bootloader_api::info::{MemoryRegion, MemoryRegionKind};
-use core::mem::MaybeUninit;
+use core::{
+    iter::{empty, Empty},
+    mem::MaybeUninit,
+};
 use x86_64::{
     structures::paging::{FrameAllocator, PhysFrame, Size4KiB},
     PhysAddr,
 };
+
+/// A slice of memory that is used by the bootloader and needs to be reserved
+/// in the kernel
+#[derive(Clone, Copy, Debug)]
+pub struct UsedMemorySlice {
+    /// the physical start of the slice
+    pub start: u64,
+    /// the length of the slice
+    pub len: u64,
+}
 
 /// Abstraction trait for a memory region returned by the UEFI or BIOS firmware.
 pub trait LegacyMemoryRegion: Copy + core::fmt::Debug {
@@ -23,18 +36,19 @@ pub trait LegacyMemoryRegion: Copy + core::fmt::Debug {
 }
 
 /// A physical frame allocator based on a BIOS or UEFI provided memory map.
-pub struct LegacyFrameAllocator<I, D> {
+pub struct LegacyFrameAllocator<I, D, S> {
     original: I,
     memory_map: I,
     current_descriptor: Option<D>,
     next_frame: PhysFrame,
     min_frame: PhysFrame,
+    used_slices: S,
 }
 
 /// Start address of the first frame that is not part of the lower 1MB of frames
 const LOWER_MEMORY_END_PAGE: u64 = 0x100_000;
 
-impl<I, D> LegacyFrameAllocator<I, D>
+impl<I, D> LegacyFrameAllocator<I, D, Empty<UsedMemorySlice>>
 where
     I: ExactSizeIterator<Item = D> + Clone,
     I::Item: LegacyMemoryRegion,
@@ -56,14 +70,28 @@ where
     /// before the given `frame` or `0x10000`(1MB) whichever is higher, there are use cases that require
     /// lower conventional memory access (Such as SMP SIPI).
     pub fn new_starting_at(frame: PhysFrame, memory_map: I) -> Self {
+        Self::new_with_used_slices(frame, memory_map, empty())
+    }
+}
+
+impl<I, D, S> LegacyFrameAllocator<I, D, S>
+where
+    I: ExactSizeIterator<Item = D> + Clone,
+    I::Item: LegacyMemoryRegion,
+    S: Iterator<Item = UsedMemorySlice> + Clone,
+{
+    pub fn new_with_used_slices(start_frame: PhysFrame, memory_map: I, used_slices: S) -> Self {
+        // skip frame 0 because the rust core library does not see 0 as a valid address
+        // Also skip at least the lower 1MB of frames, there are use cases that require lower conventional memory access (Such as SMP SIPI).
         let lower_mem_end = PhysFrame::containing_address(PhysAddr::new(LOWER_MEMORY_END_PAGE));
-        let frame = core::cmp::max(frame, lower_mem_end);
+        let frame = core::cmp::max(start_frame, lower_mem_end);
         Self {
             original: memory_map.clone(),
             memory_map,
             current_descriptor: None,
             next_frame: frame,
             min_frame: frame,
+            used_slices,
         }
     }
 
@@ -126,64 +154,19 @@ where
         ramdisk_slice_start: Option<PhysAddr>,
         ramdisk_slice_len: u64,
     ) -> &mut [MemoryRegion] {
+        let used_slices = Self::used_regions_iter(
+            self.min_frame,
+            self.next_frame,
+            kernel_slice_start,
+            kernel_slice_len,
+            ramdisk_slice_start,
+            ramdisk_slice_len,
+            self.used_slices,
+        );
+
         let mut next_index = 0;
-        let kernel_slice_start = kernel_slice_start.as_u64();
-        let ramdisk_slice_start = ramdisk_slice_start.map(|a| a.as_u64());
-
         for descriptor in self.original {
-            let mut start = descriptor.start();
-            let end = start + descriptor.len();
-            let next_free = self.next_frame.start_address();
             let kind = match descriptor.kind() {
-                MemoryRegionKind::Usable => {
-                    if end <= next_free && start >= self.min_frame.start_address() {
-                        MemoryRegionKind::Bootloader
-                    } else if descriptor.start() >= next_free {
-                        MemoryRegionKind::Usable
-                    } else if end <= self.min_frame.start_address() {
-                        // treat regions before min_frame as usable
-                        // this allows for access to the lower 1MB of frames
-                        MemoryRegionKind::Usable
-                    } else if end <= next_free {
-                        // part of the region is used -> add it separately
-                        // first part of the region is in lower 1MB, later part is used
-                        let free_region = MemoryRegion {
-                            start: descriptor.start().as_u64(),
-                            end: self.min_frame.start_address().as_u64(),
-                            kind: MemoryRegionKind::Usable,
-                        };
-                        Self::add_region(free_region, regions, &mut next_index);
-
-                        // add bootloader part normally
-                        start = self.min_frame.start_address();
-                        MemoryRegionKind::Bootloader
-                    } else {
-                        if start < self.min_frame.start_address() {
-                            // part of the region is in lower memory
-                            let lower_region = MemoryRegion {
-                                start: start.as_u64(),
-                                end: self.min_frame.start_address().as_u64(),
-                                kind: MemoryRegionKind::Usable,
-                            };
-                            Self::add_region(lower_region, regions, &mut next_index);
-
-                            start = self.min_frame.start_address();
-                        }
-
-                        // part of the region is used -> add it separately
-                        // first part of the region is used, later part is free
-                        let used_region = MemoryRegion {
-                            start: start.as_u64(),
-                            end: next_free.as_u64(),
-                            kind: MemoryRegionKind::Bootloader,
-                        };
-                        Self::add_region(used_region, regions, &mut next_index);
-
-                        // add unused part normally
-                        start = next_free;
-                        MemoryRegionKind::Usable
-                    }
-                }
                 _ if descriptor.usable_after_bootloader_exit() => {
                     // Region was not usable before, but it will be as soon as
                     // the bootloader passes control to the kernel. We don't
@@ -195,97 +178,15 @@ where
                 other => other,
             };
 
+            let end = descriptor.start() + descriptor.len();
             let region = MemoryRegion {
-                start: start.as_u64(),
+                start: descriptor.start().as_u64(),
                 end: end.as_u64(),
                 kind,
             };
-
-            // check if region overlaps with kernel or ramdisk
-            let kernel_slice_end = kernel_slice_start + kernel_slice_len;
-            let ramdisk_slice_end = ramdisk_slice_start.map(|s| s + ramdisk_slice_len);
-            if region.kind == MemoryRegionKind::Usable
-                && kernel_slice_start < region.end
-                && kernel_slice_end > region.start
-            {
-                // region overlaps with kernel -> we might need to split it
-
-                // ensure that the kernel allocation does not span multiple regions
-                assert!(
-                    kernel_slice_start >= region.start,
-                    "region overlaps with kernel, but kernel begins before region \
-                    (kernel_slice_start: {kernel_slice_start:#x}, region_start: {:#x})",
-                    region.start
-                );
-                assert!(
-                    kernel_slice_end <= region.end,
-                    "region overlaps with kernel, but region ends before kernel \
-                    (kernel_slice_end: {kernel_slice_end:#x}, region_end: {:#x})",
-                    region.end,
-                );
-
-                // split the region into three parts
-                let before_kernel = MemoryRegion {
-                    end: kernel_slice_start,
-                    ..region
-                };
-                let kernel = MemoryRegion {
-                    start: kernel_slice_start,
-                    end: kernel_slice_end,
-                    kind: MemoryRegionKind::Bootloader,
-                };
-                let after_kernel = MemoryRegion {
-                    start: kernel_slice_end,
-                    ..region
-                };
-
-                // add the three regions (empty regions are ignored in `add_region`)
-                Self::add_region(before_kernel, regions, &mut next_index);
-                Self::add_region(kernel, regions, &mut next_index);
-                Self::add_region(after_kernel, regions, &mut next_index);
-            } else if region.kind == MemoryRegionKind::Usable
-                && ramdisk_slice_start.map(|s| s < region.end).unwrap_or(false)
-                && ramdisk_slice_end.map(|e| e > region.start).unwrap_or(false)
-            {
-                // region overlaps with ramdisk -> we might need to split it
-                let ramdisk_slice_start = ramdisk_slice_start.unwrap();
-                let ramdisk_slice_end = ramdisk_slice_end.unwrap();
-
-                // ensure that the ramdisk allocation does not span multiple regions
-                assert!(
-                    ramdisk_slice_start >= region.start,
-                    "region overlaps with ramdisk, but ramdisk begins before region \
-                (ramdisk_start: {ramdisk_slice_start:#x}, region_start: {:#x})",
-                    region.start
-                );
-                assert!(
-                    ramdisk_slice_end <= region.end,
-                    "region overlaps with ramdisk, but region ends before ramdisk \
-                (ramdisk_end: {ramdisk_slice_end:#x}, region_end: {:#x})",
-                    region.end,
-                );
-
-                // split the region into three parts
-                let before_ramdisk = MemoryRegion {
-                    end: ramdisk_slice_start,
-                    ..region
-                };
-                let ramdisk = MemoryRegion {
-                    start: ramdisk_slice_start,
-                    end: ramdisk_slice_end,
-                    kind: MemoryRegionKind::Bootloader,
-                };
-                let after_ramdisk = MemoryRegion {
-                    start: ramdisk_slice_end,
-                    ..region
-                };
-
-                // add the three regions (empty regions are ignored in `add_region`)
-                Self::add_region(before_ramdisk, regions, &mut next_index);
-                Self::add_region(ramdisk, regions, &mut next_index);
-                Self::add_region(after_ramdisk, regions, &mut next_index);
+            if region.kind == MemoryRegionKind::Usable {
+                Self::split_and_add_region(region, regions, &mut next_index, used_slices.clone());
             } else {
-                // add the region normally
                 Self::add_region(region, regions, &mut next_index);
             }
         }
@@ -296,6 +197,125 @@ where
             // TODO: undo inlining when `slice_assume_init_mut` becomes stable
             &mut *(initialized as *mut [_] as *mut [_])
         }
+    }
+
+    fn used_regions_iter(
+        min_frame: PhysFrame,
+        next_free: PhysFrame,
+        kernel_slice_start: PhysAddr,
+        kernel_slice_len: u64,
+        ramdisk_slice_start: Option<PhysAddr>,
+        ramdisk_slice_len: u64,
+        used_slices: S,
+    ) -> impl Iterator<Item = UsedMemorySlice> + Clone {
+        BootloaderUsedMemorySliceIter {
+            bootloader: UsedMemorySlice {
+                start: min_frame.start_address().as_u64(),
+                // TODO: unit test that this is not an off by 1
+                len: next_free.start_address() - min_frame.start_address(),
+            },
+            kernel: UsedMemorySlice {
+                start: kernel_slice_start.as_u64(),
+                len: kernel_slice_len,
+            },
+            ramdisk: ramdisk_slice_start.map(|start| UsedMemorySlice {
+                start: start.as_u64(),
+                len: ramdisk_slice_len,
+            }),
+            state: KernelRamIterState::Bootloader,
+        }
+        .chain(used_slices)
+    }
+
+    // TODO unit test
+    fn split_and_add_region<'a, U>(
+        region: MemoryRegion,
+        regions: &mut [MaybeUninit<MemoryRegion>],
+        next_index: &mut usize,
+        used_slices: U,
+    ) where
+        U: Iterator<Item = UsedMemorySlice> + Clone,
+    {
+        assert!(region.kind == MemoryRegionKind::Usable);
+        if region.start == region.end {
+            // skip zero sized regions
+            return;
+        }
+
+        for slice in used_slices.clone() {
+            let slice_end = slice.start + slice.len;
+            if region.end <= slice.start || region.start >= slice_end {
+                // region and slice don't overlap
+                continue;
+            }
+
+            if region.start >= slice.start && region.end <= slice_end {
+                // region is completly covered by slice
+                let bootloader = MemoryRegion {
+                    start: region.start,
+                    end: region.end,
+                    kind: MemoryRegionKind::Bootloader,
+                };
+                Self::add_region(bootloader, regions, next_index);
+                return;
+            }
+            if region.start < slice.start && region.end <= slice_end {
+                // there is a usable region before the bootloader slice
+                let before = MemoryRegion {
+                    start: region.start,
+                    end: slice.start,
+                    kind: MemoryRegionKind::Usable,
+                };
+
+                let bootloader = MemoryRegion {
+                    start: slice.start,
+                    end: region.end,
+                    kind: MemoryRegionKind::Bootloader,
+                };
+                Self::split_and_add_region(before, regions, next_index, used_slices);
+                Self::add_region(bootloader, regions, next_index);
+                return;
+            } else if region.start < slice.start && region.end > slice_end {
+                // there is usable region before and after the bootloader slice
+                let before = MemoryRegion {
+                    start: region.start,
+                    end: slice.start,
+                    kind: MemoryRegionKind::Usable,
+                };
+                let bootloader = MemoryRegion {
+                    start: slice.start,
+                    end: slice_end,
+                    kind: MemoryRegionKind::Bootloader,
+                };
+                let after = MemoryRegion {
+                    start: slice_end,
+                    end: region.end,
+                    kind: MemoryRegionKind::Usable,
+                };
+                Self::split_and_add_region(before, regions, next_index, used_slices.clone());
+                Self::add_region(bootloader, regions, next_index);
+                Self::split_and_add_region(after, regions, next_index, used_slices.clone());
+                return;
+            }
+            if region.start >= slice.start && region.end > slice_end {
+                // there is a usable region after the bootloader slice
+                let bootloader = MemoryRegion {
+                    start: region.start,
+                    end: slice_end,
+                    kind: MemoryRegionKind::Bootloader,
+                };
+                let after = MemoryRegion {
+                    start: slice_end,
+                    end: region.end,
+                    kind: MemoryRegionKind::Usable,
+                };
+                Self::add_region(bootloader, regions, next_index);
+                Self::split_and_add_region(after, regions, next_index, used_slices);
+                return;
+            }
+        }
+        // region is not coverd by any slice
+        Self::add_region(region, regions, next_index);
     }
 
     fn add_region(
@@ -318,10 +338,11 @@ where
     }
 }
 
-unsafe impl<I, D> FrameAllocator<Size4KiB> for LegacyFrameAllocator<I, D>
+unsafe impl<I, D, S> FrameAllocator<Size4KiB> for LegacyFrameAllocator<I, D, S>
 where
     I: ExactSizeIterator<Item = D> + Clone,
     I::Item: LegacyMemoryRegion,
+    S: Iterator<Item = UsedMemorySlice> + Clone,
 {
     fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KiB>> {
         if let Some(current_descriptor) = self.current_descriptor {
@@ -345,5 +366,43 @@ where
         }
 
         None
+    }
+}
+
+#[derive(Clone)]
+struct BootloaderUsedMemorySliceIter {
+    bootloader: UsedMemorySlice,
+    kernel: UsedMemorySlice,
+    ramdisk: Option<UsedMemorySlice>,
+    state: KernelRamIterState,
+}
+
+#[derive(Clone)]
+enum KernelRamIterState {
+    Bootloader,
+    Kernel,
+    Ramdisk,
+    Done,
+}
+
+impl Iterator for BootloaderUsedMemorySliceIter {
+    type Item = UsedMemorySlice;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.state {
+            KernelRamIterState::Bootloader => {
+                self.state = KernelRamIterState::Kernel;
+                Some(self.bootloader)
+            }
+            KernelRamIterState::Kernel => {
+                self.state = KernelRamIterState::Ramdisk;
+                Some(self.kernel)
+            }
+            KernelRamIterState::Ramdisk => {
+                self.state = KernelRamIterState::Done;
+                self.ramdisk
+            }
+            KernelRamIterState::Done => None,
+        }
     }
 }
