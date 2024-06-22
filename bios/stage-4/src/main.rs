@@ -224,8 +224,8 @@ fn used_memory_slices(info: &BiosInfo) -> impl Iterator<Item = UsedMemorySlice> 
     [info.stage_3, info.stage_4, info.config_file]
         .into_iter()
         .map(|region| UsedMemorySlice {
-            start: PhysAddr::new(region.start).as_u64(),
-            len: region.len,
+            start: region.start,
+            end: region.start + region.len,
         })
 }
 

@@ -14,8 +14,8 @@ use x86_64::{
 pub struct UsedMemorySlice {
     /// the physical start of the slice
     pub start: u64,
-    /// the length of the slice
-    pub len: u64,
+    /// The physical end address (exclusive) of the region.
+    pub end: u64,
 }
 
 /// Abstraction trait for a memory region returned by the UEFI or BIOS firmware.
@@ -46,7 +46,7 @@ pub struct LegacyFrameAllocator<I, D, S> {
 }
 
 /// Start address of the first frame that is not part of the lower 1MB of frames
-const LOWER_MEMORY_END_PAGE: u64 = 0x100_000;
+const LOWER_MEMORY_END_PAGE: u64 = 0x10_0000;
 
 impl<I, D> LegacyFrameAllocator<I, D, Empty<UsedMemorySlice>>
 where
@@ -212,15 +212,15 @@ where
             bootloader: UsedMemorySlice {
                 start: min_frame.start_address().as_u64(),
                 // TODO: unit test that this is not an off by 1
-                len: next_free.start_address() - min_frame.start_address(),
+                end: next_free.start_address() - min_frame.start_address(),
             },
             kernel: UsedMemorySlice {
                 start: kernel_slice_start.as_u64(),
-                len: kernel_slice_len,
+                end: kernel_slice_len,
             },
             ramdisk: ramdisk_slice_start.map(|start| UsedMemorySlice {
                 start: start.as_u64(),
-                len: ramdisk_slice_len,
+                end: ramdisk_slice_len,
             }),
             state: KernelRamIterState::Bootloader,
         }
@@ -243,7 +243,7 @@ where
         }
 
         for slice in used_slices.clone() {
-            let slice_end = slice.start + slice.len;
+            let slice_end = slice.start + slice.end;
             if region.end <= slice.start || region.start >= slice_end {
                 // region and slice don't overlap
                 continue;
