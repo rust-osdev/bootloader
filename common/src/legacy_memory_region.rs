@@ -343,3 +343,249 @@ where
         None
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bootloader_api::info::MemoryRegionKind;
+
+    #[derive(Copy, Clone, Debug)]
+    struct TestMemoryRegion {
+        start: PhysAddr,
+        len: u64,
+        kind: MemoryRegionKind,
+    }
+
+    impl LegacyMemoryRegion for TestMemoryRegion {
+        fn start(&self) -> PhysAddr {
+            self.start
+        }
+
+        fn len(&self) -> u64 {
+            assert!(self.len % 4096 == 0);
+            self.len
+        }
+
+        fn kind(&self) -> MemoryRegionKind {
+            self.kind
+        }
+
+        fn usable_after_bootloader_exit(&self) -> bool {
+            match self.kind {
+                MemoryRegionKind::Usable => true,
+                _ => false,
+            }
+        }
+    }
+
+    // we need some kind of max phys memory, 4GB seems reasonable
+    const MAX_PHYS_ADDR: u64 = 0x4000_0000;
+
+    fn create_single_test_region() -> Vec<TestMemoryRegion> {
+        vec![TestMemoryRegion {
+            start: PhysAddr::new(0),
+            len: MAX_PHYS_ADDR,
+            kind: MemoryRegionKind::Usable,
+        }]
+    }
+
+    #[test]
+    fn test_kernel_and_ram_in_same_region() {
+        let regions = create_single_test_region();
+        let mut allocator = LegacyFrameAllocator::new(regions.into_iter());
+        // allocate at least 1 frame
+        allocator.allocate_frame();
+
+        let mut regions = [MaybeUninit::uninit(); 10];
+        let kernel_slice_start = PhysAddr::new(0x50000);
+        let kernel_slice_len = 0x1000;
+        let ramdisk_slice_start = Some(PhysAddr::new(0x60000));
+        let ramdisk_slice_len = 0x2000;
+
+        let kernel_regions = allocator.construct_memory_map(
+            &mut regions,
+            kernel_slice_start,
+            kernel_slice_len,
+            ramdisk_slice_start,
+            ramdisk_slice_len,
+        );
+        let mut kernel_regions = kernel_regions.iter();
+        // usable memory before the kernel
+        assert_eq!(
+            kernel_regions.next(),
+            Some(&MemoryRegion {
+                start: 0x0000,
+                end: 0x50000,
+                kind: MemoryRegionKind::Usable
+            })
+        );
+        // kernel
+        assert_eq!(
+            kernel_regions.next(),
+            Some(&MemoryRegion {
+                start: 0x50000,
+                end: 0x51000,
+                kind: MemoryRegionKind::Bootloader
+            })
+        );
+        // usabel memory between kernel and ramdisk
+        assert_eq!(
+            kernel_regions.next(),
+            Some(&MemoryRegion {
+                start: 0x51000,
+                end: 0x60000,
+                kind: MemoryRegionKind::Usable
+            })
+        );
+        // ramdisk
+        assert_eq!(
+            kernel_regions.next(),
+            Some(&MemoryRegion {
+                start: 0x60000,
+                end: 0x62000,
+                kind: MemoryRegionKind::Bootloader
+            })
+        );
+        // usabele memory after ramdisk, up until bootloader allocated memory
+        assert_eq!(
+            kernel_regions.next(),
+            Some(&MemoryRegion {
+                start: 0x62000,
+                end: 0x10_0000,
+                kind: MemoryRegionKind::Usable
+            })
+        );
+        // bootloader allocated memory
+        assert_eq!(
+            kernel_regions.next(),
+            Some(&MemoryRegion {
+                start: 0x10_0000,
+                end: 0x10_1000,
+                kind: MemoryRegionKind::Bootloader
+            })
+        );
+        // rest is free
+        assert_eq!(
+            kernel_regions.next(),
+            Some(&MemoryRegion {
+                start: 0x10_1000,
+                end: MAX_PHYS_ADDR,
+                kind: MemoryRegionKind::Usable
+            })
+        );
+        assert_eq!(kernel_regions.next(), None);
+    }
+
+    #[test]
+    fn test_multiple_regions() {
+        let regions = vec![
+            TestMemoryRegion {
+                start: PhysAddr::new(0),
+                len: 0x10_0000,
+                kind: MemoryRegionKind::Usable,
+            },
+            TestMemoryRegion {
+                start: PhysAddr::new(0x10_0000),
+                len: 0x5000,
+                kind: MemoryRegionKind::UnknownBios(0),
+            },
+            TestMemoryRegion {
+                start: PhysAddr::new(0x10_5000),
+                len: MAX_PHYS_ADDR - 0x10_5000,
+                kind: MemoryRegionKind::Usable,
+            },
+        ];
+        let mut allocator = LegacyFrameAllocator::new(regions.into_iter());
+        // allocate at least 1 frame
+        allocator.allocate_frame();
+
+        let mut regions = [MaybeUninit::uninit(); 10];
+        let kernel_slice_start = PhysAddr::new(0x50000);
+        let kernel_slice_len = 0x1000;
+        let ramdisk_slice_start = Some(PhysAddr::new(0x60000));
+        let ramdisk_slice_len = 0x2000;
+
+        let kernel_regions = allocator.construct_memory_map(
+            &mut regions,
+            kernel_slice_start,
+            kernel_slice_len,
+            ramdisk_slice_start,
+            ramdisk_slice_len,
+        );
+        let mut kernel_regions = kernel_regions.iter();
+
+        // usable memory before the kernel
+        assert_eq!(
+            kernel_regions.next(),
+            Some(&MemoryRegion {
+                start: 0x0000,
+                end: 0x50000,
+                kind: MemoryRegionKind::Usable
+            })
+        );
+        // kernel
+        assert_eq!(
+            kernel_regions.next(),
+            Some(&MemoryRegion {
+                start: 0x50000,
+                end: 0x51000,
+                kind: MemoryRegionKind::Bootloader
+            })
+        );
+        // usabel memory between kernel and ramdisk
+        assert_eq!(
+            kernel_regions.next(),
+            Some(&MemoryRegion {
+                start: 0x51000,
+                end: 0x60000,
+                kind: MemoryRegionKind::Usable
+            })
+        );
+        // ramdisk
+        assert_eq!(
+            kernel_regions.next(),
+            Some(&MemoryRegion {
+                start: 0x60000,
+                end: 0x62000,
+                kind: MemoryRegionKind::Bootloader
+            })
+        );
+        // usabele memory after ramdisk, up until bootloader allocated memory
+        assert_eq!(
+            kernel_regions.next(),
+            Some(&MemoryRegion {
+                start: 0x62000,
+                end: 0x10_0000,
+                kind: MemoryRegionKind::Usable
+            })
+        );
+        // the unknown bios region
+        assert_eq!(
+            kernel_regions.next(),
+            Some(&MemoryRegion {
+                start: 0x10_0000,
+                end: 0x10_5000,
+                kind: MemoryRegionKind::UnknownBios(0)
+            })
+        );
+        // bootloader allocated memory, this gets pushed back by the bios region
+        assert_eq!(
+            kernel_regions.next(),
+            Some(&MemoryRegion {
+                start: 0x10_5000,
+                end: 0x10_6000,
+                kind: MemoryRegionKind::Bootloader
+            })
+        );
+        // rest is free
+        assert_eq!(
+            kernel_regions.next(),
+            Some(&MemoryRegion {
+                start: 0x10_6000,
+                end: MAX_PHYS_ADDR,
+                kind: MemoryRegionKind::Usable
+            })
+        );
+        assert_eq!(kernel_regions.next(), None);
+    }
+}

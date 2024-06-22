@@ -1,4 +1,4 @@
-#![no_std]
+#![cfg_attr(not(test), no_std)]
 #![feature(step_trait)]
 #![deny(unsafe_op_in_unsafe_fn)]
 
