@@ -7,7 +7,6 @@ use bootloader_api::{
 use test_kernel_lower_memory_free::{exit_qemu, QemuExitCode};
 
 const LOWER_MEMORY_END_PAGE: u64 = 0x0010_0000;
-const WRITE_TEST_UNTIL: u64 = 0x4000_0000;
 
 pub const BOOTLOADER_CONFIG: BootloaderConfig = {
     let mut config = BootloaderConfig::new_default();
@@ -20,8 +19,6 @@ entry_point!(kernel_main, config = &BOOTLOADER_CONFIG);
 fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     use core::fmt::Write;
     use test_kernel_lower_memory_free::serial;
-
-    let phys_mem_offset = boot_info.physical_memory_offset.into_option().unwrap();
 
     let mut count = 0;
     for region in boot_info.memory_regions.iter() {
@@ -37,15 +34,6 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
             let end = core::cmp::min(region.end, LOWER_MEMORY_END_PAGE);
             let pages = (end - region.start) / 4096;
             count += pages;
-        }
-        if region.kind == MemoryRegionKind::Usable && region.start < WRITE_TEST_UNTIL {
-            let end = core::cmp::min(region.end, WRITE_TEST_UNTIL);
-            // ensure region is actually writable
-            let addr = phys_mem_offset + region.start;
-            let size = end - region.start;
-            unsafe {
-                core::ptr::write_bytes(addr as *mut u8, 0xff, size as usize);
-            }
         }
     }
 

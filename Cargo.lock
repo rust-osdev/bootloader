@@ -177,6 +177,7 @@ dependencies = [
  "test_kernel_min_stack",
  "test_kernel_pie",
  "test_kernel_ramdisk",
+ "test_kernel_write_usable_memory",
 ]
 
 [[package]]
@@ -1126,6 +1127,15 @@ dependencies = [
 
 [[package]]
 name = "test_kernel_ramdisk"
+version = "0.1.0"
+dependencies = [
+ "bootloader_api",
+ "uart_16550",
+ "x86_64",
+]
+
+[[package]]
+name = "test_kernel_write_usable_memory"
 version = "0.1.0"
 dependencies = [
  "bootloader_api",
