@@ -390,6 +390,33 @@ mod tests {
     }
 
     #[test]
+    fn test_all_regions_frame_alligned() {
+        let regions = create_single_test_region();
+        let mut allocator = LegacyFrameAllocator::new(regions.into_iter());
+        // allocate at least 1 frame
+        allocator.allocate_frame();
+
+        let mut regions = [MaybeUninit::uninit(); 10];
+        let kernel_slice_start = PhysAddr::new(0x50000);
+        let kernel_slice_len = 0x0500;
+        let ramdisk_slice_start = None;
+        let ramdisk_slice_len = 0;
+
+        let kernel_regions = allocator.construct_memory_map(
+            &mut regions,
+            kernel_slice_start,
+            kernel_slice_len,
+            ramdisk_slice_start,
+            ramdisk_slice_len,
+        );
+
+        for region in kernel_regions.iter() {
+            assert!(region.start % 0x1000 == 0);
+            assert!(region.end % 0x1000 == 0);
+        }
+    }
+
+    #[test]
     fn test_kernel_and_ram_in_same_region() {
         let regions = create_single_test_region();
         let mut allocator = LegacyFrameAllocator::new(regions.into_iter());
