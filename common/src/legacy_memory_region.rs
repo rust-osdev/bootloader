@@ -1,5 +1,6 @@
 use bootloader_api::info::{MemoryRegion, MemoryRegionKind};
 use core::{
+    cmp,
     iter::{empty, Empty},
     mem::MaybeUninit,
 };
@@ -235,7 +236,7 @@ where
 
     // TODO unit test
     fn split_and_add_region<'a, U>(
-        region: MemoryRegion,
+        mut region: MemoryRegion,
         regions: &mut [MaybeUninit<MemoryRegion>],
         next_index: &mut usize,
         used_slices: U,
@@ -243,85 +244,53 @@ where
         U: Iterator<Item = UsedMemorySlice> + Clone,
     {
         assert!(region.kind == MemoryRegionKind::Usable);
-        if region.start == region.end {
-            // skip zero sized regions
-            return;
-        }
-
-        for slice in used_slices.clone() {
-            let slice_end = slice.start + slice.end;
-            if region.end <= slice.start || region.start >= slice_end {
-                // region and slice don't overlap
-                continue;
-            }
-
-            if region.start >= slice.start && region.end <= slice_end {
-                // region is completly covered by slice
-                let bootloader = MemoryRegion {
+        // Each loop iteration takes a chunk of `region` and adds it to
+        // `regions`. Do this until `region` is empty.
+        while region.start != region.end {
+            // Check if there is overlap between `region` and `used_slices`.
+            if let Some((overlap_start, overlap_end)) = used_slices
+                .clone()
+                .map(|slice| {
+                    // Calculate the start and end points of the overlap
+                    // between `slice` and `region`. If `slice` and `region`
+                    // don't overlap, the range will be ill-formed
+                    // (overlap_start > overlap_end).
+                    let overlap_start = cmp::max(region.start, slice.start);
+                    let overlap_end = cmp::min(region.end, slice.end);
+                    (overlap_start, overlap_end)
+                })
+                .filter(|(overlap_start, overlap_end)| {
+                    // Only consider non-empty overlap.
+                    overlap_start < overlap_end
+                })
+                .min_by_key(|&(overlap_start, _)| {
+                    // Find the earliest overlap.
+                    overlap_start
+                })
+            {
+                // There's no overlapping used slice before `overlap_start`, so
+                // we know that memory between `region.start` and
+                // `overlap_start` is usable.
+                let usable = MemoryRegion {
                     start: region.start,
-                    end: region.end,
-                    kind: MemoryRegionKind::Bootloader,
-                };
-                Self::add_region(bootloader, regions, next_index);
-                return;
-            }
-            if region.start < slice.start && region.end <= slice_end {
-                // there is a usable region before the bootloader slice
-                let before = MemoryRegion {
-                    start: region.start,
-                    end: slice.start,
-                    kind: MemoryRegionKind::Usable,
-                };
-
-                let bootloader = MemoryRegion {
-                    start: slice.start,
-                    end: region.end,
-                    kind: MemoryRegionKind::Bootloader,
-                };
-                Self::split_and_add_region(before, regions, next_index, used_slices);
-                Self::add_region(bootloader, regions, next_index);
-                return;
-            } else if region.start < slice.start && region.end > slice_end {
-                // there is usable region before and after the bootloader slice
-                let before = MemoryRegion {
-                    start: region.start,
-                    end: slice.start,
+                    end: overlap_start,
                     kind: MemoryRegionKind::Usable,
                 };
                 let bootloader = MemoryRegion {
-                    start: slice.start,
-                    end: slice_end,
+                    start: overlap_start,
+                    end: overlap_end,
                     kind: MemoryRegionKind::Bootloader,
                 };
-                let after = MemoryRegion {
-                    start: slice_end,
-                    end: region.end,
-                    kind: MemoryRegionKind::Usable,
-                };
-                Self::split_and_add_region(before, regions, next_index, used_slices.clone());
+                Self::add_region(usable, regions, next_index);
                 Self::add_region(bootloader, regions, next_index);
-                Self::split_and_add_region(after, regions, next_index, used_slices.clone());
-                return;
-            }
-            if region.start >= slice.start && region.end > slice_end {
-                // there is a usable region after the bootloader slice
-                let bootloader = MemoryRegion {
-                    start: region.start,
-                    end: slice_end,
-                    kind: MemoryRegionKind::Bootloader,
-                };
-                let after = MemoryRegion {
-                    start: slice_end,
-                    end: region.end,
-                    kind: MemoryRegionKind::Usable,
-                };
-                Self::add_region(bootloader, regions, next_index);
-                Self::split_and_add_region(after, regions, next_index, used_slices);
-                return;
+                // Continue after the overlapped region.
+                region.start = overlap_end;
+            } else {
+                // There's no overlap. We can add the whole region.
+                Self::add_region(region, regions, next_index);
+                break;
             }
         }
-        // region is not coverd by any slice
-        Self::add_region(region, regions, next_index);
     }
 
     fn add_region(
