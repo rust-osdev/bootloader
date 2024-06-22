@@ -18,6 +18,16 @@ pub struct UsedMemorySlice {
     pub end: u64,
 }
 
+impl UsedMemorySlice {
+    /// Creates a new slice
+    pub fn new_from_len(start: u64, len: u64) -> Self {
+        Self {
+            start,
+            end: start + len,
+        }
+    }
+}
+
 /// Abstraction trait for a memory region returned by the UEFI or BIOS firmware.
 pub trait LegacyMemoryRegion: Copy + core::fmt::Debug {
     /// Returns the physical start address of the region.
@@ -208,22 +218,18 @@ where
         ramdisk_slice_len: u64,
         used_slices: S,
     ) -> impl Iterator<Item = UsedMemorySlice> + Clone {
-        BootloaderUsedMemorySliceIter {
-            bootloader: UsedMemorySlice {
+        [
+            UsedMemorySlice {
                 start: min_frame.start_address().as_u64(),
-                // TODO: unit test that this is not an off by 1
-                end: next_free.start_address() - min_frame.start_address(),
+                end: next_free.start_address().as_u64(),
             },
-            kernel: UsedMemorySlice {
-                start: kernel_slice_start.as_u64(),
-                end: kernel_slice_len,
-            },
-            ramdisk: ramdisk_slice_start.map(|start| UsedMemorySlice {
-                start: start.as_u64(),
-                end: ramdisk_slice_len,
-            }),
-            state: KernelRamIterState::Bootloader,
-        }
+            UsedMemorySlice::new_from_len(kernel_slice_start.as_u64(), kernel_slice_len),
+        ]
+        .into_iter()
+        .chain(
+            ramdisk_slice_start
+                .map(|start| UsedMemorySlice::new_from_len(start.as_u64(), ramdisk_slice_len)),
+        )
         .chain(used_slices)
     }
 
@@ -366,43 +372,5 @@ where
         }
 
         None
-    }
-}
-
-#[derive(Clone)]
-struct BootloaderUsedMemorySliceIter {
-    bootloader: UsedMemorySlice,
-    kernel: UsedMemorySlice,
-    ramdisk: Option<UsedMemorySlice>,
-    state: KernelRamIterState,
-}
-
-#[derive(Clone)]
-enum KernelRamIterState {
-    Bootloader,
-    Kernel,
-    Ramdisk,
-    Done,
-}
-
-impl Iterator for BootloaderUsedMemorySliceIter {
-    type Item = UsedMemorySlice;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.state {
-            KernelRamIterState::Bootloader => {
-                self.state = KernelRamIterState::Kernel;
-                Some(self.bootloader)
-            }
-            KernelRamIterState::Kernel => {
-                self.state = KernelRamIterState::Ramdisk;
-                Some(self.kernel)
-            }
-            KernelRamIterState::Ramdisk => {
-                self.state = KernelRamIterState::Done;
-                self.ramdisk
-            }
-            KernelRamIterState::Done => None,
-        }
     }
 }

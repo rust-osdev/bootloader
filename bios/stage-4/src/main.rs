@@ -223,10 +223,7 @@ fn used_memory_slices(info: &BiosInfo) -> impl Iterator<Item = UsedMemorySlice> 
     // uefi/bios common code
     [info.stage_3, info.stage_4, info.config_file]
         .into_iter()
-        .map(|region| UsedMemorySlice {
-            start: region.start,
-            end: region.start + region.len,
-        })
+        .map(|region| UsedMemorySlice::new_from_len(region.start, region.len))
 }
 
 /// Creates page table abstraction types for both the bootloader and kernel page tables.
