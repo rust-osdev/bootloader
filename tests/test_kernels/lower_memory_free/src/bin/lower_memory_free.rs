@@ -38,7 +38,7 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     }
 
     writeln!(serial(), "Free lower memory page count: {}", count).unwrap();
-    assert!(count > 0x10); // 0x10 chosen arbirarily, we need _some_ free conventional memory, but not all of it. Some, especially on BIOS, may be reserved for hardware.
+    assert!(count > 0x10); // 0x10 chosen arbitrarily, we need _some_ free conventional memory, but not all of it. Some, especially on BIOS, may be reserved for hardware.
     exit_qemu(QemuExitCode::Success);
 }
 
