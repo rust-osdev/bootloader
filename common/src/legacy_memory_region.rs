@@ -5,6 +5,7 @@ use core::{
     mem::MaybeUninit,
 };
 use x86_64::{
+    align_down, align_up,
     structures::paging::{FrameAllocator, PhysFrame, Size4KiB},
     PhysAddr,
 };
@@ -232,9 +233,12 @@ where
                 .map(|start| UsedMemorySlice::new_from_len(start.as_u64(), ramdisk_slice_len)),
         )
         .chain(used_slices)
+        .map(|slice| UsedMemorySlice {
+            start: align_down(slice.start, 0x1000),
+            end: align_up(slice.end, 0x1000),
+        })
     }
 
-    // TODO unit test
     fn split_and_add_region<'a, U>(
         mut region: MemoryRegion,
         regions: &mut [MaybeUninit<MemoryRegion>],
@@ -347,7 +351,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use bootloader_api::info::MemoryRegionKind;
 
     #[derive(Copy, Clone, Debug)]
     struct TestMemoryRegion {
