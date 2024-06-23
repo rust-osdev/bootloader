@@ -487,9 +487,7 @@ where
     // allocate and map space for the boot info
     let (boot_info, memory_regions) = {
         let boot_info_layout = Layout::new::<BootInfo>();
-        // TODO the assumption here about the regions is wrong
-        // figure out what the correct region count should be
-        let regions = frame_allocator.len() + 4 + 30; // up to 4 regions might be split into used/unused
+        let regions = frame_allocator.memory_map_max_region_count();
         let memory_regions_layout = Layout::array::<MemoryRegion>(regions).unwrap();
         let (combined, memory_regions_offset) =
             boot_info_layout.extend(memory_regions_layout).unwrap();

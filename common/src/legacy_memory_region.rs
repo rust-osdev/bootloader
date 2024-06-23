@@ -152,6 +152,14 @@ where
             .unwrap()
     }
 
+    /// Calculate the maximum number of regions produced by [Self::construct_memory_map]
+    pub fn memory_map_max_region_count(&self) -> usize {
+        // every used slice can split an original region into 3 new regions,
+        // this means we need to reserve 2 extra spaces for each slice.
+        // There are 3 additional slices (kernel, ramdisk and the bootloader heap)
+        self.len() + (3 + self.used_slices.clone().count()) * 2
+    }
+
     /// Converts this type to a boot info memory map.
     ///
     /// The memory map is placed in the given `regions` slice. The length of the given slice
