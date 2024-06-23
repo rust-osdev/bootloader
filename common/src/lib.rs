@@ -10,7 +10,6 @@ use bootloader_api::{
 };
 use bootloader_boot_config::{BootConfig, LevelFilter};
 use core::{alloc::Layout, arch::asm, mem::MaybeUninit, slice};
-use legacy_memory_region::UsedMemorySlice;
 use level_4_entries::UsedLevel4Entries;
 use usize_conversions::FromUsize;
 use x86_64::{
@@ -124,17 +123,16 @@ impl<'a> Kernel<'a> {
 /// This function is a convenience function that first calls [`set_up_mappings`], then
 /// [`create_boot_info`], and finally [`switch_to_kernel`]. The given arguments are passed
 /// directly to these functions, so see their docs for more info.
-pub fn load_and_switch_to_kernel<I, D, S>(
+pub fn load_and_switch_to_kernel<I, D>(
     kernel: Kernel,
     boot_config: BootConfig,
-    mut frame_allocator: LegacyFrameAllocator<I, D, S>,
+    mut frame_allocator: LegacyFrameAllocator<I, D>,
     mut page_tables: PageTables,
     system_info: SystemInfo,
 ) -> !
 where
     I: ExactSizeIterator<Item = D> + Clone,
     D: LegacyMemoryRegion,
-    S: Iterator<Item = UsedMemorySlice> + Clone,
 {
     let config = kernel.config;
     let mut mappings = set_up_mappings(
@@ -170,9 +168,9 @@ where
 ///
 /// This function reacts to unexpected situations (e.g. invalid kernel ELF file) with a panic, so
 /// errors are not recoverable.
-pub fn set_up_mappings<I, D, S>(
+pub fn set_up_mappings<I, D>(
     kernel: Kernel,
-    frame_allocator: &mut LegacyFrameAllocator<I, D, S>,
+    frame_allocator: &mut LegacyFrameAllocator<I, D>,
     page_tables: &mut PageTables,
     framebuffer: Option<&RawFrameBufferInfo>,
     config: &BootloaderConfig,
@@ -181,7 +179,6 @@ pub fn set_up_mappings<I, D, S>(
 where
     I: ExactSizeIterator<Item = D> + Clone,
     D: LegacyMemoryRegion,
-    S: Iterator<Item = UsedMemorySlice> + Clone,
 {
     let kernel_page_table = &mut page_tables.kernel;
 
@@ -469,10 +466,10 @@ pub struct Mappings {
 /// address space at the same address. This makes it possible to return a Rust
 /// reference that is valid in both address spaces. The necessary physical frames
 /// are taken from the given `frame_allocator`.
-pub fn create_boot_info<I, D, S>(
+pub fn create_boot_info<I, D>(
     config: &BootloaderConfig,
     boot_config: &BootConfig,
-    mut frame_allocator: LegacyFrameAllocator<I, D, S>,
+    mut frame_allocator: LegacyFrameAllocator<I, D>,
     page_tables: &mut PageTables,
     mappings: &mut Mappings,
     system_info: SystemInfo,
@@ -480,7 +477,6 @@ pub fn create_boot_info<I, D, S>(
 where
     I: ExactSizeIterator<Item = D> + Clone,
     D: LegacyMemoryRegion,
-    S: Iterator<Item = UsedMemorySlice> + Clone,
 {
     log::info!("Allocate bootinfo");
 

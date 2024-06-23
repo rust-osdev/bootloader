@@ -145,10 +145,6 @@ fn start(disk_number: u16, partition_table_start: *const u8) -> ! {
     vesa_mode.enable().unwrap();
 
     let mut info = BiosInfo {
-        stage_3: Region {
-            start: STAGE_3_DST as u64,
-            len: stage_3_len,
-        },
         stage_4: Region {
             start: stage_4_dst as u64,
             len: stage_4_len,

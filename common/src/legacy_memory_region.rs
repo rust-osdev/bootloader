@@ -48,19 +48,18 @@ pub trait LegacyMemoryRegion: Copy + core::fmt::Debug {
 }
 
 /// A physical frame allocator based on a BIOS or UEFI provided memory map.
-pub struct LegacyFrameAllocator<I, D, S> {
+pub struct LegacyFrameAllocator<I, D> {
     original: I,
     memory_map: I,
     current_descriptor: Option<D>,
     next_frame: PhysFrame,
     min_frame: PhysFrame,
-    used_slices: S,
 }
 
 /// Start address of the first frame that is not part of the lower 1MB of frames
 const LOWER_MEMORY_END_PAGE: u64 = 0x10_0000;
 
-impl<I, D> LegacyFrameAllocator<I, D, Empty<UsedMemorySlice>>
+impl<I, D> LegacyFrameAllocator<I, D>
 where
     I: ExactSizeIterator<Item = D> + Clone,
     I::Item: LegacyMemoryRegion,
@@ -82,28 +81,16 @@ where
     /// before the given `frame` or `0x10000`(1MB) whichever is higher, there are use cases that require
     /// lower conventional memory access (Such as SMP SIPI).
     pub fn new_starting_at(frame: PhysFrame, memory_map: I) -> Self {
-        Self::new_with_used_slices(frame, memory_map, empty())
-    }
-}
-
-impl<I, D, S> LegacyFrameAllocator<I, D, S>
-where
-    I: ExactSizeIterator<Item = D> + Clone,
-    I::Item: LegacyMemoryRegion,
-    S: Iterator<Item = UsedMemorySlice> + Clone,
-{
-    pub fn new_with_used_slices(start_frame: PhysFrame, memory_map: I, used_slices: S) -> Self {
         // skip frame 0 because the rust core library does not see 0 as a valid address
         // Also skip at least the lower 1MB of frames, there are use cases that require lower conventional memory access (Such as SMP SIPI).
         let lower_mem_end = PhysFrame::containing_address(PhysAddr::new(LOWER_MEMORY_END_PAGE));
-        let frame = core::cmp::max(start_frame, lower_mem_end);
+        let frame = core::cmp::max(frame, lower_mem_end);
         Self {
             original: memory_map.clone(),
             memory_map,
             current_descriptor: None,
             next_frame: frame,
             min_frame: frame,
-            used_slices,
         }
     }
 
@@ -154,10 +141,10 @@ where
 
     /// Calculate the maximum number of regions produced by [Self::construct_memory_map]
     pub fn memory_map_max_region_count(&self) -> usize {
-        // every used slice can split an original region into 3 new regions,
-        // this means we need to reserve 2 extra spaces for each slice.
-        // There are 3 additional slices (kernel, ramdisk and the bootloader heap)
-        self.len() + (3 + self.used_slices.clone().count()) * 2
+        // every used region can split an original region into 3 new regions,
+        // this means we need to reserve 2 extra spaces for each region.
+        // There are 3 used regions: kernel, ramdisk and the bootloader heap
+        self.len() + 6
     }
 
     /// Converts this type to a boot info memory map.
@@ -174,15 +161,22 @@ where
         ramdisk_slice_start: Option<PhysAddr>,
         ramdisk_slice_len: u64,
     ) -> &mut [MemoryRegion] {
-        let used_slices = Self::used_regions_iter(
-            self.min_frame,
-            self.next_frame,
-            kernel_slice_start,
-            kernel_slice_len,
-            ramdisk_slice_start,
-            ramdisk_slice_len,
-            self.used_slices,
-        );
+        let used_slices = [
+            UsedMemorySlice {
+                start: self.min_frame.start_address().as_u64(),
+                end: self.next_frame.start_address().as_u64(),
+            },
+            UsedMemorySlice::new_from_len(kernel_slice_start.as_u64(), kernel_slice_len),
+        ]
+        .into_iter()
+        .chain(
+            ramdisk_slice_start
+                .map(|start| UsedMemorySlice::new_from_len(start.as_u64(), ramdisk_slice_len)),
+        )
+        .map(|slice| UsedMemorySlice {
+            start: align_down(slice.start, 0x1000),
+            end: align_up(slice.end, 0x1000),
+        });
 
         let mut next_index = 0;
         for descriptor in self.original {
@@ -217,34 +211,6 @@ where
             // TODO: undo inlining when `slice_assume_init_mut` becomes stable
             &mut *(initialized as *mut [_] as *mut [_])
         }
-    }
-
-    fn used_regions_iter(
-        min_frame: PhysFrame,
-        next_free: PhysFrame,
-        kernel_slice_start: PhysAddr,
-        kernel_slice_len: u64,
-        ramdisk_slice_start: Option<PhysAddr>,
-        ramdisk_slice_len: u64,
-        used_slices: S,
-    ) -> impl Iterator<Item = UsedMemorySlice> + Clone {
-        [
-            UsedMemorySlice {
-                start: min_frame.start_address().as_u64(),
-                end: next_free.start_address().as_u64(),
-            },
-            UsedMemorySlice::new_from_len(kernel_slice_start.as_u64(), kernel_slice_len),
-        ]
-        .into_iter()
-        .chain(
-            ramdisk_slice_start
-                .map(|start| UsedMemorySlice::new_from_len(start.as_u64(), ramdisk_slice_len)),
-        )
-        .chain(used_slices)
-        .map(|slice| UsedMemorySlice {
-            start: align_down(slice.start, 0x1000),
-            end: align_up(slice.end, 0x1000),
-        })
     }
 
     fn split_and_add_region<'a, U>(
@@ -325,11 +291,10 @@ where
     }
 }
 
-unsafe impl<I, D, S> FrameAllocator<Size4KiB> for LegacyFrameAllocator<I, D, S>
+unsafe impl<I, D> FrameAllocator<Size4KiB> for LegacyFrameAllocator<I, D>
 where
     I: ExactSizeIterator<Item = D> + Clone,
     I::Item: LegacyMemoryRegion,
-    S: Iterator<Item = UsedMemorySlice> + Clone,
 {
     fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KiB>> {
         if let Some(current_descriptor) = self.current_descriptor {

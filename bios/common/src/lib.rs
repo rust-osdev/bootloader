@@ -5,7 +5,6 @@ pub mod racy_cell;
 #[cfg_attr(feature = "debug", derive(Debug))]
 #[repr(C)]
 pub struct BiosInfo {
-    pub stage_3: Region,
     pub stage_4: Region,
     pub kernel: Region,
     pub ramdisk: Region,
