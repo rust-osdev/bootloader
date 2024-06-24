@@ -172,10 +172,12 @@ dependencies = [
  "test_kernel_config_file",
  "test_kernel_default_settings",
  "test_kernel_higher_half",
+ "test_kernel_lower_memory_free",
  "test_kernel_map_phys_mem",
  "test_kernel_min_stack",
  "test_kernel_pie",
  "test_kernel_ramdisk",
+ "test_kernel_write_usable_memory",
 ]
 
 [[package]]
@@ -1079,6 +1081,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "test_kernel_lower_memory_free"
+version = "0.1.0"
+dependencies = [
+ "bootloader_api",
+ "uart_16550",
+ "x86_64",
+]
+
+[[package]]
 name = "test_kernel_lto"
 version = "0.1.0"
 dependencies = [
@@ -1116,6 +1127,15 @@ dependencies = [
 
 [[package]]
 name = "test_kernel_ramdisk"
+version = "0.1.0"
+dependencies = [
+ "bootloader_api",
+ "uart_16550",
+ "x86_64",
+]
+
+[[package]]
+name = "test_kernel_write_usable_memory"
 version = "0.1.0"
 dependencies = [
  "bootloader_api",

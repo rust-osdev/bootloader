@@ -1,4 +1,4 @@
-#![no_std]
+#![cfg_attr(not(test), no_std)]
 #![feature(step_trait)]
 #![deny(unsafe_op_in_unsafe_fn)]
 
@@ -483,7 +483,7 @@ where
     // allocate and map space for the boot info
     let (boot_info, memory_regions) = {
         let boot_info_layout = Layout::new::<BootInfo>();
-        let regions = frame_allocator.len() + 4; // up to 4 regions might be split into used/unused
+        let regions = frame_allocator.memory_map_max_region_count();
         let memory_regions_layout = Layout::array::<MemoryRegion>(regions).unwrap();
         let (combined, memory_regions_offset) =
             boot_info_layout.extend(memory_regions_layout).unwrap();
