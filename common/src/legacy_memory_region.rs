@@ -132,11 +132,17 @@ where
     ///
     /// Useful for creating a mapping for all physical memory.
     pub fn max_phys_addr(&self) -> PhysAddr {
-        self.original
+        let max = self
+            .original
             .clone()
             .map(|r| r.start() + r.len())
             .max()
-            .unwrap()
+            .unwrap();
+
+        // Always cover at least the first 4 GiB of physical memory. That area
+        // contains useful MMIO regions (local APIC, I/O APIC, PCI bars) that
+        // we want to make accessible to the kernel even if no DRAM exists >4GiB.
+        cmp::max(max, PhysAddr::new(0x1_0000_0000))
     }
 
     /// Calculate the maximum number of regions produced by [Self::construct_memory_map]
