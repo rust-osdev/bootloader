@@ -42,7 +42,9 @@ impl DiskAddressPacket {
                 "mov {1:x}, si", // backup the `si` register, whose contents are required by LLVM
                 "mov si, {0:x}",
                 "int 0x13",
-                "jc fail_asm",
+                "jnc 2f", // carry is set on fail
+                "call fail",
+                "2:",
                 "pop si", // remove error code again
                 "mov si, {1:x}", // restore the `si` register to its prior state
                 in(reg) self_addr,

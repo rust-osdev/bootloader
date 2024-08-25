@@ -9,7 +9,7 @@ This executable needs to fit into the 512-byte boot sector, so we need to use al
 
 To run in QEMU:
 
-- `qemu-system-x86_64 -drive format=raw,file=../../target/disk_image.bin`
+- `qemu-system-x86_64 -drive format=raw,file=../../target/disk_image.img`
 
 To print the contents of the ELF file, e.g. for trying to bring the size down:
 

@@ -36,7 +36,9 @@ check_int13h_extensions:
     mov bx, 0x55aa
     # dl contains drive number
     int 0x13
-    jc fail_asm
+    jnc .int13_pass
+    call fail
+.int13_pass:
     pop ax      # pop error code again
 
 rust:
@@ -45,9 +47,6 @@ rust:
     call first_stage
     # Fail code if first stage returns
     push 'x'
-
-    # Call rust "fail" function that prints the character on the top of the stack
-fail_asm:
     call fail
 
 spin:
