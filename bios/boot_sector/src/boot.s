@@ -36,13 +36,18 @@ check_int13h_extensions:
     mov bx, 0x55aa
     # dl contains drive number
     int 0x13
-    jc fail
+    jnc .int13_pass
+    call fail
+.int13_pass:
     pop ax      # pop error code again
 
 rust:
     # push arguments
     push dx     # disk number
     call first_stage
+    # Fail code if first stage returns
+    push 'x'
+    call fail
 
 spin:
     hlt

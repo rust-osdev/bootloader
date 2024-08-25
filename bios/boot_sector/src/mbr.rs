@@ -16,14 +16,14 @@ pub(crate) fn get_partition(partitions_raw: &[u8], index: usize) -> PartitionTab
             .get(8..)
             .and_then(|s| s.get(..4))
             .and_then(|s| s.try_into().ok())
-            .unwrap_or_fail(b'e'),
+            .unwrap_or_fail(b'f'),
     );
     let len = u32::from_le_bytes(
         buffer
             .get(12..)
             .and_then(|s| s.get(..4))
             .and_then(|s| s.try_into().ok())
-            .unwrap_or_fail(b'f'),
+            .unwrap_or_fail(b'g'),
     );
     PartitionTableEntry::new(bootable, partition_type, lba, len)
 }
