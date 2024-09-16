@@ -273,6 +273,7 @@ dependencies = [
  "bootloader",
  "ovmf-prebuilt",
  "strip-ansi-escapes",
+ "wait-timeout",
 ]
 
 [[package]]
@@ -1259,6 +1260,15 @@ checksum = "d257817081c7dffcdbab24b9e62d2def62e2ff7d00b1c20062551e6cccc145ff"
 dependencies = [
  "proc-macro2",
  "quote",
+]
+
+[[package]]
+name = "wait-timeout"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f200f5b12eb75f8c1ed65abd4b2db8a6e1b138a20de009dacee265a2498f3f6"
+dependencies = [
+ "libc",
 ]
 
 [[package]]
