@@ -36,8 +36,8 @@ pub fn run_test_kernel_internal(
 
     #[cfg(feature = "uefi")]
     {
-        let mut ovmf_paths = OvmfPaths::find().unwrap();
-        ovmf_paths.with_temp_vars().unwrap();
+        let mut ovmf_paths = OvmfPaths::find();
+        ovmf_paths.with_temp_vars();
 
         let gpt_path = kernel_path.with_extension("gpt");
         let tftp_path = kernel_path.with_extension("tftp");

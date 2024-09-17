@@ -1,7 +1,7 @@
-use anyhow::{bail, Result};
 use sha2::{Digest, Sha256};
 use std::{
     env,
+    fs::{copy, create_dir_all, read_to_string, remove_dir_all, rename, set_permissions, write},
     io::{Cursor, Read},
     path::{Path, PathBuf},
 };
@@ -93,78 +93,78 @@ impl OvmfPaths {
     /// 1. Command-line arg
     /// 2. Environment variable
     /// 3. Prebuilt file (automatically downloaded)
-    pub fn find_ovmf_file(file_type: OvmfFileType) -> Result<PathBuf> {
+    pub fn find_ovmf_file(file_type: OvmfFileType) -> PathBuf {
         if let Some(path) = file_type.get_user_provided_path() {
             // The user provided an exact path to use; verify that it
             // exists.
             if path.exists() {
-                Ok(path)
+                path
             } else {
-                bail!(
+                panic!(
                     "ovmf {} file does not exist: {}",
                     file_type.as_str(),
                     path.display()
                 );
             }
         } else {
-            let prebuilt_dir = update_prebuilt()?;
+            let prebuilt_dir = update_prebuilt();
 
-            Ok(prebuilt_dir.join(format!(
+            prebuilt_dir.join(format!(
                 "x86_64/{}.{}",
                 file_type.as_str(),
                 file_type.extension()
-            )))
+            ))
         }
     }
 
     /// Find path to OVMF files by the strategy documented for
     /// [`Self::find_ovmf_file`].
-    pub fn find() -> Result<Self> {
-        let code = Self::find_ovmf_file(OvmfFileType::Code)?;
-        let vars = Self::find_ovmf_file(OvmfFileType::Vars)?;
-        let shell = Self::find_ovmf_file(OvmfFileType::Shell)?;
+    pub fn find() -> Self {
+        let code = Self::find_ovmf_file(OvmfFileType::Code);
+        let vars = Self::find_ovmf_file(OvmfFileType::Vars);
+        let shell = Self::find_ovmf_file(OvmfFileType::Shell);
 
-        Ok(Self {
+        Self {
             code,
             vars,
             shell,
             temp_dir: None,
             temp_vars: None,
-        })
+        }
     }
 
     /// Creates a copy with a writable, temp copy
-    pub fn with_temp_vars(&mut self) -> Result<()> {
-        let temp_dir = TempDir::new()?;
+    pub fn with_temp_vars(&mut self) {
+        let temp_dir = TempDir::new().expect("Failed to create temp directory");
         let temp_path = temp_dir.path();
 
         // Make a copy of the OVMF vars file so that it can be used
         // read+write without modifying the original. Under AArch64, some
         // versions of OVMF won't boot if the vars file isn't writeable.
         let ovmf_vars = temp_path.join("ovmf_vars");
-        fs_err::copy(&self.vars, &ovmf_vars)?;
+        copy(&self.vars, &ovmf_vars).expect("Failed to copy vars file to a temp location");
         // Necessary, as for example on NixOS, the files are read-only inside
         // the Nix store.
         #[cfg(target_os = "linux")]
-        fs_err::set_permissions(&ovmf_vars, Permissions::from_mode(0o666))?;
+        set_permissions(&ovmf_vars, Permissions::from_mode(0o666))
+            .expect("Failed to set permissions on temp vars file");
 
         self.temp_vars = Some(ovmf_vars);
         self.temp_dir = Some(temp_dir);
-        Ok(())
     }
 }
 
 /// Update the local copy of the prebuilt OVMF files. Does nothing if the local
 /// copy is already up to date.
-fn update_prebuilt() -> Result<PathBuf> {
+fn update_prebuilt() -> PathBuf {
     let prebuilt_dir = Path::new(OVMF_PREBUILT_DIR);
     let hash_path = prebuilt_dir.join("sha256");
 
     // Check if the hash file already has the expected hash in it. If so, assume
     // that we've already got the correct prebuilt downloaded and unpacked.
-    if let Ok(current_hash) = fs_err::read_to_string(&hash_path) {
+    if let Ok(current_hash) = read_to_string(&hash_path) {
         if current_hash == OVMF_PREBUILT_HASH {
-            return Ok(prebuilt_dir.to_path_buf());
+            return prebuilt_dir.to_path_buf();
         }
     }
 
@@ -174,12 +174,12 @@ fn update_prebuilt() -> Result<PathBuf> {
         release = OVMF_PREBUILT_TAG
     );
 
-    let data = download_url(&url)?;
+    let data = download_url(&url);
 
     // Validate the hash.
     let actual_hash = format!("{:x}", Sha256::digest(&data));
     if actual_hash != OVMF_PREBUILT_HASH {
-        bail!(
+        panic!(
             "file hash {actual_hash} does not match {}",
             OVMF_PREBUILT_HASH
         );
@@ -189,27 +189,29 @@ fn update_prebuilt() -> Result<PathBuf> {
     println!("decompressing tarball");
     let mut decompressed = Vec::new();
     let mut compressed = Cursor::new(data);
-    lzma_rs::xz_decompress(&mut compressed, &mut decompressed)?;
+    lzma_rs::xz_decompress(&mut compressed, &mut decompressed)
+        .expect("Failed to decompress tarball");
 
     // Clear out the existing prebuilt dir, if present.
-    let _ = fs_err::remove_dir_all(prebuilt_dir);
+    let _ = remove_dir_all(prebuilt_dir);
 
     // Extract the files.
-    extract_prebuilt(&decompressed, prebuilt_dir)?;
+    extract_prebuilt(&decompressed, prebuilt_dir);
 
     // Rename the x64 directory to x86_64, to match `Arch::as_str`.
-    fs_err::rename(prebuilt_dir.join("x64"), prebuilt_dir.join("x86_64"))?;
+    rename(prebuilt_dir.join("x64"), prebuilt_dir.join("x86_64"))
+        .expect("Failed to rename x64 artefacts");
 
     // Write out the hash file. When we upgrade to a new release of
     // ovmf-prebuilt, the hash will no longer match, triggering a fresh
     // download.
-    fs_err::write(&hash_path, actual_hash)?;
+    write(&hash_path, actual_hash).expect("Failed to save calculated hash");
 
-    Ok(prebuilt_dir.to_path_buf())
+    prebuilt_dir.to_path_buf()
 }
 
 /// Download `url` and return the raw data.
-fn download_url(url: &str) -> Result<Vec<u8>> {
+fn download_url(url: &str) -> Vec<u8> {
     let agent: Agent = ureq::AgentBuilder::new()
         .user_agent("uefi-rs-ovmf-downloader")
         .build();
@@ -219,33 +221,34 @@ fn download_url(url: &str) -> Result<Vec<u8>> {
 
     // Download the file.
     println!("downloading {url}");
-    let resp = agent.get(url).call()?;
+    let resp = agent.get(url).call().unwrap();
     let mut data = Vec::with_capacity(max_size_in_bytes);
     resp.into_reader()
         .take(max_size_in_bytes.try_into().unwrap())
-        .read_to_end(&mut data)?;
+        .read_to_end(&mut data)
+        .unwrap();
     println!("received {} bytes", data.len());
 
-    Ok(data)
+    data
 }
 
 // Extract the tarball's files into `prebuilt_dir`.
 //
 // `tarball_data` is raw decompressed tar data.
-fn extract_prebuilt(tarball_data: &[u8], prebuilt_dir: &Path) -> Result<()> {
+fn extract_prebuilt(tarball_data: &[u8], prebuilt_dir: &Path) {
     let cursor = Cursor::new(tarball_data);
     let mut archive = Archive::new(cursor);
 
     // Extract each file entry.
-    for entry in archive.entries()? {
-        let mut entry = entry?;
+    for entry in archive.entries().unwrap() {
+        let mut entry = entry.unwrap();
 
         // Skip directories.
         if entry.size() == 0 {
             continue;
         }
 
-        let path = entry.path()?;
+        let path = entry.path().unwrap();
         // Strip the leading directory, which is the release name.
         let path: PathBuf = path.components().skip(1).collect();
 
@@ -253,9 +256,7 @@ fn extract_prebuilt(tarball_data: &[u8], prebuilt_dir: &Path) -> Result<()> {
         let dst_dir = prebuilt_dir.join(dir);
         let dst_path = prebuilt_dir.join(path);
         println!("unpacking to {}", dst_path.display());
-        fs_err::create_dir_all(dst_dir)?;
-        entry.unpack(dst_path)?;
+        create_dir_all(dst_dir).unwrap();
+        entry.unpack(dst_path).unwrap();
     }
-
-    Ok(())
 }
