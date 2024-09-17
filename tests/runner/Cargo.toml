@@ -14,7 +14,6 @@ uefi = ["bootloader/uefi"]
 [dependencies]
 bootloader = { path = "../..", default-features = false }
 strip-ansi-escapes = "0.1.1"
-wait-timeout = "0.2.0"
 anyhow = "1.0.89"
 ureq = "2.10.1"
 fs-err = "2.11.0"

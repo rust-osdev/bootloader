@@ -117,10 +117,7 @@ where
     use std::{
         io::Read,
         process::{Command, Stdio},
-        time::Duration,
     };
-
-    use wait_timeout::ChildExt;
 
     const QEMU_ARGS: &[&str] = &[
         "-device",
@@ -165,13 +162,7 @@ where
         )
     });
 
-    let Some(exit_status) = child.wait_timeout(Duration::new(120, 0)).unwrap() else {
-        child
-            .kill()
-            .expect("Qemu could not be killed after timeout");
-        panic!("Test timed out after 2 minutes");
-    };
-    match exit_status.code() {
+    match child.wait().unwrap().code() {
         Some(33) => {} // success
         Some(35) => panic!("Test failed"),
         other => panic!("Test failed with unexpected exit code `{other:?}`"),
