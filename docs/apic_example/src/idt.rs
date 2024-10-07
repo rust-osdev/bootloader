@@ -1,9 +1,9 @@
+use crate::apic;
+use crate::gdt::DOUBLE_FAULT_IST_INDEX;
 use lazy_static::lazy_static;
 use log::info;
 use x86_64::registers::control::Cr2;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode};
-use crate::apic;
-use crate::gdt::DOUBLE_FAULT_IST_INDEX;
 
 pub const PIC_1_OFFSET: u8 = 0x20;
 pub const PIC_2_OFFSET: u8 = PIC_1_OFFSET + 8;

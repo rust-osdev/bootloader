@@ -2,18 +2,17 @@
 #![no_std]
 #![no_main]
 
+extern crate alloc;
 mod frame_allocator;
 mod apic;
 mod idt;
 mod gdt;
 
-extern crate alloc;
-
+use crate::frame_allocator::BootInfoFrameAllocator;
+use bootloader_api::config::Mapping;
 use bootloader_api::{entry_point, BootInfo};
 use x86_64::structures::paging::OffsetPageTable;
 use x86_64::VirtAddr;
-use bootloader_api::config::Mapping;
-use crate::frame_allocator::BootInfoFrameAllocator;
 
 pub const CONFIG: bootloader_api::BootloaderConfig = {
     let mut config = bootloader_api::BootloaderConfig::new_default();

@@ -172,13 +172,13 @@ unsafe fn init_local_apic(
     mapper: &mut impl Mapper<Size4KiB>,
     frame_allocator: &mut impl FrameAllocator<Size4KiB>,
 ) {
-    let virt_addr = map_apic(
+    let virtual_address = map_apic(
         local_apic_addr as u64,
         mapper,
         frame_allocator,
     );
 
-    let lapic_pointer = virt_addr.as_mut_ptr::<u32>();
+    let lapic_pointer = virtual_address.as_mut_ptr::<u32>();
     LAPIC_ADDR.lock().address = lapic_pointer;
 
     init_timer(lapic_pointer);
@@ -186,22 +186,22 @@ unsafe fn init_local_apic(
 }
 
 unsafe fn init_timer(lapic_pointer: *mut u32) {
-    let svr_register = lapic_pointer.offset(APICOffset::SVR as isize / 4);
-    svr_register.write_volatile(svr_register.read_volatile() | 0x100); // Set bit 8
+    let svr = lapic_pointer.offset(APICOffset::SVR as isize / 4);
+    svr.write_volatile(svr.read_volatile() | 0x100); // Set bit 8
 
-    let lvt_timer_register = lapic_pointer.offset(APICOffset::LVT_LINT1 as isize / 4);
-    lvt_timer_register.write_volatile(0x20 | (1 << 17)); // Vector 0x20, periodic mode
+    let lvt_lint1 = lapic_pointer.offset(APICOffset::LVT_LINT1 as isize / 4);
+    lvt_lint1.write_volatile(0x20 | (1 << 17)); // Vector 0x20, periodic mode
 
-    let tdcr_register = lapic_pointer.offset(APICOffset::TDCR as isize / 4);
-    tdcr_register.write_volatile(0x3);
+    let tdcr = lapic_pointer.offset(APICOffset::TDCR as isize / 4);
+    tdcr.write_volatile(0x3); // Divide by 16 mode
 
-    let timer_initial_count_register = lapic_pointer.offset(APICOffset::TICR as isize / 4);
-    timer_initial_count_register.write_volatile(0x100000);
+    let ticr = lapic_pointer.offset(APICOffset::TICR as isize / 4);
+    ticr.write_volatile(0x100000); // An arbitrary value for the initial value of the timer
 }
 
 unsafe fn init_keyboard(lapic_pointer: *mut u32) {
-    let lvt_keyboard_register = lapic_pointer.offset(APICOffset::LVT_LINT1 as isize / 4);
-    lvt_keyboard_register.write_volatile(InterruptIndex::Keyboard as u8 as u32);
+    let keyboard_register = lapic_pointer.offset(APICOffset::LVT_LINT1 as isize / 4);
+    keyboard_register.write_volatile(InterruptIndex::Keyboard as u8 as u32);
 }
 
 unsafe fn init_io_apic(
@@ -230,9 +230,9 @@ fn map_apic(
     use x86_64::structures::paging::Page;
     use x86_64::structures::paging::PageTableFlags as Flags;
 
-    let phys_addr = PhysAddr::new(physical_address);
-    let page = Page::containing_address(VirtAddr::new(phys_addr.as_u64()));
-    let frame = PhysFrame::containing_address(phys_addr);
+    let physical_address = PhysAddr::new(physical_address);
+    let page = Page::containing_address(VirtAddr::new(physical_address.as_u64()));
+    let frame = PhysFrame::containing_address(physical_address);
 
     let flags = Flags::PRESENT | Flags::WRITABLE | Flags::NO_CACHE;
 
@@ -248,7 +248,6 @@ fn map_apic(
 
 fn disable_pic() {
     // Disable any unneeded PIC features, such as timer or keyboard to prevent it from firing interrupts
-
     use x86_64::instructions::port::Port;
 
     unsafe {
