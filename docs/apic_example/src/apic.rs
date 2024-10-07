@@ -14,70 +14,71 @@ lazy_static! {
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, Copy)]
 #[repr(isize)]
+#[allow(dead_code)]
 pub enum APICOffset {
     // RESERVED = 0x00
     // RESERVED = 0x10
-    IR = 0x20, // ID Register
-    VR = 0x30, // Version Register
+    Ir = 0x20, // ID Register
+    Vr = 0x30, // Version Register
     // RESERVED = 0x40
     // RESERVED = 0x50
     // RESERVED = 0x60
     // RESERVED = 0x70
-    TPR = 0x80, // Text Priority Register
-    APR = 0x90, // Arbitration Priority Register
-    PPR = 0xA0, // Processor Priority Register
-    EOI = 0xB0, // End of Interrupt
-    RRD = 0xC0, // Remote Read Register
-    LDR = 0xD0, // Logical Destination Register
-    DFR = 0xE0, // DFR
-    SVR = 0xF0, // Spurious (Interrupt) Vector Register
-    ISR1 = 0x100, // In-Service Register 1
-    ISR2 = 0x110, // In-Service Register 2
-    ISR3 = 0x120, // In-Service Register 3
-    ISR4 = 0x130, // In-Service Register 4
-    ISR5 = 0x140, // In-Service Register 5
-    ISR6 = 0x150, // In-Service Register 6
-    ISR7 = 0x160, // In-Service Register 7
-    ISR8 = 0x170, // In-Service Register 8
-    TMR1 = 0x180, // Trigger Mode Register 1
-    TMR2 = 0x190, // Trigger Mode Register 2
-    TMR3 = 0x1A0, // Trigger Mode Register 3
-    TMR4 = 0x1B0, // Trigger Mode Register 4
-    TMR5 = 0x1C0, // Trigger Mode Register 5
-    TMR6 = 0x1D0, // Trigger Mode Register 6
-    TMR7 = 0x1E0, // Trigger Mode Register 7
-    TMR8 = 0x1F0, // Trigger Mode Register 8
-    IRR1 = 0x200, // Interrupt Request Register 1
-    IRR2 = 0x210, // Interrupt Request Register 2
-    IRR3 = 0x220, // Interrupt Request Register 3
-    IRR4 = 0x230, // Interrupt Request Register 4
-    IRR5 = 0x240, // Interrupt Request Register 5
-    IRR6 = 0x250, // Interrupt Request Register 6
-    IRR7 = 0x260, // Interrupt Request Register 7
-    IRR8 = 0x270, // Interrupt Request Register 8
-    ESR = 0x280, // Error Status Register
+    Tpr = 0x80, // Text Priority Register
+    Apr = 0x90, // Arbitration Priority Register
+    Ppr = 0xA0, // Processor Priority Register
+    Eoi = 0xB0, // End of Interrupt
+    Rrd = 0xC0, // Remote Read Register
+    Ldr = 0xD0, // Logical Destination Register
+    Dfr = 0xE0, // DFR
+    Svr = 0xF0, // Spurious (Interrupt) Vector Register
+    Isr1 = 0x100, // In-Service Register 1
+    Isr2 = 0x110, // In-Service Register 2
+    Isr3 = 0x120, // In-Service Register 3
+    Isr4 = 0x130, // In-Service Register 4
+    Isr5 = 0x140, // In-Service Register 5
+    Isr6 = 0x150, // In-Service Register 6
+    Isr7 = 0x160, // In-Service Register 7
+    Isr8 = 0x170, // In-Service Register 8
+    Tmr1 = 0x180, // Trigger Mode Register 1
+    Tmr2 = 0x190, // Trigger Mode Register 2
+    Tmr3 = 0x1A0, // Trigger Mode Register 3
+    Tmr4 = 0x1B0, // Trigger Mode Register 4
+    Tmr5 = 0x1C0, // Trigger Mode Register 5
+    Tmr6 = 0x1D0, // Trigger Mode Register 6
+    Tmr7 = 0x1E0, // Trigger Mode Register 7
+    Tmr8 = 0x1F0, // Trigger Mode Register 8
+    Irr1 = 0x200, // Interrupt Request Register 1
+    Irr2 = 0x210, // Interrupt Request Register 2
+    Irr3 = 0x220, // Interrupt Request Register 3
+    Irr4 = 0x230, // Interrupt Request Register 4
+    Irr5 = 0x240, // Interrupt Request Register 5
+    Irr6 = 0x250, // Interrupt Request Register 6
+    Irr7 = 0x260, // Interrupt Request Register 7
+    Irr8 = 0x270, // Interrupt Request Register 8
+    Esr = 0x280, // Error Status Register
     // RESERVED = 0x290
     // RESERVED = 0x2A0
     // RESERVED = 0x2B0
     // RESERVED = 0x2C0
     // RESERVED = 0x2D0
     // RESERVED = 0x2E0
-    LVT_CMCI = 0x2F0, // LVT Corrected Machine Check Interrupt (CMCI) Register
-    ICR1 = 0x300, // Interrupt Command Register 1
-    ICR2 = 0x310, // Interrupt Command Register 2
-    LVT_T = 0x320, // LVT Timer Register
-    LVT_TSR = 0x330, // LVT Thermal Sensor Register
-    LVT_PMCR = 0x340, // LVT Performance Monitoring Counters Register
-    LVT_LINT0 = 0x350, // LVT LINT0 Register
-    LVT_LINT1 = 0x360, // LVT LINT1 Register
-    LVT_E = 0x370, // LVT Error Register
-    TICR = 0x380, // Initial Count Register (for Timer)
-    TCCR = 0x390, // Current Count Register (for Timer)
+    LvtCmci = 0x2F0, // LVT Corrected Machine Check Interrupt (CMCI) Register
+    Icr1 = 0x300, // Interrupt Command Register 1
+    Icr2 = 0x310, // Interrupt Command Register 2
+    LvtT = 0x320, // LVT Timer Register
+    LvtTsr = 0x330, // LVT Thermal Sensor Register
+    LvtPmcr = 0x340, // LVT Performance Monitoring Counters Register
+    LvtLint0 = 0x350, // LVT LINT0 Register
+    LvtLint1 = 0x360, // LVT LINT1 Register
+    LvtE = 0x370, // LVT Error Register
+    Ticr = 0x380, // Initial Count Register (for Timer)
+    Tccr = 0x390, // Current Count Register (for Timer)
     // RESERVED = 0x3A0
     // RESERVED = 0x3B0
     // RESERVED = 0x3C0
     // RESERVED = 0x3D0
-    TDCR = 0x3E0, // Divide Configuration Register (for Timer)
+    Tdcr = 0x3E0, // Divide Configuration Register (for Timer)
     // RESERVED = 0x3F0
 }
 
@@ -186,21 +187,21 @@ unsafe fn init_local_apic(
 }
 
 unsafe fn init_timer(lapic_pointer: *mut u32) {
-    let svr = lapic_pointer.offset(APICOffset::SVR as isize / 4);
+    let svr = lapic_pointer.offset(APICOffset::Svr as isize / 4);
     svr.write_volatile(svr.read_volatile() | 0x100); // Set bit 8
 
-    let lvt_lint1 = lapic_pointer.offset(APICOffset::LVT_LINT1 as isize / 4);
+    let lvt_lint1 = lapic_pointer.offset(APICOffset::LvtT as isize / 4);
     lvt_lint1.write_volatile(0x20 | (1 << 17)); // Vector 0x20, periodic mode
 
-    let tdcr = lapic_pointer.offset(APICOffset::TDCR as isize / 4);
+    let tdcr = lapic_pointer.offset(APICOffset::Tdcr as isize / 4);
     tdcr.write_volatile(0x3); // Divide by 16 mode
 
-    let ticr = lapic_pointer.offset(APICOffset::TICR as isize / 4);
+    let ticr = lapic_pointer.offset(APICOffset::Ticr as isize / 4);
     ticr.write_volatile(0x100000); // An arbitrary value for the initial value of the timer
 }
 
 unsafe fn init_keyboard(lapic_pointer: *mut u32) {
-    let keyboard_register = lapic_pointer.offset(APICOffset::LVT_LINT1 as isize / 4);
+    let keyboard_register = lapic_pointer.offset(APICOffset::LvtLint1 as isize / 4);
     keyboard_register.write_volatile(InterruptIndex::Keyboard as u8 as u32);
 }
 
@@ -258,6 +259,6 @@ fn disable_pic() {
 pub fn end_interrupt() {
     unsafe {
         let lapic_ptr = LAPIC_ADDR.lock().address;
-        lapic_ptr.offset(APICOffset::EOI as isize / 4).write_volatile(0);
+        lapic_ptr.offset(APICOffset::Eoi as isize / 4).write_volatile(0);
     }
 }

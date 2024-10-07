@@ -2,12 +2,11 @@ use crate::apic;
 use crate::gdt::DOUBLE_FAULT_IST_INDEX;
 use lazy_static::lazy_static;
 use log::info;
+use x86_64::instructions::hlt;
 use x86_64::registers::control::Cr2;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode};
 
 pub const PIC_1_OFFSET: u8 = 0x20;
-pub const PIC_2_OFFSET: u8 = PIC_1_OFFSET + 8;
-
 
 lazy_static! {
     pub static ref IDT: InterruptDescriptorTable = {
@@ -36,10 +35,6 @@ pub enum InterruptIndex {
     Keyboard,
 }
 
-pub fn end_interrupt() {
-    apic::end_interrupt();
-}
-
 pub extern "x86-interrupt" fn handle_timer(_stack_frame: InterruptStackFrame) {
     // Handle logic
 
@@ -53,7 +48,9 @@ pub extern "x86-interrupt" fn handle_breakpoint(stack_frame: InterruptStackFrame
 pub extern "x86-interrupt" fn handle_double_fault(stack_frame: InterruptStackFrame, _error_code: u64) -> ! {
     info!("\nDouble fault:\n{:#?}", stack_frame);
 
-    loop {}
+    loop {
+        hlt()
+    }
 }
 
 pub extern "x86-interrupt" fn handle_page_fault(stack_frame: InterruptStackFrame, error_code: PageFaultErrorCode) {
@@ -62,7 +59,9 @@ pub extern "x86-interrupt" fn handle_page_fault(stack_frame: InterruptStackFrame
     info!("ErrorCode        : {:?}", error_code);
     info!("{:#?}", stack_frame);
 
-    loop {}
+    loop {
+        hlt()
+    }
 }
 
 pub extern "x86-interrupt" fn handle_keyboard(_stack_frame: InterruptStackFrame) {

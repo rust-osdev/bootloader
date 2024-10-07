@@ -8,6 +8,7 @@ mod apic;
 mod idt;
 mod gdt;
 
+use x86_64::instructions::hlt;
 use crate::frame_allocator::BootInfoFrameAllocator;
 use bootloader_api::config::Mapping;
 use bootloader_api::{entry_point, BootInfo};
@@ -22,7 +23,7 @@ pub const CONFIG: bootloader_api::BootloaderConfig = {
 
 entry_point!(kernel_main, config = &CONFIG);
 
-pub fn kernel_main(boot_info: &'static mut BootInfo) {
+pub fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     let physical_memory_offset = VirtAddr::new(
         boot_info
             .physical_memory_offset
@@ -34,7 +35,12 @@ pub fn kernel_main(boot_info: &'static mut BootInfo) {
 
     let rsdp: Option<u64> = boot_info.rsdp_addr.take();
 
+    gdt::init();
     unsafe {
         apic::init(rsdp.expect("Failed to get RSDP address") as usize, physical_memory_offset, &mut mapper, &mut frame_allocator);
+    }
+
+    loop {
+        hlt()
     }
 }
