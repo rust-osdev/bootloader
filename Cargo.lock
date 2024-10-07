@@ -3,10 +3,33 @@
 version = 3
 
 [[package]]
+name = "acpi"
+version = "4.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "654f48ab3178632ea535be1765073b990895cb62f70a7e5671975d7150c26d15"
+dependencies = [
+ "bit_field",
+ "log",
+ "rsdp",
+]
+
+[[package]]
 name = "anyhow"
 version = "1.0.71"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9c7d0618f0e0b7e8ff11427422b64564d5fb0be1940354bfe2e0529b18a9d9b8"
+
+[[package]]
+name = "apic_example"
+version = "0.11.7"
+dependencies = [
+ "acpi",
+ "bootloader_api",
+ "lazy_static",
+ "log",
+ "spin",
+ "x86_64 0.15.1",
+]
 
 [[package]]
 name = "arrayvec"
@@ -224,7 +247,7 @@ dependencies = [
  "rsdp",
  "serde-json-core",
  "usize_conversions",
- "x86_64",
+ "x86_64 0.14.10",
 ]
 
 [[package]]
@@ -242,7 +265,7 @@ dependencies = [
  "spinning_top",
  "uart_16550",
  "usize_conversions",
- "x86_64",
+ "x86_64 0.14.10",
  "xmas-elf",
 ]
 
@@ -256,7 +279,7 @@ dependencies = [
  "log",
  "serde-json-core",
  "uefi",
- "x86_64",
+ "x86_64 0.14.10",
 ]
 
 [[package]]
@@ -591,6 +614,12 @@ name = "itoa"
 version = "1.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "62b02a5381cc465bd3041d84623d0fa3b66738b52b8e2fc3bab8ad63ab032f4a"
+
+[[package]]
+name = "lazy_static"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
 name = "libc"
@@ -1059,7 +1088,7 @@ version = "0.1.0"
 dependencies = [
  "bootloader_api",
  "uart_16550",
- "x86_64",
+ "x86_64 0.14.10",
 ]
 
 [[package]]
@@ -1068,7 +1097,7 @@ version = "0.1.0"
 dependencies = [
  "bootloader_api",
  "uart_16550",
- "x86_64",
+ "x86_64 0.14.10",
 ]
 
 [[package]]
@@ -1077,7 +1106,7 @@ version = "0.1.0"
 dependencies = [
  "bootloader_api",
  "uart_16550",
- "x86_64",
+ "x86_64 0.14.10",
 ]
 
 [[package]]
@@ -1086,7 +1115,7 @@ version = "0.1.0"
 dependencies = [
  "bootloader_api",
  "uart_16550",
- "x86_64",
+ "x86_64 0.14.10",
 ]
 
 [[package]]
@@ -1095,7 +1124,7 @@ version = "0.1.0"
 dependencies = [
  "bootloader_api",
  "uart_16550",
- "x86_64",
+ "x86_64 0.14.10",
 ]
 
 [[package]]
@@ -1104,7 +1133,7 @@ version = "0.1.0"
 dependencies = [
  "bootloader_api",
  "uart_16550",
- "x86_64",
+ "x86_64 0.14.10",
 ]
 
 [[package]]
@@ -1113,7 +1142,7 @@ version = "0.1.0"
 dependencies = [
  "bootloader_api",
  "uart_16550",
- "x86_64",
+ "x86_64 0.14.10",
 ]
 
 [[package]]
@@ -1122,7 +1151,7 @@ version = "0.1.0"
 dependencies = [
  "bootloader_api",
  "uart_16550",
- "x86_64",
+ "x86_64 0.14.10",
 ]
 
 [[package]]
@@ -1131,7 +1160,7 @@ version = "0.1.0"
 dependencies = [
  "bootloader_api",
  "uart_16550",
- "x86_64",
+ "x86_64 0.14.10",
 ]
 
 [[package]]
@@ -1140,7 +1169,7 @@ version = "0.1.0"
 dependencies = [
  "bootloader_api",
  "uart_16550",
- "x86_64",
+ "x86_64 0.14.10",
 ]
 
 [[package]]
@@ -1171,7 +1200,7 @@ checksum = "b074eb9300ad949edd74c529c0e8d451625af71bb948e6b65fe69f72dc1363d9"
 dependencies = [
  "bitflags 1.3.2",
  "rustversion",
- "x86_64",
+ "x86_64 0.14.10",
 ]
 
 [[package]]
@@ -1378,6 +1407,18 @@ checksum = "100555a863c0092238c2e0e814c1096c1e5cf066a309c696a87e907b5f8c5d69"
 dependencies = [
  "bit_field",
  "bitflags 1.3.2",
+ "rustversion",
+ "volatile",
+]
+
+[[package]]
+name = "x86_64"
+version = "0.15.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4bc79523af8abf92fb1a970c3e086c5a343f6bcc1a0eb890f575cbb3b45743df"
+dependencies = [
+ "bit_field",
+ "bitflags 2.3.3",
  "rustversion",
  "volatile",
 ]

@@ -28,6 +28,7 @@ members = [
     "tests/test_kernels/min_stack",
     "tests/test_kernels/lower_memory_free",
     "tests/test_kernels/write_usable_memory",
+    "docs/apic_example",
 ]
 exclude = ["examples/basic", "examples/test_framework"]
 
