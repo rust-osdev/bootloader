@@ -45,7 +45,10 @@ pub extern "x86-interrupt" fn handle_breakpoint(stack_frame: InterruptStackFrame
     info!("Breakpoint hit:\n{:#?}", stack_frame);
 }
 
-pub extern "x86-interrupt" fn handle_double_fault(stack_frame: InterruptStackFrame, _error_code: u64) -> ! {
+pub extern "x86-interrupt" fn handle_double_fault(
+    stack_frame: InterruptStackFrame,
+    _error_code: u64,
+) -> ! {
     info!("\nDouble fault:\n{:#?}", stack_frame);
 
     loop {
@@ -53,7 +56,10 @@ pub extern "x86-interrupt" fn handle_double_fault(stack_frame: InterruptStackFra
     }
 }
 
-pub extern "x86-interrupt" fn handle_page_fault(stack_frame: InterruptStackFrame, error_code: PageFaultErrorCode) {
+pub extern "x86-interrupt" fn handle_page_fault(
+    stack_frame: InterruptStackFrame,
+    error_code: PageFaultErrorCode,
+) {
     info!("Exception        : Page Fault");
     info!("Accessed address : {:?}", Cr2::read());
     info!("ErrorCode        : {:?}", error_code);
@@ -69,5 +75,3 @@ pub extern "x86-interrupt" fn handle_keyboard(_stack_frame: InterruptStackFrame)
 
     apic::end_interrupt();
 }
-
-

@@ -3,15 +3,15 @@
 #![no_main]
 
 extern crate alloc;
-mod frame_allocator;
 mod apic;
-mod idt;
+mod frame_allocator;
 mod gdt;
+mod idt;
 
-use x86_64::instructions::hlt;
 use crate::frame_allocator::BootInfoFrameAllocator;
 use bootloader_api::config::Mapping;
 use bootloader_api::{entry_point, BootInfo};
+use x86_64::instructions::hlt;
 use x86_64::structures::paging::OffsetPageTable;
 use x86_64::VirtAddr;
 
@@ -37,7 +37,12 @@ pub fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
 
     gdt::init();
     unsafe {
-        apic::init(rsdp.expect("Failed to get RSDP address") as usize, physical_memory_offset, &mut mapper, &mut frame_allocator);
+        apic::init(
+            rsdp.expect("Failed to get RSDP address") as usize,
+            physical_memory_offset,
+            &mut mapper,
+            &mut frame_allocator,
+        );
     }
 
     loop {
