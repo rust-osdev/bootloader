@@ -10,7 +10,7 @@ lazy_static! {
     pub static ref LAPIC_ADDR: Mutex<LAPICAddress> = Mutex::new(LAPICAddress::new()); // Needs to be initialized
 }
 
-// https://wiki.osdev.org/APIC#:~:text=APIC%20(%22Advanced%20Programmable%20Interrupt%20Controller%22)%20is%20the
+// https://wiki.osdev.org/APIC
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, Copy)]
 #[repr(isize)]
