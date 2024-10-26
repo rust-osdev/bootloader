@@ -463,10 +463,7 @@ pub struct Mappings {
 
 /// Allocates and initializes the boot info struct and the memory map.
 ///
-/// The boot info and memory map are mapped to both the kernel and bootloader
-/// address space at the same address. This makes it possible to return a Rust
-/// reference that is valid in both address spaces. The necessary physical frames
-/// are taken from the given `frame_allocator`.
+/// The necessary physical frames are taken from the given `frame_allocator`.
 pub fn create_boot_info<I, D>(
     config: &BootloaderConfig,
     boot_config: &BootConfig,
@@ -513,19 +510,15 @@ where
             Ok(tlb) => tlb.flush(),
             Err(err) => panic!("failed to map page {:?}: {:?}", page, err),
         }
-        // we need to be able to access it too
-        match unsafe {
-            page_tables
-                .bootloader
-                .map_to(page, frame, flags, &mut frame_allocator)
-        } {
-            Ok(tlb) => tlb.flush(),
-            Err(err) => panic!("failed to map page {:?}: {:?}", page, err),
-        }
     }
 
-    let boot_info: &'static mut MaybeUninit<BootInfo> =
-        unsafe { &mut *boot_info_addr.as_mut_ptr() };
+    let boot_info: &'static mut MaybeUninit<BootInfo> = unsafe {
+        // SAFETY: This is technically UB because the current page tables don't
+        // map `memory_map_regions_addr`, so we have to be careful to not
+        // access any elements.
+        // We have to do this because `BootInfo` needs a `MemoryRegions`.
+        &mut *boot_info_addr.as_mut_ptr()
+    };
 
     log::info!("Create Memory Map");
 
@@ -546,38 +539,43 @@ where
     log::info!("Create bootinfo");
 
     // create boot info
-    let boot_info = boot_info.write({
-        let mut info = BootInfo::new(memory_regions.into());
-        info.framebuffer = mappings
-            .framebuffer
-            .map(|addr| unsafe {
-                FrameBuffer::new(
-                    addr.as_u64(),
-                    system_info
-                        .framebuffer
-                        .expect(
-                            "there shouldn't be a mapping for the framebuffer if there is \
-                            no framebuffer",
-                        )
-                        .info,
-                )
-            })
-            .into();
-        info.physical_memory_offset = mappings.physical_memory_offset.map(VirtAddr::as_u64).into();
-        info.recursive_index = mappings.recursive_index.map(Into::into).into();
-        info.rsdp_addr = system_info.rsdp_addr.map(|addr| addr.as_u64()).into();
-        info.tls_template = mappings.tls_template.into();
-        info.ramdisk_addr = mappings
-            .ramdisk_slice_start
-            .map(|addr| addr.as_u64())
-            .into();
-        info.ramdisk_len = mappings.ramdisk_slice_len;
-        info.kernel_addr = mappings.kernel_slice_start.as_u64();
-        info.kernel_len = mappings.kernel_slice_len as _;
-        info.kernel_image_offset = mappings.kernel_image_offset.as_u64();
-        info._test_sentinel = boot_config._test_sentinel;
-        info
-    });
+    let mut info = BootInfo::new(memory_regions.into());
+    info.framebuffer = mappings
+        .framebuffer
+        .map(|addr| unsafe {
+            FrameBuffer::new(
+                addr.as_u64(),
+                system_info
+                    .framebuffer
+                    .expect(
+                        "there shouldn't be a mapping for the framebuffer if there is \
+                        no framebuffer",
+                    )
+                    .info,
+            )
+        })
+        .into();
+    info.physical_memory_offset = mappings.physical_memory_offset.map(VirtAddr::as_u64).into();
+    info.recursive_index = mappings.recursive_index.map(Into::into).into();
+    info.rsdp_addr = system_info.rsdp_addr.map(|addr| addr.as_u64()).into();
+    info.tls_template = mappings.tls_template.into();
+    info.ramdisk_addr = mappings
+        .ramdisk_slice_start
+        .map(|addr| addr.as_u64())
+        .into();
+    info.ramdisk_len = mappings.ramdisk_slice_len;
+    info.kernel_addr = mappings.kernel_slice_start.as_u64();
+    info.kernel_len = mappings.kernel_slice_len as _;
+    info.kernel_image_offset = mappings.kernel_image_offset.as_u64();
+    info._test_sentinel = boot_config._test_sentinel;
+
+    // Write to boot info directly to the identity-mapped frame.
+    let boot_info_frame = page_tables.kernel.translate_page(start_page).unwrap();
+    assert!(size_of::<BootInfo>() <= Size4KiB::SIZE as usize);
+    let ptr = boot_info_frame.start_address().as_u64() as *mut BootInfo;
+    unsafe {
+        ptr.write(info);
+    }
 
     boot_info_addr
 }
