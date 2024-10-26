@@ -221,13 +221,6 @@ fn create_page_tables(frame_allocator: &mut impl FrameAllocator<Size4KiB>) -> Pa
     // We identity-mapped all memory, so the offset between physical and virtual addresses is 0
     let phys_offset = VirtAddr::new(0);
 
-    // copy the currently active level 4 page table, because it might be read-only
-    let bootloader_page_table = {
-        let frame = x86_64::registers::control::Cr3::read().0;
-        let table: *mut PageTable = (phys_offset + frame.start_address().as_u64()).as_mut_ptr();
-        unsafe { OffsetPageTable::new(&mut *table, phys_offset) }
-    };
-
     // create a new page table hierarchy for the kernel
     let (kernel_page_table, kernel_level_4_frame) = {
         // get an unused frame for new level 4 page table
@@ -246,7 +239,6 @@ fn create_page_tables(frame_allocator: &mut impl FrameAllocator<Size4KiB>) -> Pa
     };
 
     PageTables {
-        bootloader: bootloader_page_table,
         kernel: kernel_page_table,
         kernel_level_4_frame,
     }

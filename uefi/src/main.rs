@@ -389,41 +389,6 @@ fn create_page_tables(
     // UEFI identity-maps all memory, so the offset between physical and virtual addresses is 0
     let phys_offset = VirtAddr::new(0);
 
-    // copy the currently active level 4 page table, because it might be read-only
-    log::trace!("switching to new level 4 table");
-    let bootloader_page_table = {
-        let old_table = {
-            let frame = x86_64::registers::control::Cr3::read().0;
-            let ptr: *const PageTable = (phys_offset + frame.start_address().as_u64()).as_ptr();
-            unsafe { &*ptr }
-        };
-        let new_frame = frame_allocator
-            .allocate_frame()
-            .expect("Failed to allocate frame for new level 4 table");
-        let new_table: &mut PageTable = {
-            let ptr: *mut PageTable =
-                (phys_offset + new_frame.start_address().as_u64()).as_mut_ptr();
-            // create a new, empty page table
-            unsafe {
-                ptr.write(PageTable::new());
-                &mut *ptr
-            }
-        };
-
-        // copy the first entry (we don't need to access more than 512 GiB; also, some UEFI
-        // implementations seem to create an level 4 table entry 0 in all slots)
-        new_table[0] = old_table[0].clone();
-
-        // the first level 4 table entry is now identical, so we can just load the new one
-        unsafe {
-            x86_64::registers::control::Cr3::write(
-                new_frame,
-                x86_64::registers::control::Cr3Flags::empty(),
-            );
-            OffsetPageTable::new(&mut *new_table, phys_offset)
-        }
-    };
-
     // create a new page table hierarchy for the kernel
     let (kernel_page_table, kernel_level_4_frame) = {
         // get an unused frame for new level 4 page table
@@ -442,7 +407,6 @@ fn create_page_tables(
     };
 
     bootloader_x86_64_common::PageTables {
-        bootloader: bootloader_page_table,
         kernel: kernel_page_table,
         kernel_level_4_frame,
     }

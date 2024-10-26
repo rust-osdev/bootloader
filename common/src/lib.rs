@@ -605,8 +605,6 @@ pub fn switch_to_kernel(page_tables: PageTables, mappings: Mappings, boot_info: 
 
 /// Provides access to the page tables of the bootloader and kernel address space.
 pub struct PageTables {
-    /// Provides access to the page tables of the bootloader address space.
-    pub bootloader: OffsetPageTable<'static>,
     /// Provides access to the page tables of the kernel address space (not active).
     pub kernel: OffsetPageTable<'static>,
     /// The physical frame where the level 4 page table of the kernel address space is stored.
