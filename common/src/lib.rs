@@ -10,6 +10,7 @@ use bootloader_api::{
 };
 use bootloader_boot_config::{BootConfig, LevelFilter};
 use core::{alloc::Layout, arch::asm, mem::MaybeUninit, slice};
+use legacy_memory_region::RemoteMemoryRegion;
 use level_4_entries::UsedLevel4Entries;
 use usize_conversions::FromUsize;
 use x86_64::{
@@ -481,68 +482,66 @@ where
     log::info!("Allocate bootinfo");
 
     // allocate and map space for the boot info
-    let (boot_info, memory_regions) = {
-        let boot_info_layout = Layout::new::<BootInfo>();
-        let regions = frame_allocator.memory_map_max_region_count();
-        let memory_regions_layout = Layout::array::<MemoryRegion>(regions).unwrap();
-        let (combined, memory_regions_offset) =
-            boot_info_layout.extend(memory_regions_layout).unwrap();
+    let boot_info_layout = Layout::new::<BootInfo>();
+    let regions = frame_allocator.memory_map_max_region_count();
+    let memory_regions_layout = Layout::array::<MemoryRegion>(regions).unwrap();
+    let (combined, memory_regions_offset) = boot_info_layout.extend(memory_regions_layout).unwrap();
 
-        let boot_info_addr = mapping_addr(
-            config.mappings.boot_info,
-            u64::from_usize(combined.size()),
-            u64::from_usize(combined.align()),
-            &mut mappings.used_entries,
-        )
-        .expect("boot info addr is not properly aligned");
+    let boot_info_addr = mapping_addr(
+        config.mappings.boot_info,
+        u64::from_usize(combined.size()),
+        u64::from_usize(combined.align()),
+        &mut mappings.used_entries,
+    )
+    .expect("boot info addr is not properly aligned");
 
-        let memory_map_regions_addr = boot_info_addr + memory_regions_offset;
-        let memory_map_regions_end = boot_info_addr + combined.size();
+    let memory_map_regions_addr = boot_info_addr + memory_regions_offset;
+    let memory_map_regions_end = boot_info_addr + combined.size();
 
-        let start_page = Page::containing_address(boot_info_addr);
-        let end_page = Page::containing_address(memory_map_regions_end - 1u64);
-        for page in Page::range_inclusive(start_page, end_page) {
-            let flags =
-                PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
-            let frame = frame_allocator
-                .allocate_frame()
-                .expect("frame allocation for boot info failed");
-            match unsafe {
-                page_tables
-                    .kernel
-                    .map_to(page, frame, flags, &mut frame_allocator)
-            } {
-                Ok(tlb) => tlb.flush(),
-                Err(err) => panic!("failed to map page {:?}: {:?}", page, err),
-            }
-            // we need to be able to access it too
-            match unsafe {
-                page_tables
-                    .bootloader
-                    .map_to(page, frame, flags, &mut frame_allocator)
-            } {
-                Ok(tlb) => tlb.flush(),
-                Err(err) => panic!("failed to map page {:?}: {:?}", page, err),
-            }
+    let start_page = Page::containing_address(boot_info_addr);
+    let end_page = Page::containing_address(memory_map_regions_end - 1u64);
+    for page in Page::range_inclusive(start_page, end_page) {
+        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
+        let frame = frame_allocator
+            .allocate_frame()
+            .expect("frame allocation for boot info failed");
+        match unsafe {
+            page_tables
+                .kernel
+                .map_to(page, frame, flags, &mut frame_allocator)
+        } {
+            Ok(tlb) => tlb.flush(),
+            Err(err) => panic!("failed to map page {:?}: {:?}", page, err),
         }
+        // we need to be able to access it too
+        match unsafe {
+            page_tables
+                .bootloader
+                .map_to(page, frame, flags, &mut frame_allocator)
+        } {
+            Ok(tlb) => tlb.flush(),
+            Err(err) => panic!("failed to map page {:?}: {:?}", page, err),
+        }
+    }
 
-        let boot_info: &'static mut MaybeUninit<BootInfo> =
-            unsafe { &mut *boot_info_addr.as_mut_ptr() };
-        let memory_regions: &'static mut [MaybeUninit<MemoryRegion>] =
-            unsafe { slice::from_raw_parts_mut(memory_map_regions_addr.as_mut_ptr(), regions) };
-        (boot_info, memory_regions)
-    };
+    let boot_info: &'static mut MaybeUninit<BootInfo> =
+        unsafe { &mut *boot_info_addr.as_mut_ptr() };
 
     log::info!("Create Memory Map");
 
     // build memory map
-    let memory_regions = frame_allocator.construct_memory_map(
-        memory_regions,
+    let mut slice =
+        unsafe { RemoteMemoryRegion::new(&page_tables.kernel, memory_map_regions_addr, regions) };
+    let len = frame_allocator.construct_memory_map(
+        &mut slice,
         mappings.kernel_slice_start,
         mappings.kernel_slice_len,
         mappings.ramdisk_slice_phys_start,
         mappings.ramdisk_slice_len,
     );
+
+    let memory_regions =
+        unsafe { core::slice::from_raw_parts_mut(memory_map_regions_addr.as_mut_ptr(), len) };
 
     log::info!("Create bootinfo");
 

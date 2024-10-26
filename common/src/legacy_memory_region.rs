@@ -1,13 +1,9 @@
 use bootloader_api::info::{MemoryRegion, MemoryRegionKind};
-use core::{
-    cmp,
-    iter::{empty, Empty},
-    mem::MaybeUninit,
-};
+use core::{cmp, mem::MaybeUninit};
 use x86_64::{
     align_down, align_up,
-    structures::paging::{FrameAllocator, PhysFrame, Size4KiB},
-    PhysAddr,
+    structures::paging::{FrameAllocator, OffsetPageTable, PhysFrame, Size4KiB, Translate},
+    PhysAddr, VirtAddr,
 };
 
 /// A slice of memory that is used by the bootloader and needs to be reserved
@@ -159,14 +155,14 @@ where
     /// must be at least the value returned by [`len`] plus 1.
     ///
     /// The return slice is a subslice of `regions`, shortened to the actual number of regions.
-    pub fn construct_memory_map(
+    pub(crate) fn construct_memory_map(
         self,
-        regions: &mut [MaybeUninit<MemoryRegion>],
+        regions: &mut (impl MemoryRegionSlice + ?Sized),
         kernel_slice_start: PhysAddr,
         kernel_slice_len: u64,
         ramdisk_slice_start: Option<PhysAddr>,
         ramdisk_slice_len: u64,
-    ) -> &mut [MemoryRegion] {
+    ) -> usize {
         let used_slices = [
             UsedMemorySlice {
                 start: self.min_frame.start_address().as_u64(),
@@ -211,17 +207,12 @@ where
             }
         }
 
-        let initialized = &mut regions[..next_index];
-        unsafe {
-            // inlined variant of: `MaybeUninit::slice_assume_init_mut(initialized)`
-            // TODO: undo inlining when `slice_assume_init_mut` becomes stable
-            &mut *(initialized as *mut [_] as *mut [_])
-        }
+        next_index
     }
 
     fn split_and_add_region<'a, U>(
         mut region: MemoryRegion,
-        regions: &mut [MaybeUninit<MemoryRegion>],
+        regions: &mut (impl MemoryRegionSlice + ?Sized),
         next_index: &mut usize,
         used_slices: U,
     ) where
@@ -279,21 +270,94 @@ where
 
     fn add_region(
         region: MemoryRegion,
-        regions: &mut [MaybeUninit<MemoryRegion>],
+        regions: &mut (impl MemoryRegionSlice + ?Sized),
         next_index: &mut usize,
     ) {
         if region.start == region.end {
             // skip zero sized regions
             return;
         }
-        unsafe {
-            regions
-                .get_mut(*next_index)
-                .expect("cannot add region: no more free entries in memory map")
-                .as_mut_ptr()
-                .write(region)
-        };
+        regions.set(*next_index, region);
         *next_index += 1;
+    }
+}
+
+/// A trait for slice-like types that allow writing a memory region to given
+/// index. Usually `RemoteMemoryRegion` is used, but we use
+/// `[MaybeUninit<MemoryRegion>]` in tests.
+pub(crate) trait MemoryRegionSlice {
+    fn set(&mut self, index: usize, region: MemoryRegion);
+}
+
+#[cfg(test)]
+impl MemoryRegionSlice for [MaybeUninit<MemoryRegion>] {
+    fn set(&mut self, index: usize, region: MemoryRegion) {
+        self.get_mut(index)
+            .expect("cannot add region: no more free entries in memory map")
+            .write(region);
+    }
+}
+
+/// This type makes it possible to write to a slice mapped in a different set
+/// of page tables. For every write access, we look up the physical frame in
+/// the page tables and directly write to the physical memory. That way we
+/// don't need to map the slice into the current page tables.
+pub(crate) struct RemoteMemoryRegion<'a> {
+    page_table: &'a OffsetPageTable<'a>,
+    base: VirtAddr,
+    len: usize,
+}
+
+impl<'a> RemoteMemoryRegion<'a> {
+    /// Construct a new `RemoteMemoryRegion`.
+    ///
+    /// # Safety
+    ///
+    /// The caller has to ensure that the memory in the starting at `base`
+    /// isn't aliasing memory in the current page tables.
+    pub unsafe fn new(page_table: &'a OffsetPageTable<'a>, base: VirtAddr, len: usize) -> Self {
+        Self {
+            page_table,
+            base,
+            len,
+        }
+    }
+}
+
+impl MemoryRegionSlice for RemoteMemoryRegion<'_> {
+    fn set(&mut self, index: usize, region: MemoryRegion) {
+        assert!(
+            index < self.len,
+            "cannot add region: no more free entries in memory map"
+        );
+
+        // Cast the memory region into a byte slice. MemoryRegion has some
+        // padding bytes, so need to use `MaybeUninit<u8>` instead of `u8`.
+        let bytes = unsafe {
+            core::slice::from_raw_parts(
+                &region as *const _ as *const MaybeUninit<u8>,
+                size_of::<MemoryRegion>(),
+            )
+        };
+
+        // An entry may cross a page boundary, so write one byte at a time.
+        let addr = self.base + index * size_of::<MemoryRegion>();
+        for (addr, byte) in (addr..).zip(bytes.iter().copied()) {
+            // Lookup the physical address in the remote page table.
+            let phys_addr = self
+                .page_table
+                .translate_addr(addr)
+                .expect("memory is mapped in the page table");
+
+            // Get a pointer to the physical memory -> All physical memory is
+            // identitiy mapped.
+            let ptr = phys_addr.as_u64() as *mut MaybeUninit<u8>;
+
+            // Write the byte.
+            unsafe {
+                ptr.write(byte);
+            }
+        }
     }
 }
 
@@ -384,13 +448,20 @@ mod tests {
         let ramdisk_slice_start = None;
         let ramdisk_slice_len = 0;
 
-        let kernel_regions = allocator.construct_memory_map(
-            &mut regions,
+        let len = allocator.construct_memory_map(
+            regions.as_mut_slice(),
             kernel_slice_start,
             kernel_slice_len,
             ramdisk_slice_start,
             ramdisk_slice_len,
         );
+
+        let initialized = &mut regions[..len];
+        let kernel_regions = unsafe {
+            // inlined variant of: `MaybeUninit::slice_assume_init_mut(initialized)`
+            // TODO: undo inlining when `slice_assume_init_mut` becomes stable
+            &mut *(initialized as *mut [_] as *mut [MemoryRegion])
+        };
 
         for region in kernel_regions.iter() {
             assert!(region.start % 0x1000 == 0);
@@ -411,13 +482,21 @@ mod tests {
         let ramdisk_slice_start = Some(PhysAddr::new(0x60000));
         let ramdisk_slice_len = 0x2000;
 
-        let kernel_regions = allocator.construct_memory_map(
-            &mut regions,
+        let len = allocator.construct_memory_map(
+            regions.as_mut_slice(),
             kernel_slice_start,
             kernel_slice_len,
             ramdisk_slice_start,
             ramdisk_slice_len,
         );
+
+        let initialized = &mut regions[..len];
+        let kernel_regions = unsafe {
+            // inlined variant of: `MaybeUninit::slice_assume_init_mut(initialized)`
+            // TODO: undo inlining when `slice_assume_init_mut` becomes stable
+            &mut *(initialized as *mut [_] as *mut [MemoryRegion])
+        };
+
         let mut kernel_regions = kernel_regions.iter();
         // usable memory before the kernel
         assert_eq!(
@@ -514,13 +593,21 @@ mod tests {
         let ramdisk_slice_start = Some(PhysAddr::new(0x60000));
         let ramdisk_slice_len = 0x2000;
 
-        let kernel_regions = allocator.construct_memory_map(
-            &mut regions,
+        let len = allocator.construct_memory_map(
+            regions.as_mut_slice(),
             kernel_slice_start,
             kernel_slice_len,
             ramdisk_slice_start,
             ramdisk_slice_len,
         );
+
+        let initialized = &mut regions[..len];
+        let kernel_regions = unsafe {
+            // inlined variant of: `MaybeUninit::slice_assume_init_mut(initialized)`
+            // TODO: undo inlining when `slice_assume_init_mut` becomes stable
+            &mut *(initialized as *mut [_] as *mut [MemoryRegion])
+        };
+
         let mut kernel_regions = kernel_regions.iter();
 
         // usable memory before the kernel
