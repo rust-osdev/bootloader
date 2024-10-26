@@ -474,7 +474,7 @@ pub fn create_boot_info<I, D>(
     page_tables: &mut PageTables,
     mappings: &mut Mappings,
     system_info: SystemInfo,
-) -> &'static mut BootInfo
+) -> VirtAddr
 where
     I: ExactSizeIterator<Item = D> + Clone,
     D: LegacyMemoryRegion,
@@ -579,15 +579,11 @@ where
         info
     });
 
-    boot_info
+    boot_info_addr
 }
 
 /// Switches to the kernel address space and jumps to the kernel entry point.
-pub fn switch_to_kernel(
-    page_tables: PageTables,
-    mappings: Mappings,
-    boot_info: &'static mut BootInfo,
-) -> ! {
+pub fn switch_to_kernel(page_tables: PageTables, mappings: Mappings, boot_info: VirtAddr) -> ! {
     let PageTables {
         kernel_level_4_frame,
         ..
@@ -637,7 +633,7 @@ unsafe fn context_switch(addresses: Addresses) -> ! {
             in(reg) addresses.page_table.start_address().as_u64(),
             in(reg) addresses.stack_top.as_u64(),
             in(reg) addresses.entry_point.as_u64(),
-            in("rdi") addresses.boot_info as *const _ as usize,
+            in("rdi") addresses.boot_info.as_u64(),
         );
     }
     unreachable!();
@@ -648,7 +644,7 @@ struct Addresses {
     page_table: PhysFrame,
     stack_top: VirtAddr,
     entry_point: VirtAddr,
-    boot_info: &'static mut BootInfo,
+    boot_info: VirtAddr,
 }
 
 fn mapping_addr_page_aligned(
