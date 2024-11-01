@@ -144,7 +144,8 @@ fn main_inner(image: Handle, mut st: SystemTable<Boot>) -> Status {
     let mut frame_allocator =
         LegacyFrameAllocator::new(memory_map.entries().copied().map(UefiMemoryDescriptor));
 
-    let page_tables = create_page_tables(&mut frame_allocator);
+    let max_phys_addr = frame_allocator.max_phys_addr();
+    let page_tables = create_page_tables(&mut frame_allocator, max_phys_addr, framebuffer.as_ref());
     let mut ramdisk_len = 0u64;
     let ramdisk_addr = if let Some(rd) = ramdisk {
         ramdisk_len = rd.len() as u64;
@@ -385,6 +386,8 @@ fn load_file_from_tftp_boot_server(
 /// Creates page table abstraction types for both the bootloader and kernel page tables.
 fn create_page_tables(
     frame_allocator: &mut impl FrameAllocator<Size4KiB>,
+    max_phys_addr: PhysAddr,
+    frame_buffer: Option<&RawFrameBufferInfo>,
 ) -> bootloader_x86_64_common::PageTables {
     // UEFI identity-maps all memory, so the offset between physical and virtual addresses is 0
     let phys_offset = VirtAddr::new(0);
@@ -410,9 +413,21 @@ fn create_page_tables(
             }
         };
 
-        // copy the first entry (we don't need to access more than 512 GiB; also, some UEFI
-        // implementations seem to create an level 4 table entry 0 in all slots)
-        new_table[0] = old_table[0].clone();
+        // copy the pml4 entries for all identity mapped memory.
+        let end_addr = VirtAddr::new(max_phys_addr.as_u64() - 1);
+        for p4 in 0..=usize::from(end_addr.p4_index()) {
+            new_table[p4] = old_table[p4].clone();
+        }
+
+        // copy the pml4 entry for the frame buffer (the frame buffer is not
+        // necessarily part of the identity mapping).
+        if let Some(frame_buffer) = frame_buffer {
+            let start_addr = VirtAddr::new(frame_buffer.addr.as_u64());
+            let end_addr = start_addr + frame_buffer.info.byte_len;
+            for p4 in usize::from(start_addr.p4_index())..=usize::from(end_addr.p4_index()) {
+                new_table[p4] = old_table[p4].clone();
+            }
+        }
 
         // the first level 4 table entry is now identical, so we can just load the new one
         unsafe {

@@ -39,7 +39,17 @@ impl UsedLevel4Entries {
             rng: config.mappings.aslr.then(entropy::build_rng),
         };
 
-        used.entry_state[0] = true; // TODO: Can we do this dynamically?
+        // The bootloader maps of the kernel's memory into its own page tables.
+        // We need to prevent overlaps, so mark all memory that could already
+        // be used by the bootload as inaccessible.
+
+        // All memory in this range is identity mapped.
+        used.mark_range_as_used(0, max_phys_addr.as_u64());
+
+        // The bootload needs to access the frame buffer.
+        if let Some(frame_buffer) = framebuffer {
+            used.mark_range_as_used(frame_buffer.addr.as_u64(), frame_buffer.info.byte_len);
+        }
 
         // Mark the statically configured ranges from the config as used.
 
