@@ -410,9 +410,10 @@ fn create_page_tables(
             }
         };
 
-        // copy the first entry (we don't need to access more than 512 GiB; also, some UEFI
-        // implementations seem to create an level 4 table entry 0 in all slots)
-        new_table[0] = old_table[0].clone();
+        // copy all entries
+        for (index, entry) in old_table.iter().enumerate() {
+            new_table[index] = entry.clone();
+        }
 
         // the first level 4 table entry is now identical, so we can just load the new one
         unsafe {
