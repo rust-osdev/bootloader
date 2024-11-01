@@ -10,6 +10,7 @@ use bootloader_api::{
 };
 use bootloader_boot_config::{BootConfig, LevelFilter};
 use core::{alloc::Layout, arch::asm, mem::MaybeUninit, slice};
+use legacy_memory_region::RemoteMemoryRegion;
 use level_4_entries::UsedLevel4Entries;
 use usize_conversions::FromUsize;
 use x86_64::{
@@ -462,10 +463,7 @@ pub struct Mappings {
 
 /// Allocates and initializes the boot info struct and the memory map.
 ///
-/// The boot info and memory map are mapped to both the kernel and bootloader
-/// address space at the same address. This makes it possible to return a Rust
-/// reference that is valid in both address spaces. The necessary physical frames
-/// are taken from the given `frame_allocator`.
+/// The necessary physical frames are taken from the given `frame_allocator`.
 pub fn create_boot_info<I, D>(
     config: &BootloaderConfig,
     boot_config: &BootConfig,
@@ -473,7 +471,7 @@ pub fn create_boot_info<I, D>(
     page_tables: &mut PageTables,
     mappings: &mut Mappings,
     system_info: SystemInfo,
-) -> &'static mut BootInfo
+) -> VirtAddr
 where
     I: ExactSizeIterator<Item = D> + Clone,
     D: LegacyMemoryRegion,
@@ -481,114 +479,109 @@ where
     log::info!("Allocate bootinfo");
 
     // allocate and map space for the boot info
-    let (boot_info, memory_regions) = {
-        let boot_info_layout = Layout::new::<BootInfo>();
-        let regions = frame_allocator.memory_map_max_region_count();
-        let memory_regions_layout = Layout::array::<MemoryRegion>(regions).unwrap();
-        let (combined, memory_regions_offset) =
-            boot_info_layout.extend(memory_regions_layout).unwrap();
+    let boot_info_layout = Layout::new::<BootInfo>();
+    let regions = frame_allocator.memory_map_max_region_count();
+    let memory_regions_layout = Layout::array::<MemoryRegion>(regions).unwrap();
+    let (combined, memory_regions_offset) = boot_info_layout.extend(memory_regions_layout).unwrap();
 
-        let boot_info_addr = mapping_addr(
-            config.mappings.boot_info,
-            u64::from_usize(combined.size()),
-            u64::from_usize(combined.align()),
-            &mut mappings.used_entries,
-        )
-        .expect("boot info addr is not properly aligned");
+    let boot_info_addr = mapping_addr(
+        config.mappings.boot_info,
+        u64::from_usize(combined.size()),
+        u64::from_usize(combined.align()),
+        &mut mappings.used_entries,
+    )
+    .expect("boot info addr is not properly aligned");
 
-        let memory_map_regions_addr = boot_info_addr + memory_regions_offset;
-        let memory_map_regions_end = boot_info_addr + combined.size();
+    let memory_map_regions_addr = boot_info_addr + memory_regions_offset;
+    let memory_map_regions_end = boot_info_addr + combined.size();
 
-        let start_page = Page::containing_address(boot_info_addr);
-        let end_page = Page::containing_address(memory_map_regions_end - 1u64);
-        for page in Page::range_inclusive(start_page, end_page) {
-            let flags =
-                PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
-            let frame = frame_allocator
-                .allocate_frame()
-                .expect("frame allocation for boot info failed");
-            match unsafe {
-                page_tables
-                    .kernel
-                    .map_to(page, frame, flags, &mut frame_allocator)
-            } {
-                Ok(tlb) => tlb.flush(),
-                Err(err) => panic!("failed to map page {:?}: {:?}", page, err),
-            }
-            // we need to be able to access it too
-            match unsafe {
-                page_tables
-                    .bootloader
-                    .map_to(page, frame, flags, &mut frame_allocator)
-            } {
-                Ok(tlb) => tlb.flush(),
-                Err(err) => panic!("failed to map page {:?}: {:?}", page, err),
-            }
+    let start_page = Page::containing_address(boot_info_addr);
+    let end_page = Page::containing_address(memory_map_regions_end - 1u64);
+    for page in Page::range_inclusive(start_page, end_page) {
+        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE;
+        let frame = frame_allocator
+            .allocate_frame()
+            .expect("frame allocation for boot info failed");
+        match unsafe {
+            page_tables
+                .kernel
+                .map_to(page, frame, flags, &mut frame_allocator)
+        } {
+            Ok(tlb) => tlb.flush(),
+            Err(err) => panic!("failed to map page {:?}: {:?}", page, err),
         }
+    }
 
-        let boot_info: &'static mut MaybeUninit<BootInfo> =
-            unsafe { &mut *boot_info_addr.as_mut_ptr() };
-        let memory_regions: &'static mut [MaybeUninit<MemoryRegion>] =
-            unsafe { slice::from_raw_parts_mut(memory_map_regions_addr.as_mut_ptr(), regions) };
-        (boot_info, memory_regions)
+    let boot_info: &'static mut MaybeUninit<BootInfo> = unsafe {
+        // SAFETY: This is technically UB because the current page tables don't
+        // map `memory_map_regions_addr`, so we have to be careful to not
+        // access any elements.
+        // We have to do this because `BootInfo` needs a `MemoryRegions`.
+        &mut *boot_info_addr.as_mut_ptr()
     };
 
     log::info!("Create Memory Map");
 
     // build memory map
-    let memory_regions = frame_allocator.construct_memory_map(
-        memory_regions,
+    let mut slice =
+        unsafe { RemoteMemoryRegion::new(&page_tables.kernel, memory_map_regions_addr, regions) };
+    let len = frame_allocator.construct_memory_map(
+        &mut slice,
         mappings.kernel_slice_start,
         mappings.kernel_slice_len,
         mappings.ramdisk_slice_phys_start,
         mappings.ramdisk_slice_len,
     );
 
+    let memory_regions =
+        unsafe { core::slice::from_raw_parts_mut(memory_map_regions_addr.as_mut_ptr(), len) };
+
     log::info!("Create bootinfo");
 
     // create boot info
-    let boot_info = boot_info.write({
-        let mut info = BootInfo::new(memory_regions.into());
-        info.framebuffer = mappings
-            .framebuffer
-            .map(|addr| unsafe {
-                FrameBuffer::new(
-                    addr.as_u64(),
-                    system_info
-                        .framebuffer
-                        .expect(
-                            "there shouldn't be a mapping for the framebuffer if there is \
-                            no framebuffer",
-                        )
-                        .info,
-                )
-            })
-            .into();
-        info.physical_memory_offset = mappings.physical_memory_offset.map(VirtAddr::as_u64).into();
-        info.recursive_index = mappings.recursive_index.map(Into::into).into();
-        info.rsdp_addr = system_info.rsdp_addr.map(|addr| addr.as_u64()).into();
-        info.tls_template = mappings.tls_template.into();
-        info.ramdisk_addr = mappings
-            .ramdisk_slice_start
-            .map(|addr| addr.as_u64())
-            .into();
-        info.ramdisk_len = mappings.ramdisk_slice_len;
-        info.kernel_addr = mappings.kernel_slice_start.as_u64();
-        info.kernel_len = mappings.kernel_slice_len as _;
-        info.kernel_image_offset = mappings.kernel_image_offset.as_u64();
-        info._test_sentinel = boot_config._test_sentinel;
-        info
-    });
+    let mut info = BootInfo::new(memory_regions.into());
+    info.framebuffer = mappings
+        .framebuffer
+        .map(|addr| unsafe {
+            FrameBuffer::new(
+                addr.as_u64(),
+                system_info
+                    .framebuffer
+                    .expect(
+                        "there shouldn't be a mapping for the framebuffer if there is \
+                        no framebuffer",
+                    )
+                    .info,
+            )
+        })
+        .into();
+    info.physical_memory_offset = mappings.physical_memory_offset.map(VirtAddr::as_u64).into();
+    info.recursive_index = mappings.recursive_index.map(Into::into).into();
+    info.rsdp_addr = system_info.rsdp_addr.map(|addr| addr.as_u64()).into();
+    info.tls_template = mappings.tls_template.into();
+    info.ramdisk_addr = mappings
+        .ramdisk_slice_start
+        .map(|addr| addr.as_u64())
+        .into();
+    info.ramdisk_len = mappings.ramdisk_slice_len;
+    info.kernel_addr = mappings.kernel_slice_start.as_u64();
+    info.kernel_len = mappings.kernel_slice_len as _;
+    info.kernel_image_offset = mappings.kernel_image_offset.as_u64();
+    info._test_sentinel = boot_config._test_sentinel;
 
-    boot_info
+    // Write to boot info directly to the identity-mapped frame.
+    let boot_info_frame = page_tables.kernel.translate_page(start_page).unwrap();
+    assert!(size_of::<BootInfo>() <= Size4KiB::SIZE as usize);
+    let ptr = boot_info_frame.start_address().as_u64() as *mut BootInfo;
+    unsafe {
+        ptr.write(info);
+    }
+
+    boot_info_addr
 }
 
 /// Switches to the kernel address space and jumps to the kernel entry point.
-pub fn switch_to_kernel(
-    page_tables: PageTables,
-    mappings: Mappings,
-    boot_info: &'static mut BootInfo,
-) -> ! {
+pub fn switch_to_kernel(page_tables: PageTables, mappings: Mappings, boot_info: VirtAddr) -> ! {
     let PageTables {
         kernel_level_4_frame,
         ..
@@ -612,8 +605,6 @@ pub fn switch_to_kernel(
 
 /// Provides access to the page tables of the bootloader and kernel address space.
 pub struct PageTables {
-    /// Provides access to the page tables of the bootloader address space.
-    pub bootloader: OffsetPageTable<'static>,
     /// Provides access to the page tables of the kernel address space (not active).
     pub kernel: OffsetPageTable<'static>,
     /// The physical frame where the level 4 page table of the kernel address space is stored.
@@ -638,7 +629,7 @@ unsafe fn context_switch(addresses: Addresses) -> ! {
             in(reg) addresses.page_table.start_address().as_u64(),
             in(reg) addresses.stack_top.as_u64(),
             in(reg) addresses.entry_point.as_u64(),
-            in("rdi") addresses.boot_info as *const _ as usize,
+            in("rdi") addresses.boot_info.as_u64(),
         );
     }
     unreachable!();
@@ -649,7 +640,7 @@ struct Addresses {
     page_table: PhysFrame,
     stack_top: VirtAddr,
     entry_point: VirtAddr,
-    boot_info: &'static mut BootInfo,
+    boot_info: VirtAddr,
 }
 
 fn mapping_addr_page_aligned(
