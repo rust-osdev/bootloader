@@ -173,6 +173,8 @@ pub enum MemoryRegionKind {
     /// Contains the UEFI memory type tag.
     UnknownUefi(u32),
     /// An unknown memory region reported by the BIOS firmware.
+    ///
+    /// Contains the E820 memory type.
     UnknownBios(u32),
 }
 
