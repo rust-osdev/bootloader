@@ -155,7 +155,7 @@ dependencies = [
 
 [[package]]
 name = "bootloader"
-version = "0.11.7"
+version = "0.11.8"
 dependencies = [
  "anyhow",
  "async-process",
@@ -182,22 +182,22 @@ dependencies = [
 
 [[package]]
 name = "bootloader-boot-config"
-version = "0.11.7"
+version = "0.11.8"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "bootloader-x86_64-bios-boot-sector"
-version = "0.11.7"
+version = "0.11.8"
 
 [[package]]
 name = "bootloader-x86_64-bios-common"
-version = "0.11.7"
+version = "0.11.8"
 
 [[package]]
 name = "bootloader-x86_64-bios-stage-2"
-version = "0.11.7"
+version = "0.11.8"
 dependencies = [
  "bootloader-x86_64-bios-common",
  "byteorder",
@@ -206,7 +206,7 @@ dependencies = [
 
 [[package]]
 name = "bootloader-x86_64-bios-stage-3"
-version = "0.11.7"
+version = "0.11.8"
 dependencies = [
  "bootloader-x86_64-bios-common",
  "noto-sans-mono-bitmap 0.1.6",
@@ -214,7 +214,7 @@ dependencies = [
 
 [[package]]
 name = "bootloader-x86_64-bios-stage-4"
-version = "0.11.7"
+version = "0.11.8"
 dependencies = [
  "bootloader-boot-config",
  "bootloader-x86_64-bios-common",
@@ -229,7 +229,7 @@ dependencies = [
 
 [[package]]
 name = "bootloader-x86_64-common"
-version = "0.11.7"
+version = "0.11.8"
 dependencies = [
  "bootloader-boot-config",
  "bootloader_api",
@@ -248,7 +248,7 @@ dependencies = [
 
 [[package]]
 name = "bootloader-x86_64-uefi"
-version = "0.11.7"
+version = "0.11.8"
 dependencies = [
  "bootloader-boot-config",
  "bootloader-x86_64-common",
@@ -261,7 +261,7 @@ dependencies = [
 
 [[package]]
 name = "bootloader_api"
-version = "0.11.7"
+version = "0.11.8"
 dependencies = [
  "rand",
 ]
