@@ -1,6 +1,17 @@
 # Unreleased
 
-* Fix bug leading to page table frames that are not mapped as writable
+# 0.11.8 – 2024-11-02
+
+* [avoid 32-bit relocation to __BOOTLOADER_CONFIG](https://github.com/rust-osdev/bootloader/pull/428)
+* [Fix doc comment and error message only referencing the BIOS but used for UEFI](https://github.com/rust-osdev/bootloader/pull/439)
+* [Ensure all page table frames are mapped as writable](https://github.com/rust-osdev/bootloader/pull/444)
+* [Guard the lower 1MB of memory](https://github.com/rust-osdev/bootloader/pull/446)
+* [always cover at least the first 4 GiB of physical memory](https://github.com/rust-osdev/bootloader/pull/448)
+* [Fixed "jc fail" instructions not working properly and updated README.md](https://github.com/rust-osdev/bootloader/pull/453)
+* [Remove 3dnow features from stage4 target](https://github.com/rust-osdev/bootloader/pull/471)
+* [mention E820 in docs for UnknownBios](https://github.com/rust-osdev/bootloader/pull/461)
+
+**Full Changelog**: https://github.com/rust-osdev/bootloader/compare/v0.11.7...v0.11.8
 
 # 0.11.7 – 2024-02-16
 
