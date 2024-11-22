@@ -17,7 +17,12 @@ impl SerialPort {
 
 impl fmt::Write for SerialPort {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        self.port.write_str(s).unwrap();
+        for char in s.bytes() {
+            match char {
+                b'\n' => self.port.write_str("\r\n").unwrap(),
+                byte => self.port.send(byte),
+            }
+        }
         Ok(())
     }
 }
