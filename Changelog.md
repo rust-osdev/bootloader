@@ -1,5 +1,15 @@
 # Unreleased
 
+# 0.11.9 – 2024-11-30
+
+This release is compatible with Rust nightlies starting with `nightly-2024-11-23`.
+
+* [copy more PML4 entries](https://github.com/rust-osdev/bootloader/pull/466)
+* [Convert LF to CRLF when writing to serial port](https://github.com/rust-osdev/bootloader/pull/474)
+* [Update x86_64 & fix build on latest nightly](https://github.com/rust-osdev/bootloader/pull/478)
+
+**Full Changelog**: https://github.com/rust-osdev/bootloader/compare/v0.11.8...v0.11.9
+
 # 0.11.8 – 2024-11-02
 
 * [avoid 32-bit relocation to __BOOTLOADER_CONFIG](https://github.com/rust-osdev/bootloader/pull/428)
