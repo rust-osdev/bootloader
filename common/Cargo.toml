@@ -14,7 +14,7 @@ bootloader-boot-config = { workspace = true }
 conquer-once = { version = "0.3.2", default-features = false }
 spinning_top = "0.2.4"
 usize_conversions = "0.2.0"
-x86_64 = { version = "0.14.8" }
+x86_64 = { version = "0.15.2" }
 xmas-elf = "0.8.0"
 raw-cpuid = "10.2.0"
 rand = { version = "0.8.4", default-features = false }
