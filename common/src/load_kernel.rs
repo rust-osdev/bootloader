@@ -353,7 +353,7 @@ where
 
             // These are the offsets from the start address. These correspond
             // to the destination indices in `buf`.
-            let start_offset_in_buf = Step::steps_between(&addr, &start_copy_address).unwrap();
+            let start_offset_in_buf = Step::steps_between(&addr, &start_copy_address).1.unwrap();
 
             // Calculate the source slice.
             // Utilize that frames are identity mapped.
@@ -420,7 +420,7 @@ where
 
             // These are the offsets from the start address. These correspond
             // to the destination indices in `buf`.
-            let start_offset_in_buf = Step::steps_between(&addr, &start_copy_address).unwrap();
+            let start_offset_in_buf = Step::steps_between(&addr, &start_copy_address).1.unwrap();
 
             // Calculate the source slice.
             // Utilize that frames are identity mapped.
