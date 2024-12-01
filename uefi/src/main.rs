@@ -531,8 +531,6 @@ fn init_logger(
         stride: mode_info.stride(),
     };
 
-    log::info!("UEFI boot");
-
     bootloader_x86_64_common::init_logger(
         slice,
         info,
