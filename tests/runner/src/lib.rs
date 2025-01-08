@@ -2,6 +2,11 @@ use bootloader::BootConfig;
 use bootloader::DiskImageBuilder;
 use std::path::Path;
 
+#[cfg(feature = "uefi")]
+mod omvf;
+#[cfg(feature = "uefi")]
+use crate::omvf::OvmfPaths;
+
 pub fn run_test_kernel(kernel_binary_path: &str) {
     run_test_kernel_internal(kernel_binary_path, None, None)
 }
@@ -31,12 +36,15 @@ pub fn run_test_kernel_internal(
 
     #[cfg(feature = "uefi")]
     {
+        let mut ovmf_paths = OvmfPaths::find();
+        ovmf_paths.with_temp_vars();
+
         let gpt_path = kernel_path.with_extension("gpt");
         let tftp_path = kernel_path.with_extension("tftp");
         image_builder.create_uefi_image(&gpt_path).unwrap();
         image_builder.create_uefi_tftp_folder(&tftp_path).unwrap();
-        run_test_kernel_on_uefi(&gpt_path);
-        run_test_kernel_on_uefi_pxe(&tftp_path);
+        run_test_kernel_on_uefi(&gpt_path, &ovmf_paths);
+        run_test_kernel_on_uefi_pxe(&tftp_path, &ovmf_paths);
     }
 
     #[cfg(feature = "bios")]
@@ -50,11 +58,18 @@ pub fn run_test_kernel_internal(
 }
 
 #[cfg(feature = "uefi")]
-pub fn run_test_kernel_on_uefi(out_gpt_path: &Path) {
-    let ovmf_pure_efi = ovmf_prebuilt::ovmf_pure_efi();
+pub fn run_test_kernel_on_uefi(out_gpt_path: &Path, ovmf_paths: &OvmfPaths) {
     let args = [
-        "-bios",
-        ovmf_pure_efi.to_str().unwrap(),
+        "-drive",
+        &format!(
+            "if=pflash,format=raw,readonly=on,file={}",
+            ovmf_paths.code().display()
+        ),
+        "-drive",
+        &format!(
+            "if=pflash,format=raw,readonly=off,file={}",
+            ovmf_paths.vars().display()
+        ),
         "-drive",
         &format!("format=raw,file={}", out_gpt_path.display()),
     ];
@@ -71,8 +86,7 @@ pub fn run_test_kernel_on_bios(out_mbr_path: &Path) {
 }
 
 #[cfg(feature = "uefi")]
-pub fn run_test_kernel_on_uefi_pxe(out_tftp_path: &Path) {
-    let ovmf_pure_efi = ovmf_prebuilt::ovmf_pure_efi();
+pub fn run_test_kernel_on_uefi_pxe(out_tftp_path: &Path, ovmf_paths: &OvmfPaths) {
     let args = [
         "-netdev",
         &format!(
@@ -81,8 +95,16 @@ pub fn run_test_kernel_on_uefi_pxe(out_tftp_path: &Path) {
         ),
         "-device",
         "virtio-net-pci,netdev=net0",
-        "-bios",
-        ovmf_pure_efi.to_str().unwrap(),
+        "-drive",
+        &format!(
+            "if=pflash,format=raw,readonly=on,file={}",
+            ovmf_paths.code().display()
+        ),
+        "-drive",
+        &format!(
+            "if=pflash,format=raw,readonly=off,file={}",
+            ovmf_paths.vars().display()
+        ),
     ];
     run_qemu(args);
 }
@@ -105,6 +127,8 @@ where
         "-display",
         "none",
         "--no-reboot",
+        "-smp",
+        "4",
     ];
 
     const SEPARATOR: &str = "\n____________________________________\n";
@@ -138,10 +162,9 @@ where
         )
     });
 
-    let exit_status = child.wait().unwrap();
-    match exit_status.code() {
-        Some(33) => {}                     // success
-        Some(35) => panic!("Test failed"), // success
+    match child.wait().unwrap().code() {
+        Some(33) => {} // success
+        Some(35) => panic!("Test failed"),
         other => panic!("Test failed with unexpected exit code `{other:?}`"),
     }
 
