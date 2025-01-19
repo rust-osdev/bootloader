@@ -1,34 +1,40 @@
-use async_process::Command;
-use futures::executor::block_on;
-use futures_concurrency::future::Join;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 const BOOTLOADER_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() {
     #[cfg(not(feature = "uefi"))]
-    async fn uefi_main() {}
+    fn uefi_main() {}
     #[cfg(not(feature = "bios"))]
-    async fn bios_main() {}
+    fn bios_main() {}
 
-    block_on((uefi_main(), bios_main()).join());
+    // Spawn two threads to build the uefi and bios code concurrently.
+    let uefi_main_handle = std::thread::spawn(uefi_main);
+    let bios_main_handle = std::thread::spawn(bios_main);
+
+    // Wait for the threads to finish.
+    uefi_main_handle.join().unwrap();
+    bios_main_handle.join().unwrap();
 }
 
 #[cfg(feature = "bios")]
-async fn bios_main() {
-    let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
+fn bios_main() {
     // Run the bios build commands concurrently.
     // (Cargo already uses multiple threads for building dependencies, but these
     // BIOS crates don't have enough dependencies to utilize all cores on modern
     // CPUs. So by running the build commands in parallel, we increase the number
     // of utilized cores.)
-    let (bios_boot_sector_path, bios_stage_2_path, bios_stage_3_path, bios_stage_4_path) = (
-        build_bios_boot_sector(&out_dir),
-        build_bios_stage_2(&out_dir),
-        build_bios_stage_3(&out_dir),
-        build_bios_stage_4(&out_dir),
-    )
-        .join()
-        .await;
+    let bios_boot_sector_path_handle = std::thread::spawn(build_bios_boot_sector);
+    let bios_stage_2_path_handle = std::thread::spawn(build_bios_stage_2);
+    let bios_stage_3_path_handle = std::thread::spawn(build_bios_stage_3);
+    let bios_stage_4_path_handle = std::thread::spawn(build_bios_stage_4);
+
+    // Wait for the commands to finish.
+    let bios_boot_sector_path = bios_boot_sector_path_handle.join().unwrap();
+    let bios_stage_2_path = bios_stage_2_path_handle.join().unwrap();
+    let bios_stage_3_path = bios_stage_3_path_handle.join().unwrap();
+    let bios_stage_4_path = bios_stage_4_path_handle.join().unwrap();
+
     println!(
         "cargo:rustc-env=BIOS_BOOT_SECTOR_PATH={}",
         bios_boot_sector_path.display()
@@ -48,11 +54,8 @@ async fn bios_main() {
 }
 
 #[cfg(feature = "uefi")]
-async fn uefi_main() {
-    let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
-
-    let uefi_path = build_uefi_bootloader(&out_dir).await;
-
+fn uefi_main() {
+    let uefi_path = build_uefi_bootloader();
     println!(
         "cargo:rustc-env=UEFI_BOOTLOADER_PATH={}",
         uefi_path.display()
@@ -61,7 +64,8 @@ async fn uefi_main() {
 
 #[cfg(not(docsrs_dummy_build))]
 #[cfg(feature = "uefi")]
-async fn build_uefi_bootloader(out_dir: &Path) -> PathBuf {
+fn build_uefi_bootloader() -> PathBuf {
+    let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
     let mut cmd = Command::new(cargo);
     cmd.arg("install").arg("bootloader-x86_64-uefi");
@@ -77,12 +81,11 @@ async fn build_uefi_bootloader(out_dir: &Path) -> PathBuf {
     cmd.arg("--target").arg("x86_64-unknown-uefi");
     cmd.arg("-Zbuild-std=core")
         .arg("-Zbuild-std-features=compiler-builtins-mem");
-    cmd.arg("--root").arg(out_dir);
+    cmd.arg("--root").arg(&out_dir);
     cmd.env_remove("RUSTFLAGS");
     cmd.env_remove("CARGO_ENCODED_RUSTFLAGS");
     let status = cmd
         .status()
-        .await
         .expect("failed to run cargo install for uefi bootloader");
     if status.success() {
         let path = out_dir.join("bin").join("bootloader-x86_64-uefi.efi");
@@ -100,9 +103,10 @@ async fn build_uefi_bootloader(out_dir: &Path) -> PathBuf {
 // This will put an empty file in out_dir and return its path.
 #[cfg(docsrs_dummy_build)]
 #[cfg(feature = "uefi")]
-async fn build_uefi_bootloader(out_dir: &Path) -> PathBuf {
+fn build_uefi_bootloader() -> PathBuf {
     use std::fs::File;
 
+    let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
     let path = out_dir.join("bootloader-dummy-bootloader-uefi");
 
     if File::create(&path).is_err() {
@@ -118,7 +122,8 @@ async fn build_uefi_bootloader(out_dir: &Path) -> PathBuf {
 
 #[cfg(not(docsrs_dummy_build))]
 #[cfg(feature = "bios")]
-async fn build_bios_boot_sector(out_dir: &Path) -> PathBuf {
+fn build_bios_boot_sector() -> PathBuf {
+    let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
     let mut cmd = Command::new(cargo);
     cmd.arg("install").arg("bootloader-x86_64-bios-boot-sector");
@@ -137,13 +142,12 @@ async fn build_bios_boot_sector(out_dir: &Path) -> PathBuf {
     cmd.arg("--profile").arg("stage-1");
     cmd.arg("-Zbuild-std=core")
         .arg("-Zbuild-std-features=compiler-builtins-mem");
-    cmd.arg("--root").arg(out_dir);
+    cmd.arg("--root").arg(&out_dir);
     cmd.env_remove("RUSTFLAGS");
     cmd.env_remove("CARGO_ENCODED_RUSTFLAGS");
     cmd.env_remove("RUSTC_WORKSPACE_WRAPPER"); // used by clippy
     let status = cmd
         .status()
-        .await
         .expect("failed to run cargo install for bios bootsector");
     let elf_path = if status.success() {
         let path = out_dir
@@ -157,16 +161,17 @@ async fn build_bios_boot_sector(out_dir: &Path) -> PathBuf {
     } else {
         panic!("failed to build bios boot sector");
     };
-    convert_elf_to_bin(elf_path).await
+    convert_elf_to_bin(elf_path)
 }
 
 // dummy implementation because docsrs builds have no network access.
 // This will put an empty file in out_dir and return its path.
 #[cfg(docsrs_dummy_build)]
 #[cfg(feature = "bios")]
-async fn build_bios_boot_sector(out_dir: &Path) -> PathBuf {
+fn build_bios_boot_sector() -> PathBuf {
     use std::fs::File;
 
+    let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
     let path = out_dir.join("bootloader-dummy-bios-boot-sector");
 
     if File::create(&path).is_err() {
@@ -182,7 +187,8 @@ async fn build_bios_boot_sector(out_dir: &Path) -> PathBuf {
 
 #[cfg(not(docsrs_dummy_build))]
 #[cfg(feature = "bios")]
-async fn build_bios_stage_2(out_dir: &Path) -> PathBuf {
+fn build_bios_stage_2() -> PathBuf {
+    let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
     let mut cmd = Command::new(cargo);
     cmd.arg("install").arg("bootloader-x86_64-bios-stage-2");
@@ -205,13 +211,12 @@ async fn build_bios_stage_2(out_dir: &Path) -> PathBuf {
     cmd.arg("--profile").arg("stage-2");
     cmd.arg("-Zbuild-std=core")
         .arg("-Zbuild-std-features=compiler-builtins-mem");
-    cmd.arg("--root").arg(out_dir);
+    cmd.arg("--root").arg(&out_dir);
     cmd.env_remove("RUSTFLAGS");
     cmd.env_remove("CARGO_ENCODED_RUSTFLAGS");
     cmd.env_remove("RUSTC_WORKSPACE_WRAPPER"); // used by clippy
     let status = cmd
         .status()
-        .await
         .expect("failed to run cargo install for bios second stage");
     let elf_path = if status.success() {
         let path = out_dir.join("bin").join("bootloader-x86_64-bios-stage-2");
@@ -223,16 +228,17 @@ async fn build_bios_stage_2(out_dir: &Path) -> PathBuf {
     } else {
         panic!("failed to build bios second stage");
     };
-    convert_elf_to_bin(elf_path).await
+    convert_elf_to_bin(elf_path)
 }
 
 // dummy implementation because docsrs builds have no network access.
 // This will put an empty file in out_dir and return its path.
 #[cfg(docsrs_dummy_build)]
 #[cfg(feature = "bios")]
-async fn build_bios_stage_2(out_dir: &Path) -> PathBuf {
+fn build_bios_stage_2() -> PathBuf {
     use std::fs::File;
 
+    let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
     let path = out_dir.join("bootloader-dummy-bios-stage-2");
 
     if File::create(&path).is_err() {
@@ -248,7 +254,8 @@ async fn build_bios_stage_2(out_dir: &Path) -> PathBuf {
 
 #[cfg(not(docsrs_dummy_build))]
 #[cfg(feature = "bios")]
-async fn build_bios_stage_3(out_dir: &Path) -> PathBuf {
+fn build_bios_stage_3() -> PathBuf {
+    let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
     let mut cmd = Command::new(cargo);
     cmd.arg("install").arg("bootloader-x86_64-bios-stage-3");
@@ -267,13 +274,12 @@ async fn build_bios_stage_3(out_dir: &Path) -> PathBuf {
     cmd.arg("--profile").arg("stage-3");
     cmd.arg("-Zbuild-std=core")
         .arg("-Zbuild-std-features=compiler-builtins-mem");
-    cmd.arg("--root").arg(out_dir);
+    cmd.arg("--root").arg(&out_dir);
     cmd.env_remove("RUSTFLAGS");
     cmd.env_remove("CARGO_ENCODED_RUSTFLAGS");
     cmd.env_remove("RUSTC_WORKSPACE_WRAPPER"); // used by clippy
     let status = cmd
         .status()
-        .await
         .expect("failed to run cargo install for bios stage-3");
     let elf_path = if status.success() {
         let path = out_dir.join("bin").join("bootloader-x86_64-bios-stage-3");
@@ -285,16 +291,17 @@ async fn build_bios_stage_3(out_dir: &Path) -> PathBuf {
     } else {
         panic!("failed to build bios stage-3");
     };
-    convert_elf_to_bin(elf_path).await
+    convert_elf_to_bin(elf_path)
 }
 
 // dummy implementation because docsrs builds have no network access.
 // This will put an empty file in out_dir and return its path.
 #[cfg(docsrs_dummy_build)]
 #[cfg(feature = "bios")]
-async fn build_bios_stage_3(out_dir: &Path) -> PathBuf {
+fn build_bios_stage_3() -> PathBuf {
     use std::fs::File;
 
+    let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
     let path = out_dir.join("bootloader-dummy-bios-stage-3");
 
     if File::create(&path).is_err() {
@@ -310,7 +317,8 @@ async fn build_bios_stage_3(out_dir: &Path) -> PathBuf {
 
 #[cfg(not(docsrs_dummy_build))]
 #[cfg(feature = "bios")]
-async fn build_bios_stage_4(out_dir: &Path) -> PathBuf {
+fn build_bios_stage_4() -> PathBuf {
+    let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
     let mut cmd = Command::new(cargo);
     cmd.arg("install").arg("bootloader-x86_64-bios-stage-4");
@@ -329,13 +337,12 @@ async fn build_bios_stage_4(out_dir: &Path) -> PathBuf {
     cmd.arg("--profile").arg("stage-4");
     cmd.arg("-Zbuild-std=core")
         .arg("-Zbuild-std-features=compiler-builtins-mem");
-    cmd.arg("--root").arg(out_dir);
+    cmd.arg("--root").arg(&out_dir);
     cmd.env_remove("RUSTFLAGS");
     cmd.env_remove("CARGO_ENCODED_RUSTFLAGS");
     cmd.env_remove("RUSTC_WORKSPACE_WRAPPER"); // used by clippy
     let status = cmd
         .status()
-        .await
         .expect("failed to run cargo install for bios stage-4");
     let elf_path = if status.success() {
         let path = out_dir.join("bin").join("bootloader-x86_64-bios-stage-4");
@@ -348,16 +355,17 @@ async fn build_bios_stage_4(out_dir: &Path) -> PathBuf {
         panic!("failed to build bios stage-4");
     };
 
-    convert_elf_to_bin(elf_path).await
+    convert_elf_to_bin(elf_path)
 }
 
 // dummy implementation because docsrs builds have no network access.
 // This will put an empty file in out_dir and return its path.
 #[cfg(docsrs_dummy_build)]
 #[cfg(feature = "bios")]
-async fn build_bios_stage_4(out_dir: &Path) -> PathBuf {
+fn build_bios_stage_4() -> PathBuf {
     use std::fs::File;
 
+    let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
     let path = out_dir.join("bootloader-dummy-bios-stage-4");
 
     if File::create(&path).is_err() {
@@ -373,7 +381,7 @@ async fn build_bios_stage_4(out_dir: &Path) -> PathBuf {
 
 #[cfg(not(docsrs_dummy_build))]
 #[cfg(feature = "bios")]
-async fn convert_elf_to_bin(elf_path: PathBuf) -> PathBuf {
+fn convert_elf_to_bin(elf_path: PathBuf) -> PathBuf {
     let flat_binary_path = elf_path.with_extension("bin");
 
     let llvm_tools = llvm_tools::LlvmTools::new().expect("failed to get llvm tools");
@@ -390,7 +398,6 @@ async fn convert_elf_to_bin(elf_path: PathBuf) -> PathBuf {
     cmd.arg(&flat_binary_path);
     let output = cmd
         .output()
-        .await
         .expect("failed to execute llvm-objcopy command");
     if !output.status.success() {
         panic!(
