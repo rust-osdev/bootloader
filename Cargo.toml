@@ -18,7 +18,7 @@ members = [
     "bios/common",
     "tests/runner",
 ]
-exclude = ["examples/basic", "examples/test_framework", "tests/test_kernels"]
+exclude = ["examples/basic", "examples/test_framework", "tests/test_kernels/*"]
 
 [workspace.package]
 # don't forget to update `workspace.dependencies` below
