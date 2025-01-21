@@ -1,0 +1,13 @@
+[workspace]
+resolver = "2"
+members = [
+    "default_settings",
+    "map_phys_mem",
+    "higher_half",
+    "pie",
+    "lto",
+    "ramdisk",
+    "min_stack",
+    "lower_memory_free",
+    "write_usable_memory",
+]

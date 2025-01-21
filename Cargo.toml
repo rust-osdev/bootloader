@@ -19,17 +19,8 @@ members = [
     "bios/stage-*",
     "bios/common",
     "tests/runner",
-    "tests/test_kernels/default_settings",
-    "tests/test_kernels/map_phys_mem",
-    "tests/test_kernels/higher_half",
-    "tests/test_kernels/pie",
-    "tests/test_kernels/lto",
-    "tests/test_kernels/ramdisk",
-    "tests/test_kernels/min_stack",
-    "tests/test_kernels/lower_memory_free",
-    "tests/test_kernels/write_usable_memory",
 ]
-exclude = ["examples/basic", "examples/test_framework"]
+exclude = ["examples/basic", "examples/test_framework", "tests/test_kernels"]
 
 [workspace.package]
 # don't forget to update `workspace.dependencies` below
