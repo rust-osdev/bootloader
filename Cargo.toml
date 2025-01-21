@@ -1,5 +1,3 @@
-cargo-features = ["profile-rustflags"]
-
 [package]
 name = "bootloader"
 description = "An experimental x86_64 bootloader that works on both BIOS and UEFI systems."
@@ -100,23 +98,6 @@ overflow-checks = true
 inherits = "release"
 debug = true
 overflow-checks = true
-
-[profile.lto]
-inherits = "release"
-lto = true
-
-[profile.test.package.test_kernel_higher_half]
-rustflags = [
-    "-C",
-    "link-args=--image-base 0xFFFF800000000000",
-    "-C",
-    "relocation-model=pic",
-    "-C",
-    "code-model=large",
-]
-
-[profile.test.package.test_kernel_min_stack]
-opt-level = 2
 
 [build-dependencies]
 llvm-tools = "0.1.1"

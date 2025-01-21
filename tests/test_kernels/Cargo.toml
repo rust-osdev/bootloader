@@ -1,3 +1,5 @@
+cargo-features = ["profile-rustflags"]
+
 [workspace]
 resolver = "2"
 members = [
@@ -11,3 +13,26 @@ members = [
     "lower_memory_free",
     "write_usable_memory",
 ]
+
+[profile.release]
+panic = "abort"
+lto = false
+debug = true
+overflow-checks = true
+
+[profile.lto]
+inherits = "release"
+lto = true
+
+[profile.test.package.test_kernel_higher_half]
+rustflags = [
+    "-C",
+    "link-args=--image-base 0xFFFF800000000000",
+    "-C",
+    "relocation-model=pic",
+    "-C",
+    "code-model=large",
+]
+
+[profile.test.package.test_kernel_min_stack]
+opt-level = 2
