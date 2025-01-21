@@ -72,7 +72,7 @@ jobs:
       - name: Run api tests
         run: cargo test -p bootloader_api
       - name: Run bootloader common tests
-        if: runner.arch == 'x86'
+        if: runner.arch == 'X64'
         run: cargo test -p bootloader-x86_64-common
       - name: Run integration tests
         run: cargo test -- --test-threads 1
