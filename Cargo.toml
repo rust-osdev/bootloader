@@ -1,5 +1,3 @@
-cargo-features = ["profile-rustflags"]
-
 [package]
 name = "bootloader"
 description = "An experimental x86_64 bootloader that works on both BIOS and UEFI systems."
@@ -19,17 +17,8 @@ members = [
     "bios/stage-*",
     "bios/common",
     "tests/runner",
-    "tests/test_kernels/default_settings",
-    "tests/test_kernels/map_phys_mem",
-    "tests/test_kernels/higher_half",
-    "tests/test_kernels/pie",
-    "tests/test_kernels/lto",
-    "tests/test_kernels/ramdisk",
-    "tests/test_kernels/min_stack",
-    "tests/test_kernels/lower_memory_free",
-    "tests/test_kernels/write_usable_memory",
 ]
-exclude = ["examples/basic", "examples/test_framework"]
+exclude = ["examples/basic", "examples/test_framework", "tests/test_kernels/*"]
 
 [workspace.package]
 # don't forget to update `workspace.dependencies` below
@@ -109,23 +98,6 @@ overflow-checks = true
 inherits = "release"
 debug = true
 overflow-checks = true
-
-[profile.lto]
-inherits = "release"
-lto = true
-
-[profile.test.package.test_kernel_higher_half]
-rustflags = [
-    "-C",
-    "link-args=--image-base 0xFFFF800000000000",
-    "-C",
-    "relocation-model=pic",
-    "-C",
-    "code-model=large",
-]
-
-[profile.test.package.test_kernel_min_stack]
-opt-level = 2
 
 [build-dependencies]
 llvm-tools = "0.1.1"

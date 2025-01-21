@@ -1,2 +1,3 @@
 [build]
 target-dir = "../../target"
+target = "x86_64-unknown-none"
