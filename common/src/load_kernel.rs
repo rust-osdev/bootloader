@@ -349,7 +349,7 @@ where
             let copy_len = end_inclusive_offset_in_frame - start_offset_in_frame + 1;
 
             // Calculate the physical addresses.
-            let start_phys_addr = phys_addr.start_address() + start_offset_in_frame;
+            let start_phys_addr = phys_addr.start_address() + start_offset_in_frame as u64;
 
             // These are the offsets from the start address. These correspond
             // to the destination indices in `buf`.
@@ -416,7 +416,7 @@ where
             let copy_len = end_inclusive_offset_in_frame - start_offset_in_frame + 1;
 
             // Calculate the physical addresses.
-            let start_phys_addr = phys_addr.start_address() + start_offset_in_frame;
+            let start_phys_addr = phys_addr.start_address() + start_offset_in_frame as u64;
 
             // These are the offsets from the start address. These correspond
             // to the destination indices in `buf`.
