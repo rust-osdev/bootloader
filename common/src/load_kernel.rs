@@ -342,14 +342,14 @@ where
             let end_inclusive_copy_address = cmp::min(end_inclusive_addr, page_end_inclusive);
 
             // These are the offsets into the frame we want to copy from.
-            let start_offset_in_frame = (start_copy_address - page_start) as usize;
-            let end_inclusive_offset_in_frame = (end_inclusive_copy_address - page_start) as usize;
+            let start_offset_in_frame = start_copy_address - page_start;
+            let end_inclusive_offset_in_frame = end_inclusive_copy_address - page_start;
 
             // Calculate how many bytes we want to copy from this frame.
             let copy_len = end_inclusive_offset_in_frame - start_offset_in_frame + 1;
 
             // Calculate the physical addresses.
-            let start_phys_addr = phys_addr.start_address() + start_offset_in_frame as u64;
+            let start_phys_addr = phys_addr.start_address() + start_offset_in_frame;
 
             // These are the offsets from the start address. These correspond
             // to the destination indices in `buf`.
@@ -362,11 +362,11 @@ where
                 // SAFETY: We know that this memory is valid because we got it
                 // as a result from a translation. There are not other
                 // references to it.
-                &*core::ptr::slice_from_raw_parts(src_ptr, copy_len)
+                &*core::ptr::slice_from_raw_parts(src_ptr, copy_len as usize)
             };
 
             // Calculate the destination pointer.
-            let dest = &mut buf[start_offset_in_buf..][..copy_len];
+            let dest = &mut buf[start_offset_in_buf..][..copy_len as usize];
 
             // Do the actual copy.
             dest.copy_from_slice(src);
