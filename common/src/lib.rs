@@ -285,8 +285,9 @@ where
         log::info!("Map framebuffer");
 
         let framebuffer_start_frame: PhysFrame = PhysFrame::containing_address(framebuffer.addr);
-        let framebuffer_end_frame =
-            PhysFrame::containing_address(framebuffer.addr + framebuffer.info.byte_len - 1u64);
+        let framebuffer_end_frame = PhysFrame::containing_address(
+            framebuffer.addr + framebuffer.info.byte_len as u64 - 1u64,
+        );
         let start_page = mapping_addr_page_aligned(
             config.mappings.framebuffer,
             u64::from_usize(framebuffer.info.byte_len),
@@ -394,7 +395,7 @@ where
             }
         };
 
-        let entry = &mut kernel_page_table.level_4_table()[index];
+        let entry = &mut kernel_page_table.level_4_table_mut()[index];
         if !entry.is_unused() {
             panic!(
                 "Could not set up recursive mapping: index {} already in use",
@@ -496,8 +497,8 @@ where
         )
         .expect("boot info addr is not properly aligned");
 
-        let memory_map_regions_addr = boot_info_addr + memory_regions_offset;
-        let memory_map_regions_end = boot_info_addr + combined.size();
+        let memory_map_regions_addr = boot_info_addr + memory_regions_offset as u64;
+        let memory_map_regions_end = boot_info_addr + combined.size() as u64;
 
         let start_page = Page::containing_address(boot_info_addr);
         let end_page = Page::containing_address(memory_map_regions_end - 1u64);

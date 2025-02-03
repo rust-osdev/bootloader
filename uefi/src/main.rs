@@ -423,7 +423,7 @@ fn create_page_tables(
         // necessarily part of the identity mapping).
         if let Some(frame_buffer) = frame_buffer {
             let start_addr = VirtAddr::new(frame_buffer.addr.as_u64());
-            let end_addr = start_addr + frame_buffer.info.byte_len;
+            let end_addr = start_addr + frame_buffer.info.byte_len as u64;
             for p4 in usize::from(start_addr.p4_index())..=usize::from(end_addr.p4_index()) {
                 new_table[p4] = old_table[p4].clone();
             }

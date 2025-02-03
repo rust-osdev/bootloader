@@ -48,7 +48,10 @@ impl UsedLevel4Entries {
 
         // The bootload needs to access the frame buffer.
         if let Some(frame_buffer) = framebuffer {
-            used.mark_range_as_used(frame_buffer.addr.as_u64(), frame_buffer.info.byte_len);
+            used.mark_range_as_used(
+                frame_buffer.addr.as_u64(),
+                frame_buffer.info.byte_len as u64,
+            );
         }
 
         // Mark the statically configured ranges from the config as used.
@@ -56,7 +59,7 @@ impl UsedLevel4Entries {
         if let Some(config::Mapping::FixedAddress(physical_memory_offset)) =
             config.mappings.physical_memory
         {
-            used.mark_range_as_used(physical_memory_offset, max_phys_addr.as_u64().into_usize());
+            used.mark_range_as_used(physical_memory_offset, max_phys_addr.as_u64());
         }
 
         if let Some(config::Mapping::FixedAddress(recursive_address)) =
@@ -76,12 +79,12 @@ impl UsedLevel4Entries {
             let memory_regions_layout = Layout::array::<MemoryRegion>(regions).unwrap();
             let (combined, _) = boot_info_layout.extend(memory_regions_layout).unwrap();
 
-            used.mark_range_as_used(boot_info_address, combined.size());
+            used.mark_range_as_used(boot_info_address, combined.size() as u64);
         }
 
         if let config::Mapping::FixedAddress(framebuffer_address) = config.mappings.framebuffer {
             if let Some(framebuffer) = framebuffer {
-                used.mark_range_as_used(framebuffer_address, framebuffer.info.byte_len);
+                used.mark_range_as_used(framebuffer_address, framebuffer.info.byte_len as u64);
             }
         }
 
@@ -111,14 +114,9 @@ impl UsedLevel4Entries {
     }
 
     /// Marks all p4 entries in the range `[address..address+size)` as used.
-    ///
-    /// `size` can be a `u64` or `usize`.
-    fn mark_range_as_used<S>(&mut self, address: u64, size: S)
-    where
-        VirtAddr: core::ops::Add<S, Output = VirtAddr>,
-    {
+    fn mark_range_as_used(&mut self, address: u64, size: u64) {
         let start = VirtAddr::new(address);
-        let end_inclusive = (start + size) - 1usize;
+        let end_inclusive = (start + size) - 1;
         let start_page = Page::<Size4KiB>::containing_address(start);
         let end_page_inclusive = Page::<Size4KiB>::containing_address(end_inclusive);
 
