@@ -18,5 +18,6 @@
     "static-position-independent-executables": true,
     "target-pointer-width": "64",
     "relocation-model": "static",
-    "os": "none"
+    "os": "none",
+    "rustc-abi": "x86-softfloat"
 }
