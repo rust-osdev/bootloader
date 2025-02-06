@@ -18,5 +18,6 @@
     "disable-redzone": true,
     "panic-strategy": "abort",
     "executables": true,
-    "relocation-model": "static"
+    "relocation-model": "static",
+    "rustc-abi": "x86-softfloat"
 }
