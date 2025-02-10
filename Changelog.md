@@ -1,5 +1,7 @@
 # Unreleased
 
+- [change rustc-abi in custom targets to x86-softfloat](https://github.com/rust-osdev/bootloader/pull/492)
+
 # 0.9.29 – 2024-04-30
 
 - Fix warnings ([#436](https://github.com/rust-osdev/bootloader/pull/436) and [#437](https://github.com/rust-osdev/bootloader/pull/437))
