@@ -83,6 +83,7 @@ dependencies = [
  "tempfile",
  "test_kernel_config_file",
  "test_kernel_default_settings",
+ "test_kernel_fixed_kernel_address",
  "test_kernel_higher_half",
  "test_kernel_lower_memory_free",
  "test_kernel_map_phys_mem",
@@ -739,6 +740,15 @@ dependencies = [
 
 [[package]]
 name = "test_kernel_default_settings"
+version = "0.1.0"
+dependencies = [
+ "bootloader_api",
+ "uart_16550",
+ "x86_64 0.15.2",
+]
+
+[[package]]
+name = "test_kernel_fixed_kernel_address"
 version = "0.1.0"
 dependencies = [
  "bootloader_api",

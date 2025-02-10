@@ -1,4 +1,8 @@
-use crate::{entropy, load_kernel::VirtualAddressOffset, BootInfo, RawFrameBufferInfo};
+use crate::{
+    entropy,
+    load_kernel::{calc_elf_memory_requirements, ElfMemoryRequirements, VirtualAddressOffset},
+    BootInfo, RawFrameBufferInfo,
+};
 use bootloader_api::{config, info::MemoryRegion, BootloaderConfig};
 use core::{alloc::Layout, iter::Step};
 use rand::{
@@ -11,7 +15,7 @@ use x86_64::{
     structures::paging::{Page, PageTableIndex, Size4KiB},
     PhysAddr, VirtAddr,
 };
-use xmas_elf::program::ProgramHeader;
+use xmas_elf::{header, program::ProgramHeader, ElfFile};
 
 /// Keeps track of used entries in a level 4 page table.
 ///
@@ -33,7 +37,8 @@ impl UsedLevel4Entries {
         regions_len: usize,
         framebuffer: Option<&RawFrameBufferInfo>,
         config: &BootloaderConfig,
-    ) -> Self {
+        kernel_elf: &ElfFile<'_>,
+    ) -> Result<Self, &'static str> {
         let mut used = UsedLevel4Entries {
             entry_state: [false; 512],
             rng: config.mappings.aslr.then(entropy::build_rng),
@@ -73,6 +78,23 @@ impl UsedLevel4Entries {
             used.mark_range_as_used(kernel_stack_address, config.kernel_stack_size);
         }
 
+        if let config::Mapping::FixedAddress(kernel_base) = config.mappings.kernel_base {
+            let ElfMemoryRequirements { size, align, .. } =
+                calc_elf_memory_requirements(kernel_elf);
+
+            if !VirtAddr::new(kernel_base).is_aligned(align) {
+                return Err("kernel_code mapping alignment does not match elf file");
+            }
+
+            used.mark_range_as_used(kernel_base, size);
+        }
+        if kernel_elf.header.pt2.type_().as_type() == header::Type::Executable {
+            let ElfMemoryRequirements { size, min_addr, .. } =
+                calc_elf_memory_requirements(kernel_elf);
+
+            used.mark_range_as_used(min_addr, size);
+        }
+
         if let config::Mapping::FixedAddress(boot_info_address) = config.mappings.boot_info {
             let boot_info_layout = Layout::new::<BootInfo>();
             let regions = regions_len + 1; // one region might be split into used/unused
@@ -110,7 +132,7 @@ impl UsedLevel4Entries {
             }
         }
 
-        used
+        Ok(used)
     }
 
     /// Marks all p4 entries in the range `[address..address+size)` as used.

@@ -1,0 +1,11 @@
+[package]
+name = "test_kernel_fixed_kernel_address"
+version = "0.1.0"
+edition = "2021"
+
+[target.'cfg(target_arch = "x86_64")'.dependencies]
+bootloader_api = { path = "../../../api" }
+x86_64 = { version = "0.15.2", default-features = false, features = [
+    "instructions",
+] }
+uart_16550 = "0.2.10"

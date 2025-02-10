@@ -187,7 +187,9 @@ where
         frame_allocator.len(),
         framebuffer,
         config,
-    );
+        &kernel.elf,
+    )
+    .expect("Failed to mark level 4 entries as used");
 
     // Enable support for the no-execute bit in page tables.
     enable_nxe_bit();
