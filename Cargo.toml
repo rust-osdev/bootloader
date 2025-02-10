@@ -22,15 +22,15 @@ exclude = ["examples/basic", "examples/test_framework", "tests/test_kernels/*"]
 
 [workspace.package]
 # don't forget to update `workspace.dependencies` below
-version = "0.11.9"
+version = "0.11.10"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/rust-osdev/bootloader"
 
 [workspace.dependencies]
-bootloader_api = { version = "0.11.8", path = "api" }
-bootloader-x86_64-common = { version = "0.11.8", path = "common" }
-bootloader-boot-config = { version = "0.11.8", path = "common/config" }
-bootloader-x86_64-bios-common = { version = "0.11.8", path = "bios/common" }
+bootloader_api = { version = "0.11.10", path = "api" }
+bootloader-x86_64-common = { version = "0.11.10", path = "common" }
+bootloader-boot-config = { version = "0.11.10", path = "common/config" }
+bootloader-x86_64-bios-common = { version = "0.11.10", path = "bios/common" }
 
 [features]
 default = ["bios", "uefi"]

@@ -1,5 +1,16 @@
 # Unreleased
 
+# 0.11.10 – 2025-02-10
+
+* [Remove "UEFI boot" log message](https://github.com/rust-osdev/bootloader/pull/476)
+* [use threads instead of futures in build.rs](https://github.com/rust-osdev/bootloader/pull/484)
+* [Move test kernels to a separate workspace](https://github.com/rust-osdev/bootloader/pull/486)
+* [fix condition for running bootloader common tests](https://github.com/rust-osdev/bootloader/pull/487)
+* [Update `x86_64` to `0.15.2`](https://github.com/rust-osdev/bootloader/pull/490)
+* [change rustc-abi in custom targets to x86-softfloat](https://github.com/rust-osdev/bootloader/pull/491)
+
+**Full Changelog**: https://github.com/rust-osdev/bootloader/compare/v0.11.9...v0.11.10
+
 # 0.11.9 – 2024-11-30
 
 This release is compatible with Rust nightlies starting with `nightly-2024-11-23`.
