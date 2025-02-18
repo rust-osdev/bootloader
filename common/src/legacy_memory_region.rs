@@ -1,9 +1,5 @@
 use bootloader_api::info::{MemoryRegion, MemoryRegionKind};
-use core::{
-    cmp,
-    iter::{empty, Empty},
-    mem::MaybeUninit,
-};
+use core::{cmp, mem::MaybeUninit};
 use x86_64::{
     align_down, align_up,
     structures::paging::{FrameAllocator, PhysFrame, Size4KiB},

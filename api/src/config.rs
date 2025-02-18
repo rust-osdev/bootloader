@@ -43,7 +43,7 @@ impl BootloaderConfig {
         0x3D,
     ];
     #[doc(hidden)]
-    pub const SERIALIZED_LEN: usize = 124;
+    pub const SERIALIZED_LEN: usize = 133;
 
     /// Creates a new default configuration with the following values:
     ///
@@ -77,6 +77,7 @@ impl BootloaderConfig {
         } = version;
         let Mappings {
             kernel_stack,
+            kernel_base,
             boot_info,
             framebuffer,
             physical_memory,
@@ -97,35 +98,38 @@ impl BootloaderConfig {
             concat_4_3(one, two)
         };
         let buf = concat_16_7(Self::UUID, version);
+
         let buf = concat_23_8(buf, kernel_stack_size.to_le_bytes());
 
         let buf = concat_31_9(buf, kernel_stack.serialize());
-        let buf = concat_40_9(buf, boot_info.serialize());
-        let buf = concat_49_9(buf, framebuffer.serialize());
+        let buf = concat_40_9(buf, kernel_base.serialize());
 
-        let buf = concat_58_10(
+        let buf = concat_49_9(buf, boot_info.serialize());
+        let buf = concat_58_9(buf, framebuffer.serialize());
+
+        let buf = concat_67_10(
             buf,
             match physical_memory {
                 Option::None => [0; 10],
                 Option::Some(m) => concat_1_9([1], m.serialize()),
             },
         );
-        let buf = concat_68_10(
+        let buf = concat_77_10(
             buf,
             match page_table_recursive {
                 Option::None => [0; 10],
                 Option::Some(m) => concat_1_9([1], m.serialize()),
             },
         );
-        let buf = concat_78_1(buf, [(*aslr) as u8]);
-        let buf = concat_79_9(
+        let buf = concat_87_1(buf, [(*aslr) as u8]);
+        let buf = concat_88_9(
             buf,
             match dynamic_range_start {
                 Option::None => [0; 9],
                 Option::Some(addr) => concat_1_8([1], addr.to_le_bytes()),
             },
         );
-        let buf = concat_88_9(
+        let buf = concat_97_9(
             buf,
             match dynamic_range_end {
                 Option::None => [0; 9],
@@ -133,9 +137,9 @@ impl BootloaderConfig {
             },
         );
 
-        let buf = concat_97_9(buf, ramdisk_memory.serialize());
+        let buf = concat_106_9(buf, ramdisk_memory.serialize());
 
-        let buf = concat_106_9(
+        let buf = concat_115_9(
             buf,
             match minimum_framebuffer_height {
                 Option::None => [0; 9],
@@ -143,7 +147,7 @@ impl BootloaderConfig {
             },
         );
 
-        concat_115_9(
+        concat_124_9(
             buf,
             match minimum_framebuffer_width {
                 Option::None => [0; 9],
@@ -196,6 +200,7 @@ impl BootloaderConfig {
 
         let (mappings, s) = {
             let (&kernel_stack, s) = split_array_ref(s);
+            let (&kernel_base, s) = split_array_ref(s);
             let (&boot_info, s) = split_array_ref(s);
             let (&framebuffer, s) = split_array_ref(s);
             let (&physical_memory_some, s) = split_array_ref(s);
@@ -211,6 +216,7 @@ impl BootloaderConfig {
 
             let mappings = Mappings {
                 kernel_stack: Mapping::deserialize(&kernel_stack)?,
+                kernel_base: Mapping::deserialize(&kernel_base)?,
                 boot_info: Mapping::deserialize(&boot_info)?,
                 framebuffer: Mapping::deserialize(&framebuffer)?,
                 physical_memory: match physical_memory_some {
@@ -371,6 +377,11 @@ pub struct Mappings {
     /// `FixedAddress(0xf_0000_0000)` will result in a guard page at address
     /// `0xf_0000_0000` and the kernel stack starting at address `0xf_0000_1000`.
     pub kernel_stack: Mapping,
+    /// Configures the base address of the kernel.
+    ///
+    /// If a fixed address is set, it must be paged aligned and the kernel must be
+    /// a position-independent exectuable.
+    pub kernel_base: Mapping,
     /// Specifies where the [`crate::BootInfo`] struct should be placed in virtual memory.
     pub boot_info: Mapping,
     /// Specifies the mapping of the frame buffer memory region.
@@ -413,6 +424,7 @@ impl Mappings {
     pub const fn new_default() -> Self {
         Self {
             kernel_stack: Mapping::new_default(),
+            kernel_base: Mapping::new_default(),
             boot_info: Mapping::new_default(),
             framebuffer: Mapping::new_default(),
             physical_memory: Option::None,
@@ -430,6 +442,7 @@ impl Mappings {
         let recursive = rand::random();
         Self {
             kernel_stack: Mapping::random(),
+            kernel_base: Mapping::random(),
             boot_info: Mapping::random(),
             framebuffer: Mapping::random(),
             physical_memory: if phys {

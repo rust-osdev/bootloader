@@ -1,5 +1,5 @@
 use crate::{level_4_entries::UsedLevel4Entries, PAGE_SIZE};
-use bootloader_api::info::TlsTemplate;
+use bootloader_api::{config::Mapping, info::TlsTemplate};
 use core::{cmp, iter::Step, mem::size_of, ops::Add};
 
 use x86_64::{
@@ -59,27 +59,30 @@ where
         let virtual_address_offset = match elf_file.header.pt2.type_().as_type() {
             header::Type::None => unimplemented!(),
             header::Type::Relocatable => unimplemented!(),
-            header::Type::Executable => VirtualAddressOffset::zero(),
+            header::Type::Executable => match kernel.config.mappings.kernel_base {
+                Mapping::Dynamic => VirtualAddressOffset::zero(),
+                _ => {
+                    return Err(concat!(
+                        "Invalid kernel_code mapping. ",
+                        "Executable can only be mapped at virtual_address_offset 0."
+                    ))
+                }
+            },
             header::Type::SharedObject => {
-                // Find the highest virtual memory address and the biggest alignment.
-                let load_program_headers = elf_file
-                    .program_iter()
-                    .filter(|h| matches!(h.get_type(), Ok(Type::Load)));
-                let max_addr = load_program_headers
-                    .clone()
-                    .map(|h| h.virtual_addr() + h.mem_size())
-                    .max()
-                    .unwrap_or(0);
-                let min_addr = load_program_headers
-                    .clone()
-                    .map(|h| h.virtual_addr())
-                    .min()
-                    .unwrap_or(0);
-                let size = max_addr - min_addr;
-                let align = load_program_headers.map(|h| h.align()).max().unwrap_or(1);
-
-                let offset = used_entries.get_free_address(size, align).as_u64();
-                VirtualAddressOffset::new(i128::from(offset) - i128::from(min_addr))
+                let ElfMemoryRequirements {
+                    size,
+                    align,
+                    min_addr,
+                } = calc_elf_memory_requirements(&elf_file);
+                match kernel.config.mappings.kernel_base {
+                    Mapping::Dynamic => {
+                        let offset = used_entries.get_free_address(size, align).as_u64();
+                        VirtualAddressOffset::new(i128::from(offset) - i128::from(min_addr))
+                    }
+                    Mapping::FixedAddress(address) => {
+                        VirtualAddressOffset::new(i128::from(address))
+                    }
+                }
             }
             header::Type::Core => unimplemented!(),
             header::Type::ProcessorSpecific(_) => unimplemented!(),
@@ -748,6 +751,41 @@ pub fn load_kernel(
         loader.entry_point(),
         tls_template,
     ))
+}
+
+/// Basic information about the memory segments of an elf file.
+pub struct ElfMemoryRequirements {
+    /// total size needed for all segments
+    pub size: u64,
+    /// memory alignment for the elf file
+    pub align: u64,
+    /// the smallest virtual address used by the elf file
+    pub min_addr: u64,
+}
+
+/// Calculates basic requirements needed to allocate memory for an elf file.
+pub fn calc_elf_memory_requirements(elf_file: &ElfFile) -> ElfMemoryRequirements {
+    // Find the highest virtual memory address and the biggest alignment.
+    let load_program_headers = elf_file
+        .program_iter()
+        .filter(|h| matches!(h.get_type(), Ok(Type::Load)));
+    let max_addr = load_program_headers
+        .clone()
+        .map(|h| h.virtual_addr() + h.mem_size())
+        .max()
+        .unwrap_or(0);
+    let min_addr = load_program_headers
+        .clone()
+        .map(|h| h.virtual_addr())
+        .min()
+        .unwrap_or(0);
+    let size = max_addr - min_addr;
+    let align = load_program_headers.map(|h| h.align()).max().unwrap_or(1);
+    ElfMemoryRequirements {
+        size,
+        align,
+        min_addr,
+    }
 }
 
 /// A helper type used to offset virtual addresses for position independent

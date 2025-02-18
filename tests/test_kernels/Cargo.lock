@@ -22,7 +22,7 @@ checksum = "8f68f53c83ab957f72c32642f3868eec03eb974d1fb82e453128456482613d36"
 
 [[package]]
 name = "bootloader_api"
-version = "0.11.9"
+version = "0.11.10"
 
 [[package]]
 name = "rustversion"
@@ -32,6 +32,15 @@ checksum = "f7c45b9784283f1b2e7fb61b42047c2fd678ef0960d4f6f1eba131594cc369d4"
 
 [[package]]
 name = "test_kernel_default_settings"
+version = "0.1.0"
+dependencies = [
+ "bootloader_api",
+ "uart_16550",
+ "x86_64 0.15.2",
+]
+
+[[package]]
+name = "test_kernel_fixed_kernel_address"
 version = "0.1.0"
 dependencies = [
  "bootloader_api",
