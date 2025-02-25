@@ -313,7 +313,7 @@ fn load_file_from_disk(
 
     let file_handle_result = root.open(filename, FileMode::Read, FileAttribute::empty());
 
-    let file_handle = file_handle_result.ok();
+    let file_handle = file_handle_result.ok()?;
 
     let mut file = match file_handle.into_type().unwrap() {
         uefi::proto::media::file::FileType::Regular(f) => f,
