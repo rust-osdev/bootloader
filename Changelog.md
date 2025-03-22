@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.9.31 – 2025-03-22
+
 - [remove #[no_mangle] from panic handler](https://github.com/rust-osdev/bootloader/pull/500)
 
 # 0.9.30 – 2025-02-10
