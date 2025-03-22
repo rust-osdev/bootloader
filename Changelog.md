@@ -1,5 +1,7 @@
 # Unreleased
 
+- [remove #[no_mangle] from panic handler](https://github.com/rust-osdev/bootloader/pull/500)
+
 # 0.9.30 – 2025-02-10
 
 - [change rustc-abi in custom targets to x86-softfloat](https://github.com/rust-osdev/bootloader/pull/492)
