@@ -96,7 +96,7 @@ jobs:
     - name: "Install Rustup Components"
       run: rustup component add rust-src llvm-tools-preview
     - name: 'Build Example Kernel'
-      run: cargo build -Zbuild-std=core
+      run: cargo build -Zbuild-std=core -Zbuild-std-features=compiler-builtins-mem
       working-directory: example-kernel
 
 
