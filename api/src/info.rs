@@ -132,6 +132,9 @@ impl From<MemoryRegions> for &'static mut [MemoryRegion] {
     }
 }
 
+unsafe impl Send for MemoryRegions {}
+unsafe impl Sync for MemoryRegions {}
+
 /// Represent a physical memory region.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[repr(C)]
