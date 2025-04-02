@@ -153,7 +153,7 @@ dependencies = [
  "rand_hc",
  "raw-cpuid",
  "spinning_top",
- "uart_16550",
+ "uart_16550 0.3.2",
  "usize_conversions",
  "x86_64 0.15.2",
  "xmas-elf",
@@ -734,7 +734,7 @@ name = "test_kernel_config_file"
 version = "0.1.0"
 dependencies = [
  "bootloader_api",
- "uart_16550",
+ "uart_16550 0.2.18",
  "x86_64 0.15.2",
 ]
 
@@ -743,7 +743,7 @@ name = "test_kernel_default_settings"
 version = "0.1.0"
 dependencies = [
  "bootloader_api",
- "uart_16550",
+ "uart_16550 0.2.18",
  "x86_64 0.15.2",
 ]
 
@@ -752,7 +752,7 @@ name = "test_kernel_fixed_kernel_address"
 version = "0.1.0"
 dependencies = [
  "bootloader_api",
- "uart_16550",
+ "uart_16550 0.2.18",
  "x86_64 0.15.2",
 ]
 
@@ -761,7 +761,7 @@ name = "test_kernel_higher_half"
 version = "0.1.0"
 dependencies = [
  "bootloader_api",
- "uart_16550",
+ "uart_16550 0.2.18",
  "x86_64 0.15.2",
 ]
 
@@ -770,7 +770,7 @@ name = "test_kernel_lower_memory_free"
 version = "0.1.0"
 dependencies = [
  "bootloader_api",
- "uart_16550",
+ "uart_16550 0.2.18",
  "x86_64 0.15.2",
 ]
 
@@ -779,7 +779,7 @@ name = "test_kernel_map_phys_mem"
 version = "0.1.0"
 dependencies = [
  "bootloader_api",
- "uart_16550",
+ "uart_16550 0.2.18",
  "x86_64 0.15.2",
 ]
 
@@ -788,7 +788,7 @@ name = "test_kernel_min_stack"
 version = "0.1.0"
 dependencies = [
  "bootloader_api",
- "uart_16550",
+ "uart_16550 0.2.18",
  "x86_64 0.15.2",
 ]
 
@@ -797,7 +797,7 @@ name = "test_kernel_pie"
 version = "0.1.0"
 dependencies = [
  "bootloader_api",
- "uart_16550",
+ "uart_16550 0.2.18",
  "x86_64 0.15.2",
 ]
 
@@ -806,7 +806,7 @@ name = "test_kernel_ramdisk"
 version = "0.1.0"
 dependencies = [
  "bootloader_api",
- "uart_16550",
+ "uart_16550 0.2.18",
  "x86_64 0.15.2",
 ]
 
@@ -815,7 +815,7 @@ name = "test_kernel_write_usable_memory"
 version = "0.1.0"
 dependencies = [
  "bootloader_api",
- "uart_16550",
+ "uart_16550 0.2.18",
  "x86_64 0.15.2",
 ]
 
@@ -848,6 +848,17 @@ dependencies = [
  "bitflags 1.3.2",
  "rustversion",
  "x86_64 0.14.13",
+]
+
+[[package]]
+name = "uart_16550"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e492212ac378a5e00da953718dafb1340d9fbaf4f27d6f3c5cab03d931d1c049"
+dependencies = [
+ "bitflags 2.3.3",
+ "rustversion",
+ "x86",
 ]
 
 [[package]]
@@ -1019,6 +1030,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "x86"
+version = "0.52.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2781db97787217ad2a2845c396a5efe286f87467a5810836db6d74926e94a385"
+dependencies = [
+ "bit_field",
+ "bitflags 1.3.2",
+ "raw-cpuid",
+]
+
+[[package]]
 name = "x86_64"
 version = "0.14.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1044,9 +1066,9 @@ dependencies = [
 
 [[package]]
 name = "xmas-elf"
-version = "0.8.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d29b4d8e7beaceb4e77447ba941a7600d23d0319ab52da0461abea214832d5a"
+checksum = "18245fcbb8b3de8dd198ce7944fdd4096986fd6cd306b0fcfa27df817bd545d6"
 dependencies = [
  "zero",
 ]
