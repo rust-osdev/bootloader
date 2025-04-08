@@ -5,7 +5,7 @@
 use crate::legacy_memory_region::{LegacyFrameAllocator, LegacyMemoryRegion};
 use bootloader_api::{
     config::Mapping,
-    info::{FrameBuffer, FrameBufferInfo, MemoryRegion, TlsTemplate},
+    info::{FrameBuffer, FrameBufferInfo, MemoryRegion, Optional, TlsTemplate},
     BootInfo, BootloaderConfig,
 };
 use bootloader_boot_config::{BootConfig, LevelFilter};
@@ -80,6 +80,11 @@ pub struct SystemInfo {
     pub rsdp_addr: Option<PhysAddr>,
     pub ramdisk_addr: Option<u64>,
     pub ramdisk_len: u64,
+
+    /// UEFI runtime table address (if running on UEFI).
+    ///
+    /// Use a raw pointer from your kernel to this address to access UEFI Runtime Services.
+    pub rt_table_addr: Option<u64>,
 }
 
 /// The physical address of the framebuffer and information about the framebuffer.
@@ -580,6 +585,11 @@ where
         info.kernel_len = mappings.kernel_slice_len as _;
         info.kernel_image_offset = mappings.kernel_image_offset.as_u64();
         info._test_sentinel = boot_config._test_sentinel;
+        info.rt_table_addr = if let Some(addr) = system_info.rt_table_addr {
+            Optional::Some(addr)
+        } else {
+            Optional::None
+        };
         info
     });
 

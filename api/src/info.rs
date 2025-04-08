@@ -63,6 +63,9 @@ pub struct BootInfo {
     /// Virtual address of the loaded kernel image.
     pub kernel_image_offset: u64,
 
+    /// UEFI runtime table address (if running on UEFI)
+    pub rt_table_addr: Optional<u64>,
+
     #[doc(hidden)]
     pub _test_sentinel: u64,
 }
@@ -85,6 +88,7 @@ impl BootInfo {
             kernel_addr: 0,
             kernel_len: 0,
             kernel_image_offset: 0,
+            rt_table_addr: Optional::None,
             _test_sentinel: 0,
         }
     }
