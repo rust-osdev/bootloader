@@ -393,8 +393,8 @@ pub struct Mappings {
     /// This mapping will go from physical address `0x0` to whichever is larger:
     /// - The end of the last region in the BIOS/UEFI memory map
     /// - The address `0x1_0000_0000` (such that at least 4 GiB of physical memory are always mapped).
-    /// This is to ensure that useful MMIO regions (local APIC, I/O APIC, PCI bars) are
-    /// accessible to the kernel even if less physical memory than that is on the system.
+    ///   This is to ensure that useful MMIO regions (local APIC, I/O APIC, PCI bars) are
+    ///   accessible to the kernel even if less physical memory than that is on the system.
     ///
     /// Defaults to `None`, i.e. no mapping of the physical memory.
     pub physical_memory: Option<Mapping>,
