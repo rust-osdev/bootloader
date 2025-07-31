@@ -1,10 +1,17 @@
 # Unreleased
 
-## Features
+# 0.11.11 – 2025-07-31
 
-* add `kernel_base` mapping to the BootloaderConfig to specify the virtual address
-    at which position-independent kernels are loaded.
+This release is compatible with Rust nightlies starting with `nightly-2025-07-24`.
 
+* [Update uart_16550 to 0.3.2](https://github.com/rust-osdev/bootloader/pull/495)
+* [add `kernel_base` mapping to the BootloaderConfig](https://github.com/rust-osdev/bootloader/pull/494)
+* [Use Result::ok](https://github.com/rust-osdev/bootloader/pull/496)
+* [implement Send+Sync for MemoryRegions](https://github.com/rust-osdev/bootloader/pull/502)
+* [Document physical memory mapping size](https://github.com/rust-osdev/bootloader/pull/506)
+* [Fixes the type of target-c-int-width in target jsons. #](https://github.com/rust-osdev/bootloader/pull/509)
+
+**Full Changelog**: https://github.com/rust-osdev/bootloader/compare/v0.11.10...v0.11.11
 
 # 0.11.10 – 2025-02-10
 
