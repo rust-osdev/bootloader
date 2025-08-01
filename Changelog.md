@@ -1,5 +1,9 @@
 # Unreleased
 
+# 0.9.32 – 2025-07-31
+
+- [fix target-c-int-width](https://github.com/rust-osdev/bootloader/pull/512)
+
 # 0.9.31 – 2025-03-22
 
 - [remove #[no_mangle] from panic handler](https://github.com/rust-osdev/bootloader/pull/500)
