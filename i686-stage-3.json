@@ -11,7 +11,7 @@
     "position-independent-executables": false,
     "disable-redzone": true,
     "target-c-int-width": 32,
-    "target-pointer-width": "32",
+    "target-pointer-width": 32,
     "target-endian": "little",
     "panic-strategy": "abort",
     "os": "none",
