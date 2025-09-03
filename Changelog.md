@@ -1,5 +1,9 @@
 # Unreleased
 
+This release is compatible with Rust nightlies starting with `nightly-2025-08-28`.
+
+- [Fix(v0.9): target-pointer-width field now expects an integer](https://github.com/rust-osdev/bootloader/pull/518)
+
 # 0.9.32 – 2025-07-31
 
 - [fix target-c-int-width](https://github.com/rust-osdev/bootloader/pull/512)
