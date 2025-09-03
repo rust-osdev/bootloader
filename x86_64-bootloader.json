@@ -10,7 +10,7 @@
         ]
     },
     "target-endian": "little",
-    "target-pointer-width": "64",
+    "target-pointer-width": 64,
     "target-c-int-width": 32,
     "arch": "x86_64",
     "os": "none",
