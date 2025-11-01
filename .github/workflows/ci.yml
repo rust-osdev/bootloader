@@ -85,6 +85,26 @@ jobs:
         if: runner.os == 'Linux'
         run: cargo test --no-default-features --features bios
 
+  examples:
+    name: Build examples
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v3
+      - uses: Swatinem/rust-cache@v2
+      - uses: r7kamura/rust-problem-matchers@v1.1.0
+      - name: Install QEMU (Linux)
+        run: sudo apt update && sudo apt install qemu-system-x86
+      - name: "Build basic example"
+        run: cargo build
+        working-directory: examples/basic
+      - name: "Run basic example (bios)"
+        run: cargo run -- bios
+        working-directory: examples/basic
+      - name: "Run basic example (uefi)"
+        run: cargo run -- uefi
+        working-directory: examples/basic
+
   fmt:
     name: Check Formatting
     runs-on: ubuntu-latest
