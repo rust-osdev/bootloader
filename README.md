@@ -43,15 +43,7 @@ To combine your kernel with `bootloader` and create a bootable disk image, follo
     };
     bootloader_api::entry_point!(kernel_main, config = &CONFIG);
     ```
-- Compile your kernel to an ELF executable by running **`cargo build --target x86_64-unknown-none`**. You might need to run `rustup target add x86_64-unknown-none` before to download precompiled versions of the `core` and `alloc` crates. You can add `x86_64-unknown-none` as default target and add it to your toolchain so that `cargo build` takes care of this.
-    ```toml
-    # .cargo/config.toml
-    [build]
-    target = "x86_64-unknown-none"
-    ```
-    ```sh
-    $ cargo build
-    ```
+- Compile your kernel to an ELF executable by running **`cargo build --target x86_64-unknown-none`**. You might need to run `rustup target add x86_64-unknown-none` before to download precompiled versions of the `core` and `alloc` crates.
 - Thanks to the `entry_point` macro, the compiled executable contains a special section with metadata and the serialized config, which will enable the `bootloader` crate to load it.
 
 #### Creating a bootable image
@@ -61,12 +53,16 @@ To combine your kernel with `bootloader` and create a bootable disk image, follo
     ```sh
     $ cargo init --bin
     ```
-- Define a [workspace](https://doc.rust-lang.org/cargo/reference/workspaces.html) and add your kernel as a workspace member.
+- Define a [workspace](https://doc.rust-lang.org/cargo/reference/workspaces.html).
     ```toml
     # in Cargo.toml
     [workspace]
     resolver = "3"
-    members = ["kernel"]
+    members = []
+    ```
+- Add your kernel as a workspace member.
+    ```sh
+    $ cargo new kernel --bin
     ```
 - Enable the workspace to build your kernel:
   - Set up an [artifact dependency](https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#artifact-dependencies) to add your `kernel` crate as a `build-dependency`:
@@ -88,7 +84,7 @@ To combine your kernel with `bootloader` and create a bootable disk image, follo
       channel = "nightly"
       targets = ["x86_64-unknown-none"]
       ```
-  - Alternatively, you can use [`std::process::Command`](https://doc.rust-lang.org/stable/std/process/struct.Command.html) to invoke the build command of your kernel in the `build.rs` script. 
+  - Alternatively, you can use [`std::process::Command`](https://doc.rust-lang.org/stable/std/process/struct.Command.html) to invoke the build command of your kernel in the `build.rs` script.
 - Create a [`build.rs`](https://doc.rust-lang.org/cargo/reference/build-scripts.html) build script in the `os` crate. See our [disk image creation template](docs/create-disk-image.md) for a more detailed example.
   - Obtain the path to the kernel executable. When using an artifact dependency, you can retrieve this path using `std::env::var_os("CARGO_BIN_FILE_MY_KERNEL_my-kernel")`
   - Use `bootloader::UefiBoot` and/or `bootloader::BiosBoot` to create a bootable disk image with your kernel.

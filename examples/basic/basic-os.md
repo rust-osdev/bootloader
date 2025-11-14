@@ -35,7 +35,7 @@ The `basic` create combines the kernel with `bootloader`, creates a bootable dis
 - A [cargo build script](https://doc.rust-lang.org/cargo/reference/build-scripts.html) is used to create a bootable disk image ([`build.rs`](build.rs)).
 - `basic` launches the images in QEMU.
 
-See also [basic-kernel.md](kernel/basic-kernel.md) in the `kernel` subdirectory. 
+See also [basic-kernel.md](kernel/basic-kernel.md) in the `kernel` subdirectory.
 
 ## Usage
 
@@ -49,8 +49,8 @@ $ cargo build
 ```
 Run:
 ```sh
-$ cargo run -- bios
+$ cargo run bios
 ```
 ```sh
-$ cargo run -- uefi
+$ cargo run uefi
 ```
