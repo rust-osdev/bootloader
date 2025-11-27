@@ -6,11 +6,11 @@ SECTIONS {
     .start : {
         *(.start)
     }
-    .text : {
-        *(.text .text.*)
-    }
     .bss : {
         *(.bss .bss.*)
+    }
+    .text : {
+        *(.text .text.*)
     }
     .rodata : {
         *(.rodata .rodata.*)
