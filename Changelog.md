@@ -1,10 +1,21 @@
 # Unreleased
 
+# 0.11.13 - 2025-11-27
+
+This release is compatible with Rust nightlies starting with `nightly-2025-11-21`.
+
+* [Add basic example](https://github.com/rust-osdev/bootloader/pull/519)
+* [Use legacy symbol mangling for BIOS stage 2](https://github.com/rust-osdev/bootloader/pull/522)
+
+**Full Changelog**: https://github.com/rust-osdev/bootloader/compare/v0.11.12...v0.11.13
+
 # 0.11.12 - 2025-09-03
 
 This release is compatible with Rust nightlies starting with `nightly-2025-08-28`.
 
 * [Fix: `target-pointer-width` field now expects an integer](https://github.com/rust-osdev/bootloader/pull/516)
+
+**Full Changelog**: https://github.com/rust-osdev/bootloader/compare/v0.11.11...v0.11.12
 
 # 0.11.11 – 2025-07-31
 
