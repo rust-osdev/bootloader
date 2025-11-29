@@ -79,9 +79,9 @@ dependencies = [
 
 [[package]]
 name = "bootloader"
-version = "0.11.12"
+version = "0.11.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61e418d2f8952e4a6d935d23ea038daed2fe7707b0118923f91e83bf1fbe64b3"
+checksum = "269724328c6b8eda6fb9c4f054e1a5937fb27861272dd92a58d06b231f32cd48"
 dependencies = [
  "anyhow",
  "bootloader-boot-config",
@@ -95,18 +95,18 @@ dependencies = [
 
 [[package]]
 name = "bootloader-boot-config"
-version = "0.11.12"
+version = "0.11.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6cfbe7f4a5d9843a9a310712e64691f3c474546f02bed7a53ed81775a681d18e"
+checksum = "8695f73dcd0377cabbc64df31924b92456fde56cb9c2ae217da242e3235a1564"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "bootloader_api"
-version = "0.11.12"
+version = "0.11.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba1a4adcd36a49a08c4fb8c13c132fb1ea01a59681b305b46625095318328455"
+checksum = "9af2881e494cfadbfd715dc4dd0cd8ff1f3bab70bed96385da250b392f4d91fc"
 
 [[package]]
 name = "bumpalo"
