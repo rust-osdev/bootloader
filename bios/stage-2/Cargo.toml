@@ -18,7 +18,7 @@ bootloader-x86_64-bios-common = { workspace = true }
 # See https://github.com/rust-lang/cargo/issues/8264 for details.
 [profile.stage-2]
 inherits = "release"
-opt-level = "s"
+opt-level = "z"
 codegen-units = 1
 debug = false
 overflow-checks = true
