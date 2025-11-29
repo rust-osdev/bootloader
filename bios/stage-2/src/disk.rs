@@ -8,8 +8,9 @@ pub struct DiskAccess {
 }
 
 impl Read for DiskAccess {
-    unsafe fn read_exact(&mut self, len: usize) -> &[u8] {
-        let current_sector_offset = usize::try_from(self.current_offset % 512).unwrap();
+    unsafe fn read_exact_at(&mut self, len: usize, offset: u64) -> &[u8] {
+        self.seek(SeekFrom::Start(offset - (offset % 512)));
+        let current_sector_offset = usize::try_from(offset % 512).unwrap();
 
         static mut TMP_BUF: AlignedArrayBuffer<1024> = AlignedArrayBuffer {
             buffer: [0; 512 * 2],
@@ -62,6 +63,7 @@ impl Seek for DiskAccess {
     fn seek(&mut self, pos: SeekFrom) -> u64 {
         match pos {
             SeekFrom::Start(offset) => {
+                assert_eq!(offset % 512, 0);
                 self.current_offset = offset;
                 self.current_offset
             }
@@ -70,7 +72,7 @@ impl Seek for DiskAccess {
 }
 
 pub trait Read {
-    unsafe fn read_exact(&mut self, len: usize) -> &[u8];
+    unsafe fn read_exact_at(&mut self, len: usize, offset: u64) -> &[u8];
     fn read_exact_into(&mut self, len: usize, buf: &mut dyn AlignedBuffer);
 }
 
