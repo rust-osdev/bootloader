@@ -83,7 +83,7 @@ overflow-checks = false
 # duplicated from `bios/stage-2/Cargo.toml`
 [profile.stage-2]
 inherits = "release"
-opt-level = "s"
+opt-level = "z"
 codegen-units = 1
 debug = false
 overflow-checks = true

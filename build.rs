@@ -215,10 +215,6 @@ fn build_bios_stage_2() -> PathBuf {
     cmd.env_remove("RUSTFLAGS");
     cmd.env_remove("CARGO_ENCODED_RUSTFLAGS");
     cmd.env_remove("RUSTC_WORKSPACE_WRAPPER"); // used by clippy
-    cmd.env(
-        "RUSTFLAGS",
-        "-Csymbol-mangling-version=legacy -Zunstable-options",
-    );
     let status = cmd
         .status()
         .expect("failed to run cargo install for bios second stage");

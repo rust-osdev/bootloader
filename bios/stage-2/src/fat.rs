@@ -32,9 +32,8 @@ struct Bpb {
 }
 
 impl Bpb {
-    fn parse<D: Read + Seek>(disk: &mut D) -> Self {
-        disk.seek(SeekFrom::Start(0));
-        let raw = unsafe { disk.read_exact(512) };
+    fn parse<D: Read>(disk: &mut D) -> Self {
+        let raw = unsafe { disk.read_exact_at(512, 0) };
 
         let bytes_per_sector = u16::from_le_bytes(raw[11..13].try_into().unwrap());
         let sectors_per_cluster = raw[13];
@@ -256,7 +255,7 @@ struct Traverser<'a, D> {
 
 impl<D> Traverser<'_, D>
 where
-    D: Read + Seek,
+    D: Read,
 {
     fn next_cluster(&mut self) -> Result<Option<Cluster>, ()> {
         let entry = classify_fat_entry(
@@ -286,7 +285,7 @@ where
 
 impl<D> Iterator for Traverser<'_, D>
 where
-    D: Read + Seek,
+    D: Read,
 {
     type Item = Result<Cluster, ()>;
 
@@ -476,28 +475,25 @@ enum FileFatEntry {
 
 fn fat_entry_of_nth_cluster<D>(disk: &mut D, fat_type: FatType, fat_start: u64, n: u32) -> u32
 where
-    D: Seek + Read,
+    D: Read,
 {
     debug_assert!(n >= 2);
     match fat_type {
         FatType::Fat32 => {
             let base = n as u64 * 4;
-            disk.seek(SeekFrom::Start(fat_start + base));
-            let buf = unsafe { disk.read_exact(4) };
+            let buf = unsafe { disk.read_exact_at(4, fat_start + base) };
             let buf: [u8; 4] = buf.try_into().unwrap();
             u32::from_le_bytes(buf) & 0x0FFFFFFF
         }
         FatType::Fat16 => {
             let base = n as u64 * 2;
-            disk.seek(SeekFrom::Start(fat_start + base));
-            let buf = unsafe { disk.read_exact(2) };
+            let buf = unsafe { disk.read_exact_at(2, fat_start + base) };
             let buf: [u8; 2] = buf.try_into().unwrap();
             u16::from_le_bytes(buf) as u32
         }
         FatType::Fat12 => {
             let base = n as u64 + (n as u64 / 2);
-            disk.seek(SeekFrom::Start(fat_start + base));
-            let buf = unsafe { disk.read_exact(2) };
+            let buf = unsafe { disk.read_exact_at(2, fat_start + base) };
             let buf: [u8; 2] = buf.try_into().unwrap();
             let entry16 = u16::from_le_bytes(buf);
             if n & 1 == 0 {
