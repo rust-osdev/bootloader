@@ -2,7 +2,7 @@
 name = "test_kernel_map_phys_mem"
 version = "0.1.0"
 authors = ["Philipp Oppermann <dev@phil-opp.com>"]
-edition = "2021"
+edition = "2024"
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
 bootloader_api = { path = "../../../api" }

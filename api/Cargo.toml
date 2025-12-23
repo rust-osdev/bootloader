@@ -3,7 +3,7 @@ name = "bootloader_api"
 license.workspace = true
 version.workspace = true
 repository.workspace = true
-edition = "2021"
+edition = "2024"
 description = "Makes a kernel compatible with the bootloader crate"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
