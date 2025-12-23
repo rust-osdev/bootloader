@@ -1,10 +1,10 @@
 use x86_64::{
+    VirtAddr,
     instructions::segmentation::{self, Segment},
     structures::{
         gdt::{Descriptor, GlobalDescriptorTable},
         paging::PhysFrame,
     },
-    VirtAddr,
 };
 
 pub fn create_and_load(frame: PhysFrame) {

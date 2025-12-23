@@ -2,7 +2,7 @@
 
 use bootloader_x86_64_bios_common::PixelFormat;
 
-use crate::{disk::AlignedBuffer, AlignedArrayBuffer};
+use crate::{AlignedArrayBuffer, disk::AlignedBuffer};
 use core::arch::asm;
 
 #[repr(C, packed)]
@@ -109,11 +109,7 @@ impl<'a> VesaInfo<'a> {
         let base_ptr = video_mode_ptr as *const u16;
         let ptr = unsafe { base_ptr.add(index) };
         let mode = unsafe { *ptr };
-        if mode == 0xffff {
-            None
-        } else {
-            Some(mode)
-        }
+        if mode == 0xffff { None } else { Some(mode) }
     }
 }
 

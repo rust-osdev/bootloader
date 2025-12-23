@@ -1,9 +1,9 @@
 #![no_std] // don't link the Rust standard library
 #![no_main] // disable all Rust-level entry points
 
-use bootloader_api::{entry_point, BootInfo, BootloaderConfig};
+use bootloader_api::{BootInfo, BootloaderConfig, entry_point};
 use core::fmt::Write;
-use test_kernel_min_stack::{exit_qemu, serial, QemuExitCode};
+use test_kernel_min_stack::{QemuExitCode, exit_qemu, serial};
 
 const BOOTLOADER_CONFIG: BootloaderConfig = {
     let mut config = BootloaderConfig::new_default();

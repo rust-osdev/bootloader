@@ -2,9 +2,9 @@
 #![no_main] // disable all Rust-level entry points
 
 use bootloader_api::{
-    config::Mapping, entry_point, info::MemoryRegionKind, BootInfo, BootloaderConfig,
+    BootInfo, BootloaderConfig, config::Mapping, entry_point, info::MemoryRegionKind,
 };
-use test_kernel_write_usable_memory::{exit_qemu, QemuExitCode};
+use test_kernel_write_usable_memory::{QemuExitCode, exit_qemu};
 
 pub const BOOTLOADER_CONFIG: BootloaderConfig = {
     let mut config = BootloaderConfig::new_default();

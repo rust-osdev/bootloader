@@ -1,8 +1,8 @@
 #![no_std] // don't link the Rust standard library
 #![no_main] // disable all Rust-level entry points
 
-use bootloader_api::{entry_point, info::PixelFormat, BootInfo};
-use test_kernel_map_phys_mem::{exit_qemu, QemuExitCode, BOOTLOADER_CONFIG};
+use bootloader_api::{BootInfo, entry_point, info::PixelFormat};
+use test_kernel_map_phys_mem::{BOOTLOADER_CONFIG, QemuExitCode, exit_qemu};
 
 entry_point!(kernel_main, config = &BOOTLOADER_CONFIG);
 
