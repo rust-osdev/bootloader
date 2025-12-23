@@ -1,9 +1,8 @@
 use crate::{
-    entropy,
-    load_kernel::{calc_elf_memory_requirements, ElfMemoryRequirements, VirtualAddressOffset},
-    BootInfo, RawFrameBufferInfo,
+    BootInfo, RawFrameBufferInfo, entropy,
+    load_kernel::{ElfMemoryRequirements, VirtualAddressOffset, calc_elf_memory_requirements},
 };
-use bootloader_api::{config, info::MemoryRegion, BootloaderConfig};
+use bootloader_api::{BootloaderConfig, config, info::MemoryRegion};
 use core::{alloc::Layout, iter::Step};
 use rand::{
     distributions::{Distribution, Uniform},
@@ -12,10 +11,10 @@ use rand::{
 use rand_hc::Hc128Rng;
 use usize_conversions::IntoUsize;
 use x86_64::{
-    structures::paging::{Page, PageTableIndex, Size4KiB},
     PhysAddr, VirtAddr,
+    structures::paging::{Page, PageTableIndex, Size4KiB},
 };
-use xmas_elf::{header, program::ProgramHeader, ElfFile};
+use xmas_elf::{ElfFile, header, program::ProgramHeader};
 
 /// Keeps track of used entries in a level 4 page table.
 ///

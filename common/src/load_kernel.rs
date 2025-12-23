@@ -1,20 +1,18 @@
-use crate::{level_4_entries::UsedLevel4Entries, PAGE_SIZE};
+use crate::{PAGE_SIZE, level_4_entries::UsedLevel4Entries};
 use bootloader_api::{config::Mapping, info::TlsTemplate};
 use core::{cmp, iter::Step, mem::size_of, ops::Add};
 
 use x86_64::{
-    align_up,
+    PhysAddr, VirtAddr, align_up,
     structures::paging::{
-        mapper::{MappedFrame, MapperAllSizes, TranslateResult},
         FrameAllocator, Page, PageSize, PageTableFlags as Flags, PhysFrame, Size4KiB, Translate,
+        mapper::{MappedFrame, MapperAllSizes, TranslateResult},
     },
-    PhysAddr, VirtAddr,
 };
 use xmas_elf::{
-    dynamic, header,
+    ElfFile, dynamic, header,
     program::{self, ProgramHeader, SegmentData, Type},
     sections::Rela,
-    ElfFile,
 };
 
 use super::Kernel;
@@ -65,7 +63,7 @@ where
                     return Err(concat!(
                         "Invalid kernel_code mapping. ",
                         "Executable can only be mapped at virtual_address_offset 0."
-                    ))
+                    ));
                 }
             },
             header::Type::SharedObject => {

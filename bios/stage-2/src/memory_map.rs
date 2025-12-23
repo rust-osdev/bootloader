@@ -1,7 +1,7 @@
 // From http://wiki.osdev.org/Detecting_Memory_(x86)#Getting_an_E820_Memory_Map
 
 use crate::split_array_ref;
-use bootloader_x86_64_bios_common::{racy_cell::RacyCell, E820MemoryRegion};
+use bootloader_x86_64_bios_common::{E820MemoryRegion, racy_cell::RacyCell};
 use core::arch::asm;
 
 static MEMORY_MAP: RacyCell<[E820MemoryRegion; 100]> = RacyCell::new(

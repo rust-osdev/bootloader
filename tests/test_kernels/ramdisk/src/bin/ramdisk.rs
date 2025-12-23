@@ -1,9 +1,9 @@
 #![no_std] // don't link the Rust standard library
 #![no_main] // disable all Rust-level entry points
 
-use bootloader_api::{entry_point, BootInfo};
+use bootloader_api::{BootInfo, entry_point};
 use core::{fmt::Write, ptr::slice_from_raw_parts};
-use test_kernel_ramdisk::{exit_qemu, serial, QemuExitCode, RAMDISK_CONTENTS};
+use test_kernel_ramdisk::{QemuExitCode, RAMDISK_CONTENTS, exit_qemu, serial};
 
 entry_point!(kernel_main);
 

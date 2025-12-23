@@ -5,7 +5,7 @@ license.workspace = true
 version.workspace = true
 repository.workspace = true
 authors = ["Philipp Oppermann <dev@phil-opp.com>"]
-edition = "2021"
+edition = "2024"
 
 [workspace]
 members = [

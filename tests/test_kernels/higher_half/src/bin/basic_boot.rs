@@ -1,8 +1,8 @@
 #![no_std] // don't link the Rust standard library
 #![no_main] // disable all Rust-level entry points
 
-use bootloader_api::{entry_point, BootInfo};
-use test_kernel_higher_half::{exit_qemu, QemuExitCode, BOOTLOADER_CONFIG};
+use bootloader_api::{BootInfo, entry_point};
+use test_kernel_higher_half::{BOOTLOADER_CONFIG, QemuExitCode, exit_qemu};
 
 entry_point!(kernel_main, config = &BOOTLOADER_CONFIG);
 

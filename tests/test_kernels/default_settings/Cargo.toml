@@ -2,7 +2,7 @@
 name = "test_kernel_default_settings"
 version = "0.1.0"
 authors = ["Philipp Oppermann <dev@phil-opp.com>"]
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 bootloader_api = { path = "../../../api" }

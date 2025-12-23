@@ -2,9 +2,9 @@
 #![no_main] // disable all Rust-level entry points
 
 use bootloader_api::{
-    config::Mapping, entry_point, info::MemoryRegionKind, BootInfo, BootloaderConfig,
+    BootInfo, BootloaderConfig, config::Mapping, entry_point, info::MemoryRegionKind,
 };
-use test_kernel_lower_memory_free::{exit_qemu, QemuExitCode};
+use test_kernel_lower_memory_free::{QemuExitCode, exit_qemu};
 
 const LOWER_MEMORY_END_PAGE: u64 = 0x0010_0000;
 

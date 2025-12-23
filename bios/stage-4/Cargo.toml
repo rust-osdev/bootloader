@@ -1,7 +1,7 @@
 [package]
 name = "bootloader-x86_64-bios-stage-4"
 version.workspace = true
-edition = "2021"
+edition = "2024"
 license.workspace = true
 repository.workspace = true
 description = "Fourth BIOS stage of the `bootloader` crate"

@@ -1,9 +1,8 @@
 use bootloader_api::info::{MemoryRegion, MemoryRegionKind};
 use core::{cmp, mem::MaybeUninit};
 use x86_64::{
-    align_down, align_up,
+    PhysAddr, align_down, align_up,
     structures::paging::{FrameAllocator, PhysFrame, Size4KiB},
-    PhysAddr,
 };
 
 /// A slice of memory that is used by the bootloader and needs to be reserved

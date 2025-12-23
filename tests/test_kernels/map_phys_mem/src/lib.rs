@@ -1,6 +1,6 @@
 #![no_std]
 
-use bootloader_api::{config::Mapping, BootloaderConfig};
+use bootloader_api::{BootloaderConfig, config::Mapping};
 
 pub const BOOTLOADER_CONFIG: BootloaderConfig = {
     let mut config = BootloaderConfig::new_default();

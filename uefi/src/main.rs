@@ -6,7 +6,7 @@ use crate::memory_descriptor::UefiMemoryDescriptor;
 use bootloader_api::info::FrameBufferInfo;
 use bootloader_boot_config::BootConfig;
 use bootloader_x86_64_common::{
-    legacy_memory_region::LegacyFrameAllocator, Kernel, RawFrameBufferInfo, SystemInfo,
+    Kernel, RawFrameBufferInfo, SystemInfo, legacy_memory_region::LegacyFrameAllocator,
 };
 use core::{
     cell::UnsafeCell,
@@ -14,8 +14,10 @@ use core::{
     ptr, slice,
 };
 use uefi::{
-    prelude::{entry, Boot, Handle, Status, SystemTable},
+    CStr8, CStr16,
+    prelude::{Boot, Handle, Status, SystemTable, entry},
     proto::{
+        ProtocolPointer,
         console::gop::{GraphicsOutput, PixelFormat},
         device_path::DevicePath,
         loaded_image::LoadedImage,
@@ -24,19 +26,17 @@ use uefi::{
             fs::SimpleFileSystem,
         },
         network::{
-            pxe::{BaseCode, DhcpV4Packet},
             IpAddress,
+            pxe::{BaseCode, DhcpV4Packet},
         },
-        ProtocolPointer,
     },
     table::boot::{
         AllocateType, MemoryType, OpenProtocolAttributes, OpenProtocolParams, ScopedProtocol,
     },
-    CStr16, CStr8,
 };
 use x86_64::{
-    structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB},
     PhysAddr, VirtAddr,
+    structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB},
 };
 
 mod memory_descriptor;

@@ -3,15 +3,15 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 
 use crate::screen::Writer;
-use bootloader_x86_64_bios_common::{hlt, BiosInfo};
+use bootloader_x86_64_bios_common::{BiosInfo, hlt};
 use core::{arch::asm, fmt::Write as _};
 
 mod gdt;
 mod paging;
 mod screen;
 
-#[no_mangle]
-#[link_section = ".start"]
+#[unsafe(no_mangle)]
+#[unsafe(link_section = ".start")]
 pub extern "C" fn _start(info: &mut BiosInfo) {
     screen::init(info.framebuffer);
     // Writer.clear_screen();
@@ -29,7 +29,7 @@ pub extern "C" fn _start(info: &mut BiosInfo) {
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub fn enter_long_mode_and_jump_to_stage_4(info: &mut BiosInfo) {
     let _ = writeln!(Writer, "Paging init done, jumping to stage 4");
     unsafe {

@@ -1,6 +1,6 @@
 #![no_std]
 
-use bootloader_api::{config::Mapping, BootloaderConfig};
+use bootloader_api::{BootloaderConfig, config::Mapping};
 
 pub const KERNEL_ADDR: u64 = 0x1987_6543_0000;
 

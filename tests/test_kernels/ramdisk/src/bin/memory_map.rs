@@ -2,13 +2,13 @@
 #![no_main] // disable all Rust-level entry points
 
 use bootloader_api::{
-    config::Mapping, entry_point, info::MemoryRegionKind, BootInfo, BootloaderConfig,
+    BootInfo, BootloaderConfig, config::Mapping, entry_point, info::MemoryRegionKind,
 };
 use core::{fmt::Write, ptr::slice_from_raw_parts};
-use test_kernel_ramdisk::{exit_qemu, serial, QemuExitCode, RAMDISK_CONTENTS};
+use test_kernel_ramdisk::{QemuExitCode, RAMDISK_CONTENTS, exit_qemu, serial};
 use x86_64::{
-    structures::paging::{OffsetPageTable, PageTable, PageTableFlags, Translate},
     VirtAddr,
+    structures::paging::{OffsetPageTable, PageTable, PageTableFlags, Translate},
 };
 
 pub const BOOTLOADER_CONFIG: BootloaderConfig = {
@@ -84,5 +84,5 @@ pub unsafe fn active_level_4_table(physical_memory_offset: VirtAddr) -> &'static
     let virt = physical_memory_offset + phys.as_u64();
     let page_table_ptr: *mut PageTable = virt.as_mut_ptr();
 
-    &mut *page_table_ptr // unsafe
+    unsafe { &mut *page_table_ptr }
 }

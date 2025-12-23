@@ -2,7 +2,7 @@
 name = "bootloader-x86_64-bios-boot-sector"
 version.workspace = true
 authors = ["Philipp Oppermann <dev@phil-opp.com>"]
-edition = "2021"
+edition = "2024"
 license.workspace = true
 repository.workspace = true
 description = "BIOS boot sector for the `bootloader` crate"

@@ -2,7 +2,7 @@
 name = "bootloader_test_runner"
 version = "0.1.0"
 authors = ["Philipp Oppermann <dev@phil-opp.com>"]
-edition = "2021"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

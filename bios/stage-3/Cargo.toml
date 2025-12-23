@@ -2,7 +2,7 @@
 name = "bootloader-x86_64-bios-stage-3"
 version.workspace = true
 authors = ["Philipp Oppermann <dev@phil-opp.com>"]
-edition = "2021"
+edition = "2024"
 license.workspace = true
 repository.workspace = true
 description = "Third BIOS stage of the `bootloader` crate"
