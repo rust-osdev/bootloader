@@ -7,7 +7,7 @@ use crate::{
         copy_to_protected_mode, enter_protected_mode_and_jump_to_stage_3, enter_unreal_mode,
     },
 };
-use bootloader_x86_64_bios_common::{hlt, BiosFramebufferInfo, BiosInfo, Region};
+use bootloader_x86_64_bios_common::{BiosFramebufferInfo, BiosInfo, Region, hlt};
 use byteorder::{ByteOrder, LittleEndian};
 use core::{fmt::Write as _, slice};
 use disk::AlignedArrayBuffer;
@@ -35,8 +35,8 @@ static mut DISK_BUFFER: AlignedArrayBuffer<0x4000> = AlignedArrayBuffer {
     buffer: [0; 0x4000],
 };
 
-#[no_mangle]
-#[link_section = ".start"]
+#[unsafe(no_mangle)]
+#[unsafe(link_section = ".start")]
 pub extern "C" fn _start(disk_number: u16, partition_table_start: *const u8) -> ! {
     start(disk_number, partition_table_start)
 }
@@ -87,6 +87,7 @@ fn start(disk_number: u16, partition_table_start: *const u8) -> ! {
 
     let mut fs = fat::FileSystem::parse(disk.clone());
 
+    #[allow(static_mut_refs)]
     let disk_buffer = unsafe { &mut DISK_BUFFER };
 
     let stage_3_len = load_file("boot-stage-3", STAGE_3_DST, &mut fs, &mut disk, disk_buffer);
@@ -255,7 +256,7 @@ fn split_array_ref<const N: usize, T>(slice: &[T]) -> (&[T; N], &[T]) {
 
 #[cold]
 #[inline(never)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn fail(code: u8) -> ! {
     panic!("fail: {}", code as char);
 }

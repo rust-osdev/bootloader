@@ -37,20 +37,22 @@ impl DiskAddressPacket {
 
     pub unsafe fn perform_load(&self, disk_number: u16) {
         let self_addr = self as *const Self as u16;
-        asm!(
-            "push 'z'", // error code `z`, passed to `fail` on error
-            "mov {1:x}, si",
-            "mov si, {0:x}",
-            "int 0x13",
-            "jnc 2f", // carry is set on fail
-            "call fail",
-            "2:",
-            "pop si", // remove error code again
-            "mov si, {1:x}",
-            in(reg) self_addr,
-            out(reg) _,
-            in("ax") 0x4200u16,
-            in("dx") disk_number,
-        );
+        unsafe {
+            asm!(
+                "push 'z'", // error code `z`, passed to `fail` on error
+                "mov {1:x}, si",
+                "mov si, {0:x}",
+                "int 0x13",
+                "jnc 2f", // carry is set on fail
+                "call fail",
+                "2:",
+                "pop si", // remove error code again
+                "mov si, {1:x}",
+                in(reg) self_addr,
+                out(reg) _,
+                in("ax") 0x4200u16,
+                in("dx") disk_number,
+            );
+        }
     }
 }

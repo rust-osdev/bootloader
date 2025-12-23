@@ -7,8 +7,8 @@ use bootloader_boot_config::{BootConfig, LevelFilter};
 use bootloader_x86_64_bios_common::{BiosFramebufferInfo, BiosInfo, E820MemoryRegion};
 use bootloader_x86_64_common::RawFrameBufferInfo;
 use bootloader_x86_64_common::{
-    legacy_memory_region::LegacyFrameAllocator, load_and_switch_to_kernel, Kernel, PageTables,
-    SystemInfo,
+    Kernel, PageTables, SystemInfo, legacy_memory_region::LegacyFrameAllocator,
+    load_and_switch_to_kernel,
 };
 use core::{cmp, slice};
 use usize_conversions::usize_from;
@@ -22,8 +22,8 @@ const GIGABYTE: u64 = 4096 * 512 * 512;
 
 mod memory_descriptor;
 
-#[no_mangle]
-#[link_section = ".start"]
+#[unsafe(no_mangle)]
+#[unsafe(link_section = ".start")]
 pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
     let memory_map: &mut [E820MemoryRegion] = unsafe {
         core::slice::from_raw_parts_mut(
@@ -255,8 +255,8 @@ fn create_page_tables(frame_allocator: &mut impl FrameAllocator<Size4KiB>) -> Pa
 fn detect_rsdp() -> Option<PhysAddr> {
     use core::ptr::NonNull;
     use rsdp::{
-        handler::{AcpiHandler, PhysicalMapping},
         Rsdp,
+        handler::{AcpiHandler, PhysicalMapping},
     };
 
     #[derive(Clone)]
@@ -271,13 +271,15 @@ fn detect_rsdp() -> Option<PhysAddr> {
             physical_address: usize,
             size: usize,
         ) -> PhysicalMapping<Self, T> {
-            PhysicalMapping::new(
-                physical_address,
-                NonNull::new(physical_address as *mut _).unwrap(),
-                size,
-                size,
-                Self,
-            )
+            unsafe {
+                PhysicalMapping::new(
+                    physical_address,
+                    NonNull::new(physical_address as *mut _).unwrap(),
+                    size,
+                    size,
+                    Self,
+                )
+            }
         }
 
         fn unmap_physical_region<T>(_region: &PhysicalMapping<Self, T>) {}

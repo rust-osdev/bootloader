@@ -15,6 +15,7 @@ impl Read for DiskAccess {
         static mut TMP_BUF: AlignedArrayBuffer<1024> = AlignedArrayBuffer {
             buffer: [0; 512 * 2],
         };
+        #[allow(static_mut_refs)]
         let buf = unsafe { &mut TMP_BUF };
         assert!(current_sector_offset + len <= buf.buffer.len());
 

@@ -205,7 +205,7 @@ impl<D: Read + Seek> FileSystem<D> {
     fn read_root_dir<'a>(
         &'a mut self,
         buffer: &'a mut (dyn AlignedBuffer + 'a),
-    ) -> impl Iterator<Item = Result<RawDirectoryEntry, ()>> + 'a {
+    ) -> impl Iterator<Item = Result<RawDirectoryEntry<'a>, ()>> + 'a {
         match self.bpb.fat_type() {
             FatType::Fat32 => {
                 // self.bpb.root_cluster;
@@ -242,6 +242,7 @@ impl<D: Read + Seek> FileSystem<D> {
 
 #[derive(Debug)]
 pub struct Cluster {
+    #[allow(unused)]
     pub index: u32,
     pub start_offset: u64,
     pub len_bytes: u32,

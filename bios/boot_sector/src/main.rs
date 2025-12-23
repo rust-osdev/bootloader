@@ -11,7 +11,7 @@ mod dap;
 mod fail;
 mod mbr;
 
-extern "C" {
+unsafe extern "C" {
     static _partition_table: u8;
     static _second_stage_start: u8;
 }
@@ -25,7 +25,7 @@ fn second_stage_start() -> *const () {
     ptr as *const ()
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn first_stage(disk_number: u16) {
     // read partition table and look for second stage partition
     let partition_table = unsafe { slice::from_raw_parts(partition_table_raw(), 16 * 4) };

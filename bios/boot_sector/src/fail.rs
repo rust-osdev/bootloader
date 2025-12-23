@@ -28,7 +28,7 @@ impl<T, E> UnwrapOrFail for Result<T, E> {
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn print_char(c: u8) {
     let ax = u16::from(c) | 0x0e00;
     unsafe {
@@ -38,7 +38,7 @@ pub extern "C" fn print_char(c: u8) {
 
 #[cold]
 #[inline(never)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn fail(code: u8) -> ! {
     print_char(b'!');
     print_char(code);

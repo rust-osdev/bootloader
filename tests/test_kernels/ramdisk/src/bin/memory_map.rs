@@ -84,5 +84,5 @@ pub unsafe fn active_level_4_table(physical_memory_offset: VirtAddr) -> &'static
     let virt = physical_memory_offset + phys.as_u64();
     let page_table_ptr: *mut PageTable = virt.as_mut_ptr();
 
-    &mut *page_table_ptr // unsafe
+    unsafe { &mut *page_table_ptr }
 }
