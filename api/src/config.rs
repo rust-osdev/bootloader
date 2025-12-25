@@ -380,7 +380,7 @@ pub struct Mappings {
     /// Configures the base address of the kernel.
     ///
     /// If a fixed address is set, it must be paged aligned and the kernel must be
-    /// a position-independent exectuable.
+    /// a position-independent executable.
     pub kernel_base: Mapping,
     /// Specifies where the [`crate::BootInfo`] struct should be placed in virtual memory.
     pub boot_info: Mapping,
