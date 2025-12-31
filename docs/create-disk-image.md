@@ -10,9 +10,9 @@ Our [basic example](examples/basic/basic-os.md) showcases this setup:
     - create a workspace & add kernel as member
     - add kernel as build-dependency
     - add ovmf-prebuilt for UEFI booting in QEMU
-- [.cargo/config.toml](/examples/basic/Cargo.toml)
+- [.cargo/config.toml](/examples/basic/.cargo/config.toml)
     - enable the unstable artifact-dependencies feature
-- [rust-toolchain.toml](/examples/basic/Cargo.toml)
+- [rust-toolchain.toml](/examples/basic/rust-toolchain.toml)
     - change the default toolchain to nightly to use experimental features
 - [build.rs](/examples/basic/build.rs)
     - create bios and uefi disk image
