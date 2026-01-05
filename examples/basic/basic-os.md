@@ -28,6 +28,7 @@ The top level `basic` crate defines a [workspace](https://doc.rust-lang.org/carg
     # rust-toolchain.toml
     [toolchain]
     channel = "nightly"
+    components = ["llvm-tools"]
     targets = ["x86_64-unknown-none"]
     ```
 
