@@ -504,12 +504,15 @@ where
     fn remove_copied_flags(&mut self, elf_file: &ElfFile) -> Result<(), &'static str> {
         for program_header in elf_file.program_iter() {
             if let Type::Load = program_header.get_type()? {
+                if program_header.mem_size() == 0 {
+                    continue;
+                }
                 let start = self.virtual_address_offset + program_header.virtual_addr();
-                let end = start + program_header.mem_size();
+                let end = start + (program_header.mem_size() - 1);
                 let start = VirtAddr::new(start);
                 let end = VirtAddr::new(end);
                 let start_page = Page::containing_address(start);
-                let end_page = Page::containing_address(end - 1u64);
+                let end_page = Page::containing_address(end);
                 for page in Page::<Size4KiB>::range_inclusive(start_page, end_page) {
                     // Translate the page and get the flags.
                     let res = self.page_table.translate(page.start_address());

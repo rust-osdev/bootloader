@@ -137,7 +137,7 @@ impl UsedLevel4Entries {
     /// Marks all p4 entries in the range `[address..address+size)` as used.
     fn mark_range_as_used(&mut self, address: u64, size: u64) {
         let start = VirtAddr::new(address);
-        let end_inclusive = (start + size) - 1;
+        let end_inclusive = start + (size - 1);
         let start_page = Page::<Size4KiB>::containing_address(start);
         let end_page_inclusive = Page::<Size4KiB>::containing_address(end_inclusive);
 
