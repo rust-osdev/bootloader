@@ -62,8 +62,8 @@ pub struct BootInfo {
     pub kernel_len: u64,
     /// Virtual address of the loaded kernel image.
     pub kernel_image_offset: u64,
-    /// Virtual address of the start of the kernel stack
-    pub kernel_stack_addr: u64,
+    /// Virtual address of the kernel stack bottom.
+    pub kernel_stack_bottom: u64,
     /// Size of the kernel stack
     pub kernel_stack_len: u64,
 
@@ -89,7 +89,7 @@ impl BootInfo {
             kernel_addr: 0,
             kernel_len: 0,
             kernel_image_offset: 0,
-            kernel_stack_addr: 0,
+            kernel_stack_bottom: 0,
             kernel_stack_len: 0,
             _test_sentinel: 0,
         }
