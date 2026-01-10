@@ -415,6 +415,7 @@ where
     Mappings {
         framebuffer: framebuffer_virt_addr,
         entry_point,
+        stack_start: stack_start.start_address(),
         // Use the configured stack size, even if it's not page-aligned. However, we
         // need to align it down to the next 16-byte boundary because the System V
         // ABI requires a 16-byte stack alignment.
@@ -438,6 +439,7 @@ where
 pub struct Mappings {
     /// The entry point address of the kernel.
     pub entry_point: VirtAddr,
+    pub stack_start: VirtAddr,
     /// The (exclusive) end address of the kernel stack.
     pub stack_top: VirtAddr,
     /// Keeps track of used entries in the level 4 page table, useful for finding a free
@@ -579,6 +581,8 @@ where
         info.kernel_addr = mappings.kernel_slice_start.as_u64();
         info.kernel_len = mappings.kernel_slice_len as _;
         info.kernel_image_offset = mappings.kernel_image_offset.as_u64();
+        info.kernel_stack_addr = mappings.stack_start.as_u64();
+        info.kernel_stack_len = config.kernel_stack_size;
         info._test_sentinel = boot_config._test_sentinel;
         info
     });
