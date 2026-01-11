@@ -74,6 +74,7 @@ fn build_uefi_bootloader() -> PathBuf {
         cmd.arg("--path").arg("uefi");
         println!("cargo:rerun-if-changed=uefi");
         println!("cargo:rerun-if-changed=common");
+        cmd.arg("--target-dir").arg("target/uefi_target");
     } else {
         cmd.arg("--version").arg(BOOTLOADER_VERSION);
     }
@@ -82,6 +83,7 @@ fn build_uefi_bootloader() -> PathBuf {
     cmd.arg("-Zbuild-std=core")
         .arg("-Zbuild-std-features=compiler-builtins-mem");
     cmd.arg("--root").arg(&out_dir);
+    cmd.arg("-vv");
     cmd.env_remove("RUSTFLAGS");
     cmd.env_remove("CARGO_ENCODED_RUSTFLAGS");
     let status = cmd
