@@ -61,6 +61,7 @@ test_kernel_min_stack = { path = "tests/test_kernels/min_stack", artifact = "bin
 test_kernel_lower_memory_free = { path = "tests/test_kernels/lower_memory_free", artifact = "bin", target = "x86_64-unknown-none" }
 test_kernel_write_usable_memory = { path = "tests/test_kernels/write_usable_memory", artifact = "bin", target = "x86_64-unknown-none" }
 test_kernel_fixed_kernel_address = { path = "tests/test_kernels/fixed_kernel_address", artifact = "bin", target = "x86_64-unknown-none" }
+test_kernel_stack_address = { path = "tests/test_kernels/stack_address", artifact = "bin", target = "x86_64-unknown-none" }
 
 [profile.dev]
 panic = "abort"

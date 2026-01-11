@@ -90,6 +90,7 @@ dependencies = [
  "test_kernel_min_stack",
  "test_kernel_pie",
  "test_kernel_ramdisk",
+ "test_kernel_stack_address",
  "test_kernel_write_usable_memory",
 ]
 
@@ -803,6 +804,15 @@ dependencies = [
 
 [[package]]
 name = "test_kernel_ramdisk"
+version = "0.1.0"
+dependencies = [
+ "bootloader_api",
+ "uart_16550 0.2.18",
+ "x86_64 0.15.2",
+]
+
+[[package]]
+name = "test_kernel_stack_address"
 version = "0.1.0"
 dependencies = [
  "bootloader_api",

@@ -13,6 +13,7 @@ members = [
     "lower_memory_free",
     "write_usable_memory",
     "fixed_kernel_address",
+    "stack_address",
 ]
 
 [profile.release]
