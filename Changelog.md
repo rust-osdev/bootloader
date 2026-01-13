@@ -5,6 +5,8 @@
 * [Add kernel stack address to `BootInfo`](https://github.com/rust-osdev/bootloader/pull/531)
 * [Fix overflow error during address calculation](https://github.com/rust-osdev/bootloader/pull/530)
 * [Add llvm-tools to components in rust-toolchain file](https://github.com/rust-osdev/bootloader/pull/529)
+* [Fix links documentation](https://github.com/rust-osdev/bootloader/pull/528)
+* [Fix typo in documentation](https://github.com/rust-osdev/bootloader/pull/527)
 * [Update rust edition to 2024](https://github.com/rust-osdev/bootloader/pull/526)
 * [Fix buffer overlow in `DiskAccess::read_exact_into` for bios](https://github.com/rust-osdev/bootloader/pull/524)
 
