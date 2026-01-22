@@ -109,16 +109,11 @@ impl DiskImageBuilder {
     #[cfg(feature = "bios")]
     /// Create an MBR disk image for booting on BIOS systems.
     pub fn create_bios_image(&self, image_path: &Path) -> anyhow::Result<()> {
-        const BIOS_STAGE_3_NAME: &str = "boot-stage-3";
-        const BIOS_STAGE_4_NAME: &str = "boot-stage-4";
-        let stage_3 = FileDataSource::Bytes(BIOS_STAGE_3);
-        let stage_4 = FileDataSource::Bytes(BIOS_STAGE_4);
-        let mut internal_files = BTreeMap::new();
-        internal_files.insert(BIOS_STAGE_3_NAME, stage_3);
-        internal_files.insert(BIOS_STAGE_4_NAME, stage_4);
-        let fat_partition = self
-            .create_fat_filesystem_image(internal_files)
+        let fat_partition = NamedTempFile::new().context("failed to create temp file")?;
+
+        self.create_bios_fat_partition(fat_partition.path())
             .context("failed to create FAT partition")?;
+
         mbr::create_mbr_disk(
             BIOS_BOOT_SECTOR,
             BIOS_STAGE_2,
@@ -133,21 +128,51 @@ impl DiskImageBuilder {
         Ok(())
     }
 
+    #[cfg(feature = "bios")]
+    /// create a bootable fat-partition for a BIOS system.
+    ///
+    /// Note that for the partition to work as a boot-partition [BIOS_BOOT_SECTOR] and [BIOS_STAGE_2]
+    /// have to be properly loaded into the MBR disk image.
+    pub fn create_bios_fat_partition(&self, partition_path: &Path) -> anyhow::Result<()> {
+        const BIOS_STAGE_3_NAME: &str = "boot-stage-3";
+        const BIOS_STAGE_4_NAME: &str = "boot-stage-4";
+        let stage_3 = FileDataSource::Bytes(BIOS_STAGE_3);
+        let stage_4 = FileDataSource::Bytes(BIOS_STAGE_4);
+        let mut internal_files = BTreeMap::new();
+        internal_files.insert(BIOS_STAGE_3_NAME, stage_3);
+        internal_files.insert(BIOS_STAGE_4_NAME, stage_4);
+
+        self.create_fat_filesystem_image(internal_files, partition_path)
+            .context("failed to create FAT partition")?;
+
+        Ok(())
+    }
+
     #[cfg(feature = "uefi")]
     /// Create a GPT disk image for booting on UEFI systems.
     pub fn create_uefi_image(&self, image_path: &Path) -> anyhow::Result<()> {
-        const UEFI_BOOT_FILENAME: &str = "efi/boot/bootx64.efi";
-
-        let mut internal_files = BTreeMap::new();
-        internal_files.insert(UEFI_BOOT_FILENAME, FileDataSource::Bytes(UEFI_BOOTLOADER));
-        let fat_partition = self
-            .create_fat_filesystem_image(internal_files)
+        let fat_partition = NamedTempFile::new().context("failed to create temp file")?;
+        self.create_uefi_fat_partition(fat_partition.path())
             .context("failed to create FAT partition")?;
+
         gpt::create_gpt_disk(fat_partition.path(), image_path)
             .context("failed to create UEFI GPT disk image")?;
         fat_partition
             .close()
             .context("failed to delete FAT partition after disk image creation")?;
+
+        Ok(())
+    }
+
+    #[cfg(feature = "uefi")]
+    /// create a bootable fat-partition for a UEFI system.
+    pub fn create_uefi_fat_partition(&self, partition_path: &Path) -> anyhow::Result<()> {
+        const UEFI_BOOT_FILENAME: &str = "efi/boot/bootx64.efi";
+
+        let mut internal_files = BTreeMap::new();
+        internal_files.insert(UEFI_BOOT_FILENAME, FileDataSource::Bytes(UEFI_BOOTLOADER));
+        self.create_fat_filesystem_image(internal_files, partition_path)
+            .context("failed to create FAT partition")?;
 
         Ok(())
     }
@@ -198,7 +223,8 @@ impl DiskImageBuilder {
     fn create_fat_filesystem_image(
         &self,
         internal_files: BTreeMap<&str, FileDataSource>,
-    ) -> anyhow::Result<NamedTempFile> {
+        partition_path: &Path,
+    ) -> anyhow::Result<()> {
         let mut local_map: BTreeMap<&str, _> = BTreeMap::new();
 
         for (name, source) in &self.files {
@@ -214,10 +240,9 @@ impl DiskImageBuilder {
             }
         }
 
-        let out_file = NamedTempFile::new().context("failed to create temp file")?;
-        fat::create_fat_filesystem(local_map, out_file.path())
+        fat::create_fat_filesystem(local_map, partition_path)
             .context("failed to create FAT filesystem")?;
 
-        Ok(out_file)
+        Ok(())
     }
 }
