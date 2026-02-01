@@ -1,5 +1,11 @@
 # Unreleased
 
+# 0.9.34 – 2026-02-01
+
+This release is compatible with Rust nightlies starting with `nightly-2025-02-01`.
+
+- [Enable json-target-spec](https://github.com/rust-osdev/bootloader/pull/537)
+
 # 0.9.33 – 2025-09-03
 
 This release is compatible with Rust nightlies starting with `nightly-2025-08-28`.

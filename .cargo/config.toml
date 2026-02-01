@@ -1,2 +1,5 @@
+[unstable]
+json-target-spec = true
+
 [build]
 target = "x86_64-bootloader.json"
