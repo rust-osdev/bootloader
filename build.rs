@@ -140,7 +140,9 @@ fn build_bios_boot_sector() -> PathBuf {
         cmd.arg("--version").arg(BOOTLOADER_VERSION);
     }
     cmd.arg("--locked");
-    cmd.arg("--target").arg("i386-code16-boot-sector.json");
+    cmd.arg("--target")
+        .arg("i386-code16-boot-sector.json")
+        .arg("-Zjson-target-spec");
     cmd.arg("--profile").arg("stage-1");
     cmd.arg("-Zbuild-std=core")
         .arg("-Zbuild-std-features=compiler-builtins-mem");
@@ -209,7 +211,9 @@ fn build_bios_stage_2() -> PathBuf {
         cmd.arg("--version").arg(BOOTLOADER_VERSION);
     }
     cmd.arg("--locked");
-    cmd.arg("--target").arg("i386-code16-stage-2.json");
+    cmd.arg("--target")
+        .arg("i386-code16-stage-2.json")
+        .arg("-Zjson-target-spec");
     cmd.arg("--profile").arg("stage-2");
     cmd.arg("-Zbuild-std=core")
         .arg("-Zbuild-std-features=compiler-builtins-mem");
@@ -272,7 +276,9 @@ fn build_bios_stage_3() -> PathBuf {
         cmd.arg("--version").arg(BOOTLOADER_VERSION);
     }
     cmd.arg("--locked");
-    cmd.arg("--target").arg("i686-stage-3.json");
+    cmd.arg("--target")
+        .arg("i686-stage-3.json")
+        .arg("-Zjson-target-spec");
     cmd.arg("--profile").arg("stage-3");
     cmd.arg("-Zbuild-std=core")
         .arg("-Zbuild-std-features=compiler-builtins-mem");
@@ -335,7 +341,9 @@ fn build_bios_stage_4() -> PathBuf {
         cmd.arg("--version").arg(BOOTLOADER_VERSION);
     }
     cmd.arg("--locked");
-    cmd.arg("--target").arg("x86_64-stage-4.json");
+    cmd.arg("--target")
+        .arg("x86_64-stage-4.json")
+        .arg("-Zjson-target-spec");
     cmd.arg("--profile").arg("stage-4");
     cmd.arg("-Zbuild-std=core")
         .arg("-Zbuild-std-features=compiler-builtins-mem");
