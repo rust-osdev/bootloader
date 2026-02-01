@@ -1,5 +1,13 @@
 # Unreleased
 
+# 0.11.15 - 2026-02-01
+
+This release is compatible with Rust nightlies starting with `nightly-2026-02-01`.
+
+* [build with -Zjson-target-spec](https://github.com/rust-osdev/bootloader/pull/536)
+
+**Full Changelog**: https://github.com/rust-osdev/bootloader/compare/v0.11.14...v0.11.15
+
 # 0.11.14 - 2026-01-13
 
 * [Add kernel stack address to `BootInfo`](https://github.com/rust-osdev/bootloader/pull/531)
