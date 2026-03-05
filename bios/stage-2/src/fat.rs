@@ -48,16 +48,14 @@ impl Bpb {
         let root_cluster;
         let fat_size_32;
 
-        if (total_sectors_16 == 0) && (total_sectors_32 != 0) {
+        if fat_size_16 == 0 {
             // FAT32
             fat_size_32 = u32::from_le_bytes(raw[36..40].try_into().unwrap());
             root_cluster = u32::from_le_bytes(raw[44..48].try_into().unwrap());
-        } else if (total_sectors_16 != 0) && (total_sectors_32 == 0) {
+        } else {
             // FAT12 or FAT16
             fat_size_32 = 0;
             root_cluster = 0;
-        } else {
-            panic!("ExactlyOneTotalSectorsFieldMustBeZero");
         }
 
         Self {
