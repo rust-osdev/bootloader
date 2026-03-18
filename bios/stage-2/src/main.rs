@@ -83,6 +83,7 @@ fn start(disk_number: u16, partition_table_start: *const u8) -> ! {
         disk_number,
         base_offset: u64::from(fat_partition.logical_block_address) * 512,
         current_offset: 0,
+        last_read_exact_at_offset: None,
     };
 
     let mut fs = fat::FileSystem::parse(disk.clone());
@@ -198,10 +199,17 @@ fn try_load_file(
     let file_size = file.file_size().into();
 
     let mut total_offset = 0;
-    for cluster in fs.file_clusters(&file) {
-        let cluster = cluster.unwrap();
+    let mut file_clusters = fs.file_clusters(&file).map(Result::unwrap).peekable();
+    while let Some(cluster) = file_clusters.next() {
         let cluster_start = cluster.start_offset;
-        let cluster_end = cluster_start + u64::from(cluster.len_bytes);
+        let mut cluster_end = cluster_start + u64::from(cluster.len_bytes);
+
+        // Merge with the following clusters if they're contiguous.
+        while let Some(next_cluster) =
+            file_clusters.next_if(|next_cluster| next_cluster.start_offset == cluster_end)
+        {
+            cluster_end += u64::from(next_cluster.len_bytes);
+        }
 
         let mut offset = 0;
         loop {

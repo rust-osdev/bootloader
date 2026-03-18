@@ -5,6 +5,9 @@ pub struct DiskAccess {
     pub disk_number: u16,
     pub base_offset: u64,
     pub current_offset: u64,
+
+    /// The offset of the sector read in the last call to read_exact_at.
+    pub last_read_exact_at_offset: Option<u64>,
 }
 
 impl Read for DiskAccess {
@@ -19,7 +22,15 @@ impl Read for DiskAccess {
         let buf = unsafe { &mut TMP_BUF };
         assert!(current_sector_offset + len <= buf.buffer.len());
 
-        self.read_exact_into(buf.buffer.len(), buf);
+        // Don't read the sector if we already read the same sector in the last
+        // call.
+        if self
+            .last_read_exact_at_offset
+            .is_none_or(|offset| offset != self.current_offset)
+        {
+            self.last_read_exact_at_offset = Some(self.current_offset);
+            self.read_exact_into(buf.buffer.len(), buf);
+        }
 
         &buf.buffer[current_sector_offset..][..len]
     }
