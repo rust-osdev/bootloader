@@ -83,6 +83,7 @@ fn start(disk_number: u16, partition_table_start: *const u8) -> ! {
         disk_number,
         base_offset: u64::from(fat_partition.logical_block_address) * 512,
         current_offset: 0,
+        last_read_exact_at_offset: None,
     };
 
     let mut fs = fat::FileSystem::parse(disk.clone());
