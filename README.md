@@ -43,7 +43,7 @@ To combine your kernel with `bootloader` and create a bootable disk image, follo
     };
     bootloader_api::entry_point!(kernel_main, config = &CONFIG);
     ```
-- Compile your kernel to an ELF executable by running **`cargo build --target x86_64-unknown-none`**. You might need to run `rustup target add x86_64-unknown-none` before to download precompiled versions of the `core` and `alloc` crates.
+- Compile your kernel to an ELF executable by running **`cargo build --target x86_64-unknown-none`**. You might need to run `rustup target add x86_64-unknown-none` for BIOS and `rustup target add x86_64-unknown-uefi` for UEFI before to download precompiled versions of the `std`, `core` and `alloc` crates.
 - Thanks to the `entry_point` macro, the compiled executable contains a special section with metadata and the serialized config, which will enable the `bootloader` crate to load it.
 
 #### Creating a bootable image
@@ -82,7 +82,7 @@ To combine your kernel with `bootloader` and create a bootable disk image, follo
       # rust-toolchain.toml
       [toolchain]
       channel = "nightly"
-      targets = ["x86_64-unknown-none"]
+      targets = ["x86_64-unknown-none", "x86_64-unknown-uefi"]
       ```
   - Alternatively, you can use [`std::process::Command`](https://doc.rust-lang.org/stable/std/process/struct.Command.html) to invoke the build command of your kernel in the `build.rs` script.
 - Create a [`build.rs`](https://doc.rust-lang.org/cargo/reference/build-scripts.html) build script in the `os` crate. See our [disk image creation template](docs/create-disk-image.md) for a more detailed example.

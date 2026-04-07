@@ -29,7 +29,7 @@ The top level `basic` crate defines a [workspace](https://doc.rust-lang.org/carg
     [toolchain]
     channel = "nightly"
     components = ["llvm-tools"]
-    targets = ["x86_64-unknown-none"]
+    targets = ["x86_64-unknown-none", "x86_64-unknown-uefi"]
     ```
 
 The `basic` create combines the kernel with `bootloader`, creates a bootable disk image and launches them.
