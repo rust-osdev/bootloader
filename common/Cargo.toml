@@ -17,7 +17,7 @@ usize_conversions = "0.2.0"
 x86_64 = { version = "0.15.2" }
 xmas-elf = "0.8.0"
 raw-cpuid = "10.2.0"
-rand = { version = "0.8.4", default-features = false }
+rand = { version = "0.9.3", default-features = false }
 rand_hc = "0.3.1"
 uart_16550 = "0.3.2"
 log = "0.4.17"

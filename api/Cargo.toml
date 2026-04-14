@@ -11,4 +11,4 @@ description = "Makes a kernel compatible with the bootloader crate"
 [dependencies]
 
 [dev-dependencies]
-rand = "0.8.4"
+rand = "0.9.3"
