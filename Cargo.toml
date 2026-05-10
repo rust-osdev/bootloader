@@ -106,3 +106,6 @@ llvm-tools = "0.1.1"
 
 [package.metadata.docs.rs]
 rustc-args = ["--cfg", "docsrs_dummy_build"]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(docsrs_dummy_build)'] }

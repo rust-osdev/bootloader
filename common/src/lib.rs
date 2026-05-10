@@ -552,7 +552,7 @@ where
     log::info!("Create bootinfo");
 
     // create boot info
-    let boot_info = boot_info.write({
+    boot_info.write({
         let mut info = BootInfo::new(memory_regions.into());
         info.framebuffer = mappings
             .framebuffer
@@ -585,9 +585,7 @@ where
         info.kernel_stack_len = config.kernel_stack_size;
         info._test_sentinel = boot_config._test_sentinel;
         info
-    });
-
-    boot_info
+    })
 }
 
 /// Switches to the kernel address space and jumps to the kernel entry point.

@@ -214,7 +214,7 @@ where
         }
     }
 
-    fn split_and_add_region<'a, U>(
+    fn split_and_add_region<U>(
         mut region: MemoryRegion,
         regions: &mut [MaybeUninit<MemoryRegion>],
         next_index: &mut usize,
@@ -339,7 +339,7 @@ mod tests {
         }
 
         fn len(&self) -> u64 {
-            assert!(self.len % 4096 == 0);
+            assert!(self.len.is_multiple_of(4096));
             self.len
         }
 
@@ -348,10 +348,7 @@ mod tests {
         }
 
         fn usable_after_bootloader_exit(&self) -> bool {
-            match self.kind {
-                MemoryRegionKind::Usable => true,
-                _ => false,
-            }
+            matches!(self.kind, MemoryRegionKind::Usable)
         }
     }
 

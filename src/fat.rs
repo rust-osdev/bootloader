@@ -33,16 +33,16 @@ pub fn create_fat_filesystem(
     let mut label = *b"MY_RUST_OS!";
 
     // This __should__ always be a file, but maybe not. Should we allow the caller to set the volume label instead?
-    if let Some(FileDataSource::File(path)) = files.get(KERNEL_FILE_NAME) {
-        if let Some(name) = path.file_stem() {
-            let converted = name.to_string_lossy();
-            let name = converted.as_bytes();
-            let mut new_label = [0u8; 11];
-            let name = &name[..usize::min(new_label.len(), name.len())];
-            let slice = &mut new_label[..name.len()];
-            slice.copy_from_slice(name);
-            label = new_label;
-        }
+    if let Some(FileDataSource::File(path)) = files.get(KERNEL_FILE_NAME)
+        && let Some(name) = path.file_stem()
+    {
+        let converted = name.to_string_lossy();
+        let name = converted.as_bytes();
+        let mut new_label = [0u8; 11];
+        let name = &name[..usize::min(new_label.len(), name.len())];
+        let slice = &mut new_label[..name.len()];
+        slice.copy_from_slice(name);
+        label = new_label;
     }
 
     // format the file system and open it

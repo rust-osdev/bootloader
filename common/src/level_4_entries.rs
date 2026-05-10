@@ -103,10 +103,10 @@ impl UsedLevel4Entries {
             used.mark_range_as_used(boot_info_address, combined.size() as u64);
         }
 
-        if let config::Mapping::FixedAddress(framebuffer_address) = config.mappings.framebuffer {
-            if let Some(framebuffer) = framebuffer {
-                used.mark_range_as_used(framebuffer_address, framebuffer.info.byte_len as u64);
-            }
+        if let config::Mapping::FixedAddress(framebuffer_address) = config.mappings.framebuffer
+            && let Some(framebuffer) = framebuffer
+        {
+            used.mark_range_as_used(framebuffer_address, framebuffer.info.byte_len as u64);
         }
 
         // Mark everything before the dynamic range as unusable.
@@ -208,7 +208,7 @@ impl UsedLevel4Entries {
 
         const LEVEL_4_SIZE: u64 = 4096 * 512 * 512 * 512;
 
-        let level_4_entries = (size + (LEVEL_4_SIZE - 1)) / LEVEL_4_SIZE;
+        let level_4_entries = size.div_ceil(LEVEL_4_SIZE);
         let base = Page::from_page_table_indices_1gib(
             self.get_free_entries(level_4_entries),
             PageTableIndex::new(0),

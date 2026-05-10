@@ -722,12 +722,12 @@ where
 /// Check that the virtual offset belongs to a load segment.
 fn check_is_in_load(elf_file: &ElfFile, virt_offset: u64) -> Result<(), &'static str> {
     for program_header in elf_file.program_iter() {
-        if let Type::Load = program_header.get_type()? {
-            if program_header.virtual_addr() <= virt_offset {
-                let offset_in_segment = virt_offset - program_header.virtual_addr();
-                if offset_in_segment < program_header.mem_size() {
-                    return Ok(());
-                }
+        if let Type::Load = program_header.get_type()?
+            && program_header.virtual_addr() <= virt_offset
+        {
+            let offset_in_segment = virt_offset - program_header.virtual_addr();
+            if offset_in_segment < program_header.mem_size() {
+                return Ok(());
             }
         }
     }
