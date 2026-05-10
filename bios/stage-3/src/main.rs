@@ -34,8 +34,8 @@ pub fn enter_long_mode_and_jump_to_stage_4(info: &mut BiosInfo) {
     let _ = writeln!(Writer, "Paging init done, jumping to stage 4");
     unsafe {
         asm!(
-            // align the stack
-            "and esp, 0xffffff00",
+            // Move the stack to new base address to make space for stage 4 and the kernel.
+            "mov esp, 0x00080000",
             // push arguments (extended to 64 bit)
             "push 0",
             "push {info:e}",

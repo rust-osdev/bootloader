@@ -31,9 +31,7 @@ const STAGE_4_DST: *mut u8 = 0x0013_0000 as *mut u8;
 // 16MiB
 const KERNEL_DST: *mut u8 = 0x0100_0000 as *mut u8;
 
-static mut DISK_BUFFER: AlignedArrayBuffer<0x4000> = AlignedArrayBuffer {
-    buffer: [0; 0x4000],
-};
+const BUF_LEN: usize = 0x4000;
 
 #[unsafe(no_mangle)]
 #[unsafe(link_section = ".start")]
@@ -88,27 +86,52 @@ fn start(disk_number: u16, partition_table_start: *const u8) -> ! {
 
     let mut fs = fat::FileSystem::parse(disk.clone());
 
-    #[allow(static_mut_refs)]
-    let disk_buffer = unsafe { &mut DISK_BUFFER };
+    let mut disk_buffer = AlignedArrayBuffer {
+        buffer: [0; BUF_LEN],
+    };
 
-    let stage_3_len = load_file("boot-stage-3", STAGE_3_DST, &mut fs, &mut disk, disk_buffer);
+    let stage_3_len = load_file(
+        "boot-stage-3",
+        STAGE_3_DST,
+        &mut fs,
+        &mut disk,
+        &mut disk_buffer,
+    );
     writeln!(screen::Writer, "stage 3 loaded at {STAGE_3_DST:#p}").unwrap();
     let stage_4_dst = {
         let stage_3_end = STAGE_3_DST.wrapping_add(usize::try_from(stage_3_len).unwrap());
-        assert!(STAGE_4_DST > stage_3_end);
+        assert!(STAGE_4_DST >= stage_3_end);
         STAGE_4_DST
     };
-    let stage_4_len = load_file("boot-stage-4", stage_4_dst, &mut fs, &mut disk, disk_buffer);
+    let stage_4_len = load_file(
+        "boot-stage-4",
+        stage_4_dst,
+        &mut fs,
+        &mut disk,
+        &mut disk_buffer,
+    );
     writeln!(screen::Writer, "stage 4 loaded at {stage_4_dst:#p}").unwrap();
 
     writeln!(screen::Writer, "loading kernel...").unwrap();
-    let kernel_len = load_file("kernel-x86_64", KERNEL_DST, &mut fs, &mut disk, disk_buffer);
+    let kernel_len = load_file(
+        "kernel-x86_64",
+        KERNEL_DST,
+        &mut fs,
+        &mut disk,
+        &mut disk_buffer,
+    );
     writeln!(screen::Writer, "kernel loaded at {KERNEL_DST:#p}").unwrap();
     let kernel_page_size = (((kernel_len - 1) / 4096) + 1) as usize;
     let ramdisk_start = KERNEL_DST.wrapping_add(kernel_page_size * 4096);
     writeln!(screen::Writer, "Loading ramdisk...").unwrap();
-    let ramdisk_len =
-        try_load_file("ramdisk", ramdisk_start, &mut fs, &mut disk, disk_buffer).unwrap_or(0u64);
+    let ramdisk_len = try_load_file(
+        "ramdisk",
+        ramdisk_start,
+        &mut fs,
+        &mut disk,
+        &mut disk_buffer,
+    )
+    .unwrap_or(0u64);
 
     if ramdisk_len == 0 {
         writeln!(screen::Writer, "No ramdisk found, skipping.").unwrap();
@@ -121,7 +144,7 @@ fn start(disk_number: u16, partition_table_start: *const u8) -> ! {
         config_file_start,
         &mut fs,
         &mut disk,
-        disk_buffer,
+        &mut disk_buffer,
     )
     .unwrap_or(0);
 
@@ -132,7 +155,7 @@ fn start(disk_number: u16, partition_table_start: *const u8) -> ! {
     let max_width = 1280;
     let max_height = 720;
 
-    let mut vesa_info = vesa::VesaInfo::query(disk_buffer).unwrap();
+    let mut vesa_info = vesa::VesaInfo::query(&mut disk_buffer).unwrap();
     let vesa_mode = vesa_info
         .get_best_mode(max_width, max_height)
         .unwrap()
@@ -191,7 +214,7 @@ fn try_load_file(
     dst: *mut u8,
     fs: &mut fat::FileSystem<disk::DiskAccess>,
     disk: &mut disk::DiskAccess,
-    disk_buffer: &mut AlignedArrayBuffer<16384>,
+    disk_buffer: &mut AlignedArrayBuffer<BUF_LEN>,
 ) -> Option<u64> {
     let disk_buffer_size = disk_buffer.buffer.len();
     let file = fs.find_file_in_root_dir(file_name, disk_buffer)?;
@@ -244,7 +267,7 @@ fn load_file(
     dst: *mut u8,
     fs: &mut fat::FileSystem<disk::DiskAccess>,
     disk: &mut disk::DiskAccess,
-    disk_buffer: &mut AlignedArrayBuffer<16384>,
+    disk_buffer: &mut AlignedArrayBuffer<BUF_LEN>,
 ) -> u64 {
     try_load_file(file_name, dst, fs, disk, disk_buffer).expect("file not found")
 }

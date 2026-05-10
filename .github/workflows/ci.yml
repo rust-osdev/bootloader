@@ -24,7 +24,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - uses: r7kamura/rust-problem-matchers@v1.1.0
       - name: "Run `cargo check`"
-        run: cargo check --all-targets --all
+        run: cargo check --all-targets --all --exclude 'test_kernel*'  # Don't fail on panic_handler doubled definition.
       - name: "Check test kernels"
         run: cargo check --all
         working-directory: tests/test_kernels
@@ -123,7 +123,7 @@ jobs:
       - run: cargo --version --verbose
       - uses: Swatinem/rust-cache@v2
       - uses: r7kamura/rust-problem-matchers@v1.1.0
-      - run: cargo clippy --all --all-targets
+      - run: cargo clippy --all --all-targets  --exclude 'test_kernel*' # Don't fail on panic_handler doubled definition.
       - run: cargo clippy --all
         working-directory: tests/test_kernels
 
