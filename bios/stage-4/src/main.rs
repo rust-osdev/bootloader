@@ -28,7 +28,7 @@ pub extern "C" fn _start(info: &mut BiosInfo) -> ! {
     let memory_map: &mut [E820MemoryRegion] = unsafe {
         core::slice::from_raw_parts_mut(
             info.memory_map_addr as *mut _,
-            info.memory_map_len.try_into().unwrap(),
+            usize::from(info.memory_map_len),
         )
     };
 

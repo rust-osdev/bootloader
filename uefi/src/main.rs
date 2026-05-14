@@ -224,7 +224,7 @@ fn load_file_from_boot_method(
 fn open_device_path_protocol(
     image: Handle,
     st: &SystemTable<Boot>,
-) -> Option<ScopedProtocol<DevicePath>> {
+) -> Option<ScopedProtocol<'_, DevicePath>> {
     let this = st.boot_services();
     let loaded_image = unsafe {
         this.open_protocol::<LoadedImage>(
@@ -266,7 +266,7 @@ fn open_device_path_protocol(
 fn locate_and_open_protocol<P: ProtocolPointer>(
     image: Handle,
     st: &SystemTable<Boot>,
-) -> Option<ScopedProtocol<P>> {
+) -> Option<ScopedProtocol<'_, P>> {
     let this = st.boot_services();
     let device_path = open_device_path_protocol(image, st)?;
     let mut device_path = device_path.deref();

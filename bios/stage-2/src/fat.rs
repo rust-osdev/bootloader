@@ -82,9 +82,8 @@ impl Bpb {
     }
 
     fn count_of_clusters(&self) -> u32 {
-        let root_dir_sectors = ((self.root_entry_count as u32 * 32)
-            + (self.bytes_per_sector as u32 - 1))
-            / self.bytes_per_sector as u32;
+        let root_dir_sectors =
+            (self.root_entry_count as u32 * 32).div_ceil(self.bytes_per_sector as u32);
         let total_sectors = if self.total_sectors_16 != 0 {
             self.total_sectors_16 as u32
         } else {

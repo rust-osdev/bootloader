@@ -59,7 +59,9 @@ pub struct FrameBuffer {
 ///
 /// Based on
 /// <https://github.com/rust-lang/log/blob/dc32ab999f52805d5ce579b526bd9d9684c38d1a/src/lib.rs#L552-565>
-#[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(
+    Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default,
+)]
 pub enum LevelFilter {
     /// A level lower than all log levels.
     Off,
@@ -72,11 +74,6 @@ pub enum LevelFilter {
     /// Corresponds to the `Debug` log level.
     Debug,
     /// Corresponds to the `Trace` log level.
+    #[default]
     Trace,
-}
-
-impl Default for LevelFilter {
-    fn default() -> Self {
-        Self::Trace
-    }
 }

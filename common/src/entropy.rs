@@ -60,15 +60,15 @@ fn tsc_entropy() -> [u8; 32] {
 
     // Check if the CPU supports `RDTSC`.
     let cpu_id = CpuId::new();
-    if let Some(feature_info) = cpu_id.get_feature_info() {
-        if !feature_info.has_tsc() {
-            for i in 0..4 {
-                let value = unsafe {
-                    // SAFETY: We checked that the cpu supports `RDTSC` and we run in ring 0.
-                    core::arch::x86_64::_rdtsc()
-                };
-                entropy[i * 8..(i + 1) * 8].copy_from_slice(&value.to_ne_bytes());
-            }
+    if let Some(feature_info) = cpu_id.get_feature_info()
+        && !feature_info.has_tsc()
+    {
+        for i in 0..4 {
+            let value = unsafe {
+                // SAFETY: We checked that the cpu supports `RDTSC` and we run in ring 0.
+                core::arch::x86_64::_rdtsc()
+            };
+            entropy[i * 8..(i + 1) * 8].copy_from_slice(&value.to_ne_bytes());
         }
     }
 

@@ -75,6 +75,11 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     exit_qemu(QemuExitCode::Failed);
 }
 
+/// Returns a reference to the level 4 page table.
+///
+/// # Safety
+///
+/// The caller has to ensure that `physical_memory_offset` is correct.
 pub unsafe fn active_level_4_table(physical_memory_offset: VirtAddr) -> &'static mut PageTable {
     use x86_64::registers::control::Cr3;
 
