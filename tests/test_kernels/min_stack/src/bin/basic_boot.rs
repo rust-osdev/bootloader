@@ -7,7 +7,7 @@ use test_kernel_min_stack::{QemuExitCode, exit_qemu, serial};
 
 const BOOTLOADER_CONFIG: BootloaderConfig = {
     let mut config = BootloaderConfig::new_default();
-    config.kernel_stack_size = 3000;
+    config.kernel_stack_size = 4000;
     config
 };
 entry_point!(kernel_main, config = &BOOTLOADER_CONFIG);
