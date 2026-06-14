@@ -3,6 +3,8 @@
 
 use bootloader_api::{BootInfo, entry_point};
 use core::fmt::Write;
+use uart_16550::backend::PioBackend;
+use uart_16550::{Config, Uart16550Tty};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
@@ -24,10 +26,9 @@ pub fn exit_qemu(exit_code: QemuExitCode) -> ! {
     }
 }
 
-pub fn serial() -> uart_16550::SerialPort {
-    let mut port = unsafe { uart_16550::SerialPort::new(0x3F8) };
-    port.init();
-    port
+pub fn serial() -> Uart16550Tty<PioBackend> {
+    unsafe { Uart16550Tty::new_port(0x3F8, Config::default()) }
+        .expect("should initialize serial device from valid config and valid port")
 }
 
 entry_point!(kernel_main);

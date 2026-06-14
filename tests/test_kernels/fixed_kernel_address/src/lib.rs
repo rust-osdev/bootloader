@@ -1,6 +1,8 @@
 #![no_std]
 
 use bootloader_api::{BootloaderConfig, config::Mapping};
+use uart_16550::backend::PioBackend;
+use uart_16550::{Config, Uart16550Tty};
 
 pub const KERNEL_ADDR: u64 = 0x1987_6543_0000;
 
@@ -30,8 +32,7 @@ pub fn exit_qemu(exit_code: QemuExitCode) -> ! {
     }
 }
 
-pub fn serial() -> uart_16550::SerialPort {
-    let mut port = unsafe { uart_16550::SerialPort::new(0x3F8) };
-    port.init();
-    port
+pub fn serial() -> Uart16550Tty<PioBackend> {
+    unsafe { Uart16550Tty::new_port(0x3F8, Config::default()) }
+        .expect("should initialize serial device from valid config and valid port")
 }

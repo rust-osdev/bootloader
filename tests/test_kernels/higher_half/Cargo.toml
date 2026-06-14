@@ -11,6 +11,6 @@ bootloader_api = { path = "../../../api" }
 x86_64 = { version = "0.15.2", default-features = false, features = [
     "instructions",
 ] }
-uart_16550 = "0.2.10"
+uart_16550 = "0.6.0"
 
 # set to higher half through profile.test.rustflags key in top-level Cargo.toml

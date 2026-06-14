@@ -8,4 +8,4 @@ bootloader_api = { path = "../../../api" }
 x86_64 = { version = "0.15.2", default-features = false, features = [
     "instructions",
 ] }
-uart_16550 = "0.2.10"
+uart_16550 = "0.6.0"
