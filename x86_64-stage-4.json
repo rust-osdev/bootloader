@@ -19,5 +19,5 @@
     "target-pointer-width": 64,
     "relocation-model": "static",
     "os": "none",
-    "rustc-abi": "x86-softfloat"
+    "rustc-abi": "softfloat"
 }
