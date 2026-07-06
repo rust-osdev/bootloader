@@ -1,5 +1,7 @@
 # Unreleased
 
+- change `rustc-abi` in custom targets from `x86-softfloat` to `softfloat`, following [rust-lang/rust#157151](https://github.com/rust-lang/rust/pull/157151)
+
 # 0.9.34 – 2026-02-01
 
 This release is compatible with Rust nightlies starting with `nightly-2026-02-01`.
