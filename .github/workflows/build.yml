@@ -51,7 +51,7 @@ jobs:
         KERNEL_MANIFEST: "test-kernel/Cargo.toml"
 
     - name: 'Convert Bootloader ELF to Binary'
-      run: cargo objcopy -- -I elf64-x86-64 -O binary --binary-architecture=i386:x86-64 target/x86_64-bootloader/release/bootloader target/x86_64-bootloader/release/bootloader.bin
+      run: rust-objcopy -I elf64-x86-64 -O binary --binary-architecture=i386:x86-64 target/x86_64-bootloader/release/bootloader target/x86_64-bootloader/release/bootloader.bin
 
      # install QEMU
     - name: Install QEMU (Linux)
