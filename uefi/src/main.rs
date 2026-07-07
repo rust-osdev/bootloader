@@ -242,8 +242,8 @@ fn allocate_loader_data(size: usize) -> &'static mut [u8] {
         ((size - 1) / 4096) + 1,
     )
     .expect("Failed to allocate memory for the file");
-    unsafe { ptr::write_bytes(ptr.as_mut(), 0, size) };
-    unsafe { slice::from_raw_parts_mut(ptr.as_mut(), size) }
+    unsafe { ptr::write_bytes(ptr.as_ptr(), 0, size) };
+    unsafe { slice::from_raw_parts_mut(ptr.as_ptr(), size) }
 }
 
 /// Opens PXE Base Code for the device path that loaded this image.
