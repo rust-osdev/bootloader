@@ -18,5 +18,5 @@
     "vendor": "unknown",
     "relocation-model": "static",
     "features": "+soft-float,-sse,-mmx",
-    "rustc-abi": "x86-softfloat"
+    "rustc-abi": "softfloat"
 }
