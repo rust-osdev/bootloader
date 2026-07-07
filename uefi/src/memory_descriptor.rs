@@ -1,6 +1,6 @@
 use bootloader_api::info::MemoryRegionKind;
 use bootloader_x86_64_common::legacy_memory_region::LegacyMemoryRegion;
-use uefi::table::boot::{MemoryDescriptor, MemoryType};
+use uefi::boot::{MemoryDescriptor, MemoryType};
 use x86_64::PhysAddr;
 
 #[derive(Debug, Copy, Clone)]
