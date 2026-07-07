@@ -1,5 +1,7 @@
 # Unreleased
 
+# 0.9.35 – 2026-07-07
+
 Fixes the build on Rust nightly `2026-07-05` and newer:
 
 - change `rustc-abi` in custom targets from `x86-softfloat` to `softfloat`, following [rust-lang/rust#157151](https://github.com/rust-lang/rust/pull/157151)
