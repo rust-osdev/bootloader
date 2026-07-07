@@ -1,6 +1,19 @@
 # Unreleased
 
-* change `rustc-abi` in custom targets from `x86-softfloat` to `softfloat`, following [rust-lang/rust#157151](https://github.com/rust-lang/rust/pull/157151)
+# 0.11.16 - 2026-07-07
+
+This release is compatible with Rust nightlies starting with `nightly-2026-07-06`.
+
+* change `rustc-abi` in custom targets from `x86-softfloat` to `softfloat`, following [rust-lang/rust#157151](https://github.com/rust-lang/rust/pull/157151) ([#569](https://github.com/rust-osdev/bootloader/pull/569))
+* [Fix nightly breakage (nightly-2026-05-10)](https://github.com/rust-osdev/bootloader/pull/563)
+* [Add missing `x86_64-unknown-uefi` target](https://github.com/rust-osdev/bootloader/pull/557)
+* [Bump `uart_16550` to 0.6.0](https://github.com/rust-osdev/bootloader/pull/565)
+* [Bump `critical-section`, `atomic-polyfill`, and `heapless`](https://github.com/rust-osdev/bootloader/pull/567)
+* [Speed up BIOS disk reads by merging contiguous cluster reads and skipping already-buffered data](https://github.com/rust-osdev/bootloader/pull/550)
+* [Fix FAT type detection for large FAT16 volumes](https://github.com/rust-osdev/bootloader/pull/547)
+* [Expose FAT partition creation as a separate public function](https://github.com/rust-osdev/bootloader/pull/535)
+
+**Full Changelog**: https://github.com/rust-osdev/bootloader/compare/v0.11.15...v0.11.16
 
 # 0.11.15 - 2026-02-01
 
