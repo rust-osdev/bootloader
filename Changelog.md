@@ -12,6 +12,7 @@ This release is compatible with Rust nightlies starting with `nightly-2026-07-06
 * [Speed up BIOS disk reads by merging contiguous cluster reads and skipping already-buffered data](https://github.com/rust-osdev/bootloader/pull/550)
 * [Fix FAT type detection for large FAT16 volumes](https://github.com/rust-osdev/bootloader/pull/547)
 * [Expose FAT partition creation as a separate public function](https://github.com/rust-osdev/bootloader/pull/535)
+* [uefi: bump from 0.20 to 0.38](https://github.com/rust-osdev/bootloader/pull/566)
 
 **Full Changelog**: https://github.com/rust-osdev/bootloader/compare/v0.11.15...v0.11.16
 
