@@ -1,6 +1,6 @@
 # Unreleased
 
-# 0.11.16 - 2026-07-07
+# 0.11.16 - 2026-07-18
 
 This release is compatible with Rust nightlies starting with `nightly-2026-07-06`.
 
