@@ -14,6 +14,7 @@ members = [
     "write_usable_memory",
     "fixed_kernel_address",
     "stack_address",
+    "config_file",
 ]
 
 [profile.release]
