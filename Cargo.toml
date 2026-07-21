@@ -18,7 +18,7 @@ members = [
     "bios/common",
     "tests/runner",
 ]
-exclude = ["examples/basic", "examples/test_framework", "tests/test_kernels/*"]
+exclude = ["examples/basic", "examples/test_framework", "tests/test_kernels/"]
 resolver = "3"
 
 [workspace.package]
